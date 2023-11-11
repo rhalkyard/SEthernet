@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "PDS-Ethernet")(type "KiCad")(uri "${KIPRJMOD}/../shared/PDS-Ethernet.kicad_sym")(options "")(descr ""))
+)
