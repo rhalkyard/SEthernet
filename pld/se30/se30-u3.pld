@@ -1,0 +1,64 @@
+Name        Decode ;
+PartNo      00 ;
+Date        2023-10-23 ;
+Revision    01 ;
+Designer    rhalkyard ;
+Company     none ;
+Assembly    SEthernet/30 Macintosh SE/30 Ethernet card ;
+Location    U3 ;
+Device      g16v8a ;
+
+/*
+Address-decoding logic for SEthernet/30
+
+Pseudoslot address, IRQ line, and BCLK source are configured using SLOTID jumpers
+  00 = Slot 9, IRQ 1 - valid on both SE/30 and IIsi
+  01 = Slot E, IRQ 1 - conflicts with IIsi onboard video, questionable on SE/30
+  10 = Slot A, IRQ 2 - valid on both SE/30 and IIsi
+  11 = Slot B, IRQ 3 - valid on both SE/30 and IIsi
+
+Device-selection decoded on address bit 16:
+  FsxF xxxx: ROM
+  FsxE xxxx: ENC624J600
+  ...
+  Fsx1 xxxx: ROM
+  Fsx0 xxxx: ENC624J600
+*/
+
+/* INPUTS */
+PIN 1           = !SLOTID_1 ;       /* Slot-select jumpers */
+PIN 2           = !SLOTID_0 ;
+PIN [9..3]      = [A30..24] ;       /* CPU address bus */
+PIN 11          = A31 ;
+/* PIN 10       = gnd ; */
+
+/* IO USED AS INPUTS */
+PIN 14          = !ENC_INT ;        /* ENC624J600 interrupt input */
+PIN 15          = !AS ;             /* CPU address strobe */
+PIN 16          = A16 ;
+
+/* IO USED AS OUTPUTS */
+PIN 12          = !ROM_CS ;         /* Active-low select for ROM */
+PIN 13          = EN_CS ;           /* Active-high select for ENC624J600 */
+PIN 17          = !IRQ3 ;           /* CPU interrupt lines (active-low) */
+PIN 18          = !IRQ2 ;
+PIN 19          = !IRQ1 ;
+/* PIN 20          = vcc ; */
+
+FIELD addr      = [A31..24] ;
+FIELD slot_id   = [SLOTID_1..0] ;
+
+/* Drive PDS IRQ outputs as open-collector */
+[IRQ1..3] = ENC_INT ;
+IRQ1.oe = ENC_INT & (slot_id:'b'00 # slot_id:'b'01) ;
+IRQ2.oe = ENC_INT & slot_id:'b'10 ;
+IRQ3.oe = ENC_INT & slot_id:'b'11 ;
+
+/* Occupy different slot address based on jumper selection */
+SLOT        = AS & slot_id:'b'00 & addr:'h'F9xxxxxx ;
+APPEND SLOT = AS & slot_id:'b'01 & addr:'h'FExxxxxx ;
+APPEND SLOT = AS & slot_id:'b'10 & addr:'h'FAxxxxxx ;
+APPEND SLOT = AS & slot_id:'b'11 & addr:'h'FBxxxxxx ;
+
+ROM_CS = SLOT & A16 ;   /* A16 high: ROM */
+EN_CS = SLOT & !A16 ;   /* A16 low: ENC624J600 */
