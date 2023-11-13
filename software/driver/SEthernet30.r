@@ -2,7 +2,7 @@
 #include "MacTypes.r"
 
 data 'enet' (9635, locked, sysheap, "SEthernet/30") {
-    $$read("enet_9635.resource")
+    $$read("SE30_driver.resource")
 };
 
 resource 'vers' (1) {

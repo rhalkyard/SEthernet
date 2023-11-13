@@ -2,7 +2,7 @@
 #include "MacTypes.r"
 
 data 'DRVR' (69, locked, ".ENET0") {
-    $$read("DRVR_69.resource")
+    $$read("SE_driver.resource")
 };
 
 resource 'vers' (1) {
