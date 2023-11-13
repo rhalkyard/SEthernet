@@ -3509,12 +3509,19 @@
     (uuid fff3c7cd-5678-4ade-b3ad-7d177d23f869)
   )
 
-  (text_box "In 16-bit mode, A0..14 on the ENC624J600 addresses a *WORD*, rather than a byte."
-    (at 96.52 102.87 90) (size 7.62 36.83)
+  (text_box "Data bus is byte-swapped to preserve ordering of byte-wise addressing between little-endian ENC624J600 and big-endian 68K."
+    (at 96.52 55.88 90) (size 11.43 40.64)
     (stroke (width -0.0001) (type default))
     (fill (type none))
     (effects (font (size 1.27 1.27)) (justify left top))
-    (uuid 90ac8fc9-3bc3-43c9-a59f-7e2e16438ccb)
+    (uuid 051bed08-4fbe-457b-b251-47e3de9734ac)
+  )
+  (text_box "In 16-bit mode, A0..14 on the ENC624J600 addresses a *WORD*, rather than a byte, so A1 on the PDS goes to A0 on the ENC624J600."
+    (at 95.25 101.6 90) (size 11.43 36.83)
+    (stroke (width -0.0001) (type default))
+    (fill (type none))
+    (effects (font (size 1.27 1.27)) (justify left top))
+    (uuid 23b3c4b7-00d0-47cc-94c2-3e6c3503754e)
   )
 
   (text "X = open\nO = closed\n\nXX: Slot 9, IRQ 1\nXO: Slot E, IRQ 1\nOX: Slot A, IRQ 2\nXX: Slot B, IRQ 3"
