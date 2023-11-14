@@ -11,7 +11,7 @@
 #endif
 
 #if defined(TARGET_SE)
-#define ENC624J600_BASE 0x600000
+#define ENC624J600_BASE 0x800000
 #endif
 
 /* Number of protocol handlers to support */

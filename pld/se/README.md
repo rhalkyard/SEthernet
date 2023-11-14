@@ -4,7 +4,7 @@ U2 on the SEthernet board is an ATF16V8/GAL16V8 programmable logic device that
 provides address decoding and miscellaneous glue logic.
 
 Address decoding is straightforward - when `/AS` is asserted and address lines
-`A24..A16` indicate an address in the range `0x60 0000`-`0x60 FFFF`, we assert
+`A24..A16` indicate an address in the range `0x80 0000`-`0x80 FFFF`, we assert
 the ENC624J600's chip-select pin.
 
 Glue logic is also minimal - the `B0SEL` and `B1SEL` byte-select lines on the
