@@ -1,5 +1,5 @@
-.include "ROMDefs.inc"
-.include "declrom_macros.inc"
+#include "ROMDefs.inc"
+#include "declrom_macros.inc"
 
 /* 
 Identifier constants
