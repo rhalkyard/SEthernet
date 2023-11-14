@@ -58,12 +58,18 @@ int main(int argc, char ** argv) {
                 flagStr[7] = 'A';
             }
             if (flags & dRAMBasedMask) {
-                /* Does not actually indicate whether driver is in RAM or not!!!
-                Indicates if the driver is referenced by a pointer (0) or a
-                handle (1) */
+                /* Does not seem to necessarily indicate whether driver is in
+                RAM or not!!! Should be interpreted as whether the driver is
+                referenced by a pointer (0) or a handle (1) */
                 flagStr[8] = 'H';                
                 driver = * (Handle) ((*dCtlH)->dCtlDriver);
-                LoadResource( (Handle) driver);
+                
+                if (flags & dNeedLockMask) {
+                    /* If the handle is not locked, the driver code resource may
+                    have been purged. Make sure it's in memory before we examine
+                    it! */
+                    LoadResource((Handle) driver);
+                }
             } else {
                 driver = (*dCtlH)->dCtlDriver;
             }

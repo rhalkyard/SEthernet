@@ -156,9 +156,10 @@ OSErr driverOpen(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
       theGlobals->driverDCE = dce;
 
       if (dce->dCtlFlags & dRAMBasedMask) {
-        /* If running from RAM, detach our driver resource. This means that the
-        Resource Manager can no longer 'see' it, preventing it from being
-        changed, released, etc. */
+        /* If loaded via a Handle, detach our driver resource. This means that
+        the Resource Manager can no longer 'see' it, preventing it from being
+        changed, released, etc. Unfortunately this also means that Macsbug's
+        heap analyzer can no longer identify it either :( */
         DetachResource((Handle)dce->dCtlDriver);
       }
 
@@ -199,7 +200,7 @@ OSErr driverOpen(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
           enc624j600_addr_to_ptr(&theGlobals->chip, ENC_RX_BUF_START);
 
 #if defined(TARGET_SE30)
-      /* Install our interrupt handler using the Slot Managere */
+      /* Install our interrupt handler using the Slot Manager */
       theGlobals->theSInt.sqType = sIQType;
       theGlobals->theSInt.sqPrio = 250;
       theGlobals->theSInt.sqAddr = driverISR;
@@ -241,7 +242,7 @@ OSErr driverOpen(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
 /*
 Entrypoint for Close call
 
-Ethernet drivers don't generally get closed, as most drivers don't implement
+Ethernet drivers don't generally get closed, as drivers don't (can't?) implement
 reference counting and software has no way of knowing if other software is using
 it. Still, drivers all seem to implement some kind of token shutdown procedure.
 */

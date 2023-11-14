@@ -14,7 +14,7 @@ protocolHandlerEntry* findPH(driverGlobalsPtr theGlobals, unsigned short theProt
 }
 
 /*
-EAttachPH call (a.k.a. Control with csCode=doENetAttachPH)
+EAttachPH call (a.k.a. Control with csCode=ENetAttachPH)
 
 Attach a protocol handler to our driver.
 
@@ -57,7 +57,7 @@ OSStatus doEAttachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
 }
 
 /*
-EDetachPH call (a.k.a. Control with csCode=doENetDetachPH)
+EDetachPH call (a.k.a. Control with csCode=ENetDetachPH)
 
 Detach a protocol handler from our driver.
 

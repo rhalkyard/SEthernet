@@ -24,6 +24,12 @@ A16, so that the card's declaration ROM shows up at the top of the address space
 (as expected by the Slot Manager), with the ENC624J600's address space
 immediately below it.
 
+Note that the Slot E configuration does not seem to be particularly useful, as
+it conflicts with onboard video! I copied these settings from the Asante MacCon
+PDS card, which for some reason did support Slot E. The PDS slot in the IIfx
+_was_ intended to occupy Slot E space (both logically and physically), and seems
+mostly pin-compatible, although with a much faster bus speed. curious.
+
 ## Bus Control
 
 While the ENC624J600 in PSP Mode 4 maps neatly onto the 68000's control lines,
