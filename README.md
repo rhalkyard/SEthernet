@@ -78,6 +78,17 @@ Glue Logic: [SEthernet](pld/se) - [SEthernet/30](pld/se30)
 
 [Driver](software/driver)
 
+## Required tools
+
+Schematics, board layout and BOM: [KiCad 7](https://www.kicad.org/)
+
+Programmable Logic: [WinCUPL](https://www.microchip.com/en-us/products/fpgas-and-plds/spld-cplds/pld-design-resources)
+(see [`pld/README.md`](pld/README.md) for notes on WinCUPL)
+
+Declaration ROM, driver and software:
+[Retro68](https://github.com/autc04/Retro68), [CMake](https://cmake.org/) and
+[Python 3](https://www.python.org)
+
 ## Useful reference material
 
 - [ENC624J600 datasheet](https://ww1.microchip.com/downloads/aemDocuments/documents/OTH/ProductDocuments/DataSheets/39935c.pdf)
