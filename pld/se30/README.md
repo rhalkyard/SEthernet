@@ -42,3 +42,10 @@ Additionally, U4 generates the `/DSACKx` signals used as part of the 68030's
 dynamic bus sizing scheme, and turns the CPU's `R/W` signal and the ROM
 chip-select from U3, into separate read-enable and write-enable signals for the
 onboard flash ROM.
+
+## The Bodge
+
+Due to an oversight in timing analysis, the Bus Control logic does not generate
+wait states. Pin 4 of the Bus Control IC, U4, has been repurposed as a Wait
+State input, fed by a third GAL acting as a simple counter clocked by the CPU
+clock.

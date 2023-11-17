@@ -89,6 +89,62 @@ Declaration ROM, driver and software:
 [Retro68](https://github.com/autc04/Retro68), [CMake](https://cmake.org/) and
 [Python 3](https://www.python.org)
 
+## Errata
+
+### Revision 0
+
+#### ENC624J600 is erroneously configured into SPI mode
+
+The combined `SPISEL` `/INT` pin on the ENC624J600 is pulled up instead of down.
+This causes the ENC624J600 to be configured into SPI mode rather than parallel
+mode, which is not much use to us.
+
+##### Symptoms
+
+Card does not function.
+
+##### Workaround
+
+Break the track between the `SPISEL` pullup resistor (R5 on SEthernet, R2 on
+SEthernet/30) and 3.3V. Connect the resistor to ground instead.
+
+##### Resolution
+
+This issue has been resolved in the latest schematics for Revision 1.
+
+#### Read accesses to the SEthernet/30 board do not meet timing specifications.
+
+##### Symptoms
+
+Card operation is erratic.
+
+##### Workaround
+
+Insert wait states on read accesses
+
+- Carefully cut the traces connecting U4 pin 4 to ground on both sides of the
+  board.
+
+- Program a GAL16V8/ATF16V8 with the equations in
+  [`pld/se30/se30-bodge.pld`](pld/se30/se30-bodge.pld) and 'dead bug' it to a
+  convenient place on the circuit board, connected as follows:
+
+Pin #  | Destination
+-------|------------
+1      | PDS connector, pin A38 (`CPUCLK`)
+2      | U3, pin 12 (`!ROM_CS`)
+3      | U3, pin 13 (`EN_CS`)
+10, 11 | Ground
+12     | U4, pin 4 (`WAIT`)
+20     | +5V
+
+Connect a 0.1uF capacitor across pins 10 and 20.
+
+##### Resolution
+
+Revision 1 glue logic will be implemented on single CPLD with configurable
+wait-state generation built in.
+
 ## Useful reference material
 
 - [ENC624J600 datasheet](https://ww1.microchip.com/downloads/aemDocuments/documents/OTH/ProductDocuments/DataSheets/39935c.pdf)

@@ -17,6 +17,7 @@ PIN 1       = EN_CS ;   /* ENC624J600 chip select, from U3 */
 PIN 2       = !ROM_CS ; /* ROM chip select, from U3 */
 PIN 3       = A0 ;      /* Bit 0 of CPU address bus */
 /* PIN 4 = unused, grounded ; */
+PIN 4       = WAIT ;
 PIN 5       = SIZ0 ;    /* Access-size lines from CPU */
 PIN 6       = SIZ1 ;
 /* PIN 7 = unused, grounded ; */
@@ -34,7 +35,6 @@ PIN 16      = B0SEL ;   /* Byte-select lines to ENC624J600 */
 PIN 17      = B1SEL ;
 
 PINNODE 18  = SLOT ;    /* Feedback node for DSACK OE */
-
 /* PIN 19 = unused ; */
 /* PIN 20 = vcc ; */
 
@@ -47,8 +47,8 @@ ROM_WE = ROM_CS & !RW ;
 
 /* ROM access are always 8-bit (DSACK='b'01). ENC accesses are always 16-bit
 (DSACK='b'10) */
-DSACK0 = ROM_CS ;
-DSACK1 = EN_CS  ;
+DSACK0 = ROM_CS & !WAIT ;
+DSACK1 = EN_CS & !WAIT ;
 
 /* DSACK lines are open-collector; outputs must be tristated when we're not
 selected */
@@ -56,5 +56,5 @@ DSACK0.oe = SLOT ;
 DSACK1.oe = SLOT ;
 
 /* Generate byte-select outputs for ENC accesses. */
-B0SEL = EN_CS & DS & !A0 ; /* B0SEL on all even accesses */
-B1SEL = EN_CS & DS & (A0 # ! size:'b'01) ; /* B1SEL on word and odd byte accesses */
+B0SEL = DS & !A0 ; /* B0SEL on all even accesses */
+B1SEL = DS & (A0 # ! size:'b'01) ; /* B1SEL on word and odd byte accesses */

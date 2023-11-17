@@ -16,5 +16,6 @@ REM     e   Create expanded macro output file
 REM     s   Simulate
 SET FLAGS=-m2lxfjnabes
 
-%WINCUPL_DIR%\Shared\cupl.exe %FLAGS% se30-u2.pld
 %WINCUPL_DIR%\Shared\cupl.exe %FLAGS% se30-u3.pld
+%WINCUPL_DIR%\Shared\cupl.exe %FLAGS% se30-u4.pld
+%WINCUPL_DIR%\Shared\cupl.exe %FLAGS% se30-bodge.pld
