@@ -1,21 +1,13 @@
 SET WINCUPL_DIR=C:\WinCUPL
 
-REM This env var must be set for the compiler to work
+@REM This env var must be set for the compiler to work
 SET LIBCUPL=%WINCUPL_DIR%\Shared\Atmel.dl
 
-REM CUPL insists on its flags being mashed into a single string
-REM     m2  Quine-McCluskey minimization
-REM     l   Create listing
-REM     x   Output expanded product terms in documentation file
-REM     f   Output fuse plot in documentation file
-REM     j   JEDEC output format
-REM     n   Name output files based on input filename
-REM     a   Create absolute file
-REM     b   Berkely PLA output format
-REM     e   Create expanded macro output file
-REM     s   Simulate
-SET FLAGS=-m2lxfjnabes
+SET CUPLFLAGS=-j -a -l -e -x -f -b -m2 f1502isptqfp44
 
-%WINCUPL_DIR%\Shared\cupl.exe %FLAGS% se30-u3.pld
-%WINCUPL_DIR%\Shared\cupl.exe %FLAGS% se30-u4.pld
-%WINCUPL_DIR%\Shared\cupl.exe %FLAGS% se30-bodge.pld
+@REM PLCC device = p1502c44
+@REM TQFP device = p1502t44
+SET FITFLAGS=-CUPL -device p1502t44
+
+%WINCUPL_DIR%\Shared\cupl.exe %CUPLFLAGS% se30-atf.pld
+%WINCUPL_DIR%\WinCUPL\fitters\fit1502.exe -i se30-atf.tt2 %FITFLAGS%

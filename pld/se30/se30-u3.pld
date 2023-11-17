@@ -1,4 +1,4 @@
-Name        Decode ;
+Name        Interface Logic ;
 PartNo      00 ;
 Date        2023-10-23 ;
 Revision    01 ;
@@ -6,59 +6,107 @@ Designer    rhalkyard ;
 Company     none ;
 Assembly    SEthernet/30 Macintosh SE/30 Ethernet card ;
 Location    U3 ;
-Device      g16v8a ;
+Device      f1502isptqfp44 ;
 
-/*
-Address-decoding logic for SEthernet/30
+/* Don't let us assign to JTAG pins */
+PROPERTY ATMEL { JTAG=on };
 
-Pseudoslot address, IRQ line, and BCLK source are configured using SLOTID jumpers
-  00 = Slot 9, IRQ 1    Default, suitable for SE/30 and IIsi
-  01 = Slot E, IRQ 1    For IIfx (conflicts with onboard video in SE/30 and IIsi)
-  10 = Slot A, IRQ 2    Suitable for SE/30 and IIsi
-  11 = Slot B, IRQ 3    Suitable for SE/30 and IIsi
+/* Don't attempt to rearrange pins if the design does not fit */
+PROPERTY ATMEL { Preassign=Keep };
 
-Device-selection decoded on address bit 16:
-  FsxF xxxx: ROM
-  FsxE xxxx: ENC624J600
-  ...
-  Fsx1 xxxx: ROM
-  Fsx0 xxxx: ENC624J600
+/* 
+Bus-control logic for SEthernet/30
 */
 
 /* INPUTS */
-PIN 1           = !SLOTID_1 ;       /* Slot-select jumpers */
-PIN 2           = !SLOTID_0 ;
-PIN [9..3]      = [A30..24] ;       /* CPU address bus */
-PIN 11          = A31 ;
-/* PIN 10       = gnd ; */
+PIN 2   = !ENC_INT ;    /* ENC624J600 interrupt input */
+PIN 11  = A0 ;          /* Bit 0 of CPU address bus */
+PIN 12  = A16 ;
+PIN [22..18,15..13] = [A31..24] ;   /* CPU address bus */
+PIN 23  = !AS ;         /* CPU address strobe */
+PIN 25  = SIZ0 ;        /* Access-size lines from CPU */
+PIN 27  = SIZ1 ;
+PIN 28  = RW ;          /* R/W line from CPU */
+PIN 33  = !DS ;         /* Data strobe from CPU */
+PIN 34  = !SLOTID_1 ;   /* Slot-select jumpers */
+PIN 35  = !SLOTID_0 ;
+PIN 37  = WAITMODE ;    /* DSACK delay jumper */
+PIN 40  = CPUCLK ;      /* CPU clock */
 
-/* IO USED AS INPUTS */
-PIN 14          = !ENC_INT ;        /* ENC624J600 interrupt input */
-PIN 15          = !AS ;             /* CPU address strobe */
-PIN 16          = A16 ;
+/* OUTPUTS */
+PIN 3   = !ROM_OE ;     /* ROM read-enable */
+PIN 5   = B1SEL ;       /* ENC624J600 high byte select */
+PIN 6   = EN_CS ;       /* ENC624J600 chip select */
+PIN 8   = B0SEL ;       /* ENC624J600 low byte select */
+PIN 10  = !ROM_WE ;     /* ROM write-enable */
+PIN 30  = !DSACK0 ;     /* Data acknowledge lines to CPU */
+PIN 31  = !DSACK1 ;
+PIN 42  = !IRQ3 ;       /* CPU interrupt lines (active-low) */
+PIN 43  = !IRQ2 ;
+PIN 44  = !IRQ1 ;
 
-/* IO USED AS OUTPUTS */
-PIN 12          = !ROM_CS ;         /* Active-low select for ROM */
-PIN 13          = EN_CS ;           /* Active-high select for ENC624J600 */
-PIN 17          = !IRQ3 ;           /* CPU interrupt lines (active-low) */
-PIN 18          = !IRQ2 ;
-PIN 19          = !IRQ1 ;
-/* PIN 20          = vcc ; */
+NODE [count1..0] ;
 
-FIELD addr      = [A31..24] ;
-FIELD slot_id   = [SLOTID_1..0] ;
+FIELD ADDR      = [A31..0] ;
+FIELD SLOTID   = [SLOTID_1..0] ;
+FIELD SIZE  = [SIZ1..0] ;
+FIELD counter = [count1..0] ;
+
+
+EN_CS = select & !A16 ; /* A16 low: ENC624J600 */
+rom_cs = select & A16 ; /* A16 high: ROM */
+
+/* Generate ROM OE and WE signals */
+ROM_OE = rom_cs & RW ;
+ROM_WE = rom_cs & !RW ;
+
+/* ROM accesses are always 8-bit (DSACK='b'01). ENC accesses are always 16-bit
+(DSACK='b'10). Delay asserting DSACK until wait-state time has elapsed */
+DSACK0 = rom_cs & !wait ;
+DSACK1 = EN_CS & !wait ;
+
+/* DSACK lines are open-collector; outputs must be tristated when we're not
+selected */
+DSACK0.oe = select ;
+DSACK1.oe = select ;
+
+/* Generate byte-select outputs for ENC accesses. */
+B0SEL = DS & !A0 ; /* B0SEL on all even accesses */
+B1SEL = DS & (A0 # ! SIZE:'b'01) ; /* B1SEL on word and odd byte accesses */
 
 /* Drive PDS IRQ outputs as open-collector */
 [IRQ1..3] = ENC_INT ;
-IRQ1.oe = ENC_INT & (slot_id:'b'00 # slot_id:'b'01) ;
-IRQ2.oe = ENC_INT & slot_id:'b'10 ;
-IRQ3.oe = ENC_INT & slot_id:'b'11 ;
+IRQ1.oe = ENC_INT & (SLOTID:'b'00 # SLOTID:'b'01) ;
+IRQ2.oe = ENC_INT & SLOTID:'b'10 ;
+IRQ3.oe = ENC_INT & SLOTID:'b'11 ;
 
 /* Occupy different slot address based on jumper selection */
-SLOT        = AS & slot_id:'b'00 & addr:'h'F9xxxxxx ;
-APPEND SLOT = AS & slot_id:'b'01 & addr:'h'FExxxxxx ;
-APPEND SLOT = AS & slot_id:'b'10 & addr:'h'FAxxxxxx ;
-APPEND SLOT = AS & slot_id:'b'11 & addr:'h'FBxxxxxx ;
+select        = AS & SLOTID:'b'00 & ADDR:'h'F9xxxxxx ;
+APPEND select = AS & SLOTID:'b'01 & ADDR:'h'FExxxxxx ;
+APPEND select = AS & SLOTID:'b'10 & ADDR:'h'FAxxxxxx ;
+APPEND select = AS & SLOTID:'b'11 & ADDR:'h'FBxxxxxx ;
 
-ROM_CS = SLOT & A16 ;   /* A16 high: ROM */
-EN_CS = SLOT & !A16 ;   /* A16 low: ENC624J600 */
+/* Counter to generate delay for DSACK */
+sequence counter {
+    present 'd'0
+        if select next 'd'1 ;
+    present 'd'1
+        if select next 'd'2 ;
+    present 'd'2
+        if select next 'd'3 ;
+    present 'd'3
+        if select next 'd'3 ;
+}
+counter.ar = !select ;  /* Hold counter in reset when we're not selected */
+counter.ck = CPUCLK ;
+
+wait0 = counter:['d'0] ;        /* 0 wait states */
+wait1 = counter:['d'0..'d'1] ;  /* 1 wait state */
+wait2 = counter:['d'0..'d'2] ;  /* 2 wait states */
+
+/* Configure wait-state options with WAITMODE jumper. */
+wait = !WAITMODE & wait2 ;
+APPEND wait = WAITMODE & wait1 ;
+
+/* TODO: enforce 40ns hold-off time between consecutive reads? Not necessary
+unless dealing with clock speeds > 25MHz (i.e. IIfx) */
