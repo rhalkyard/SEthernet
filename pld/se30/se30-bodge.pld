@@ -29,27 +29,41 @@ PIN 12      = WAIT ;   /* Wait-state output, to U4, pin 4 (break connection to g
 /* PIN 16   = unused ; */
 /* PIN 17   = unused ; */
 
-PINNODE [18..19] = [count1..0] ; /* Counter state, leave unconnected */
+PINNODE [17..19] = [count2..0] ; /* Counter state, leave unconnected */
 
 /* PIN 20 = vcc ; */
 
-FIELD counter = [count1..0] ;
+FIELD counter = [count2..0] ;
 
 selected = EN_CS # ROM_CS ;
 
 sequence counter {
     present 'd'0
         if selected next 'd'1 ;
-        default next 'd'0 ;
+        default next 'd'0;
     present 'd'1
         if selected next 'd'2 ;
-        default next 'd'0 ;
+        default next 'd'0;
     present 'd'2
         if selected next 'd'3 ;
-        default next 'd'0 ;
+        default next 'd'0;
     present 'd'3
-        if selected next 'd'3 ;
-        default next 'd'0 ;
+        if selected next 'd'4 ;
+        default next 'd'0;
+    present 'd'4
+        if selected next 'd'5 ;
+        default next 'd'0;
+    present 'd'5
+        if selected next 'd'6 ;
+        default next 'd'0;
+    present 'd'6
+        if selected next 'd'7 ;
+        default next 'd'0;
+    present 'd'7
+        if selected next 'd'7 ;
+        default next 'd'0;
 }
 
-WAIT = selected & (counter:'d'0 # counter:'d'1 # counter:'d'2) # !selected ;
+/* Way more delay than we need, but it works */
+WAIT = !selected ;
+APPEND WAIT = selected & !(counter:'d'7) ;
