@@ -55,6 +55,10 @@ selected */
 DSACK0.oe = SLOT ;
 DSACK1.oe = SLOT ;
 
-/* Generate byte-select outputs for ENC accesses. */
-B0SEL = DS & !A0 ; /* B0SEL on all even accesses */
-B1SEL = DS & (A0 # ! size:'b'01) ; /* B1SEL on word and odd byte accesses */
+/* 
+Generate byte-select outputs for ENC accesses. The EN_CS term here is important!
+Even with CS deasserted, the ENC624J600 doesn't seem to like having its
+byte-selects wiggled unnecessarily.
+*/
+B0SEL = EN_CS & DS & !A0 ; /* B0SEL on all even accesses */
+B1SEL = EN_CS & DS & (! size:'b'01 # A0) ; /* B1SEL on word and odd byte accesses */
