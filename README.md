@@ -95,7 +95,7 @@ Declaration ROM, driver and software:
 
 #### ENC624J600 is erroneously configured into SPI mode
 
-The combined `SPISEL` `/INT` pin on the ENC624J600 is pulled up instead of down.
+The combined `SPISEL`/`/INT` pin on the ENC624J600 is pulled up instead of down.
 This causes the ENC624J600 to be configured into SPI mode rather than parallel
 mode, which is not much use to us.
 
@@ -123,7 +123,7 @@ Card operation is erratic.
 Insert wait states on read accesses
 
 - Carefully cut the traces connecting U4 pin 4 to ground on both sides of the
-  board.
+  board (a small countersink bit works well for this).
 
 - Program a GAL16V8/ATF16V8 with the equations in
   [`pld/se30/se30-bodge.pld`](pld/se30/se30-bodge.pld) and 'dead bug' it to a
@@ -131,7 +131,7 @@ Insert wait states on read accesses
 
 Pin #  | Destination
 -------|------------
-1      | PDS connector, pin A38 (`CPUCLK`)
+1      | U1, pin 33 (`CLKOUT`) or J1, pin c38 (`C16M`/`CPUCLK`) (see note below)
 2      | U3, pin 12 (`!ROM_CS`)
 3      | U3, pin 13 (`EN_CS`)
 10, 11 | Ground
@@ -139,6 +139,14 @@ Pin #  | Destination
 20     | +5V
 
 Connect a 0.1uF capacitor across pins 10 and 20.
+
+It is preferable to use the ENC624J600's software-configurable `CLKOUT` pin as a
+clock source, but the clock signal available on pin c38 of the PDS connector
+(16MHz `C16M` on the SE/30 and IIsi, 20MHz `CPUCLK` on the IIfx) can be used as
+a more easily-soldered alternative.
+
+The default `CLKOUT` frequency of 4MHz (`COCON`=`1011`) gives ample timing margin, 25MHz (`COCON`=`0010`) gives
+an optimal wait-state delay of 80 nanoseconds.
 
 ##### Resolution
 

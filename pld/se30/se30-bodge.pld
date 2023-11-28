@@ -14,7 +14,7 @@ bug' style and wired to points on board listed below
 */
 
 /* INPUTS */
-PIN 1       = CPUCLK ;  /* CPU clock from PDS connector, pin a38 */
+PIN 1       = EN_CLK ;  /* ENC624J600 clock output, U1, pin 33 *SEE NOTE BELOW* */
 PIN 2       = !ROM_CS ; /* ROM chip select, from U3, pin 12 */
 PIN 3       = EN_CS ;   /* ENC624J600 chip select, from U3, pin 13 */
 /* PIN 10   = gnd ; */
@@ -29,41 +29,38 @@ PIN 12      = WAIT ;   /* Wait-state output, to U4, pin 4 (break connection to g
 /* PIN 16   = unused ; */
 /* PIN 17   = unused ; */
 
-PINNODE [17..19] = [count2..0] ; /* Counter state, leave unconnected */
+PINNODE [18..19] = [count1..0] ; /* Counter state, leave unconnected */
 
 /* PIN 20 = vcc ; */
 
-FIELD counter = [count2..0] ;
+FIELD counter = [count1..0] ;
 
 selected = EN_CS # ROM_CS ;
 
 sequence counter {
-    present 'd'0
-        if selected next 'd'1 ;
-        default next 'd'0;
-    present 'd'1
-        if selected next 'd'2 ;
-        default next 'd'0;
-    present 'd'2
-        if selected next 'd'3 ;
-        default next 'd'0;
-    present 'd'3
-        if selected next 'd'4 ;
-        default next 'd'0;
-    present 'd'4
-        if selected next 'd'5 ;
-        default next 'd'0;
-    present 'd'5
-        if selected next 'd'6 ;
-        default next 'd'0;
-    present 'd'6
-        if selected next 'd'7 ;
-        default next 'd'0;
-    present 'd'7
-        if selected next 'd'7 ;
-        default next 'd'0;
+    present 0
+        if selected next 1 ;
+        default next 0;
+    present 1
+        if selected next 2 ;
+        default next 0;
+    present 2
+        if selected next 3 ;
+        default next 0;
+    present 3
+        if selected next 3 ;
+        default next 0;
 }
 
-/* Way more delay than we need, but it works */
+/* 
+The delay counter is clocked by the ENC624J600's general-purpose clock output.
+By default this is 4MHz, which gives us ample safety margin, but when configured
+to 25MHz (COCON=0010), two clock periods gives us an 80ns delay, which is within
+a couple of nanoseconds of the 75ns that we need.
+
+If the pins of the ENC624J600 are too challenging to solder to, an alternative
+is to use pin c38 of the PDS slot - on the SE/30 and IIsi, this is a 16MHz
+clock, on the IIfx it is 20MHz.
+*/
 WAIT = !selected ;
-APPEND WAIT = selected & !(counter:'d'7) ;
+APPEND WAIT = selected & (counter:[0..1]) ;
