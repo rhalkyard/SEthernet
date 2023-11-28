@@ -1,0 +1,7 @@
+*       text=auto
+
+*.bin   binary
+*.pdf   binary
+
+*.bat   text eol=crlf
+*.pld   text eol=crlf   # WinCUPL needs CRLF line endings
