@@ -4,12 +4,12 @@
 
 #define RXFCON_PROMISCUOUS \
   ERXFCON_CRCEN | ERXFCON_RUNTEN | ERXFCON_UCEN | ERXFCON_NOTMEEN | ERXFCON_MCEN
-#define RXFCON_DEFAULT ERXFCON_HTEN | ERXFCON_BCEN
+#define RXFCON_DEFAULT ERXFCON_CRCEN | ERXFCON_RUNTEN | ERXFCON_UCEN | ERXFCON_BCEN
 
 int enc624j600_reset(enc624j600 *chip) {
   /* Write and read-back a 'magic' value to user data start pointer to verify
   that chip is present and functioning */
-  short magic = 0x1234;
+  unsigned short magic = 0x1234;
   ENC624J600_WRITE_REG(chip->base_address, EUDAST, SWAPBYTES(magic));
   if (ENC624J600_READ_REG(chip->base_address, EUDAST) != SWAPBYTES(magic)) {
     return -1;
@@ -25,6 +25,7 @@ int enc624j600_reset(enc624j600 *chip) {
 }
 
 int enc624j600_init(enc624j600 *chip, unsigned short txbuf_size) {
+  unsigned short tmp;
   if (txbuf_size & 1) {
     /* Buffer boundary must be word-aligned */
     return -1;
@@ -37,9 +38,11 @@ int enc624j600_init(enc624j600 *chip, unsigned short txbuf_size) {
   chip->rxbuf_start = enc624j600_addr_to_ptr(chip, txbuf_size);
   chip->rxbuf_end = enc624j600_addr_to_ptr(chip, ENC624J600_MEM_END);
 
-  /* Disable clock output; we don't use it */
-  ENC624J600_CLEAR_BITS(chip->base_address, ECON2,
-                        ECON2_COCON_MASK << ECON2_COCON_SHIFT);
+  /* Set up 25MHz clock output (used by glue logic for timing generation). */
+  tmp = ENC624J600_READ_REG(chip->base_address, ECON2);
+  tmp &= ~ECON2_COCON_MASK;
+  tmp |= 0b0010 << ECON2_COCON_SHIFT;
+  ENC624J600_WRITE_REG(chip->base_address, ECON2, tmp);
 
   /* LED A = link, LED B = activity */
   ENC624J600_WRITE_REG(
@@ -88,19 +91,16 @@ void enc624j600_read_hwaddr(enc624j600 *chip, unsigned char addrbuf[6]) {
   unsigned short *words = (unsigned short *)addrbuf;
 
   words[0] = ENC624J600_READ_REG(chip->base_address, MAADR1);
-  words[0] = SWAPBYTES(words[0]);
   words[1] = ENC624J600_READ_REG(chip->base_address, MAADR2);
-  words[1] = SWAPBYTES(words[1]);
   words[2] = ENC624J600_READ_REG(chip->base_address, MAADR3);
-  words[2] = SWAPBYTES(words[2]);
 }
 
 void enc624j600_write_hwaddr(enc624j600 *chip, const unsigned char addrbuf[6]) {
   unsigned short *words = (unsigned short *)addrbuf;
 
-  ENC624J600_WRITE_REG(chip->base_address, MAADR1, SWAPBYTES(words[0]));
-  ENC624J600_WRITE_REG(chip->base_address, MAADR2, SWAPBYTES(words[1]));
-  ENC624J600_WRITE_REG(chip->base_address, MAADR3, SWAPBYTES(words[2]));
+  ENC624J600_WRITE_REG(chip->base_address, MAADR1, words[0]);
+  ENC624J600_WRITE_REG(chip->base_address, MAADR2, words[1]);
+  ENC624J600_WRITE_REG(chip->base_address, MAADR3, words[2]);
 }
 
 void enc624j600_write_multicast_table(enc624j600 *chip,
@@ -175,9 +175,21 @@ void enc624j600_update_rx_tail(enc624j600 *chip, unsigned char *tail) {
 }
 
 unsigned short enc624j600_read_rx_fifo_level(enc624j600 *chip) {
-  unsigned short bufsize = ENC624J600_READ_REG(chip->base_address, ERXST) -
-                           ENC624J600_READ_REG(chip->base_address, ERXHEAD);
-  int bytesfree = ENC624J600_READ_REG(chip->base_address, ERXTAIL) - ENC624J600_MEM_END;
+  unsigned short rxstart, rxhead, rxtail, bufsize;
+  int bytesfree;
+
+  rxstart = ENC624J600_READ_REG(chip->base_address, ERXST);
+  rxstart = SWAPBYTES(rxstart);
+
+  rxhead = ENC624J600_READ_REG(chip->base_address, ERXHEAD);
+  rxhead = SWAPBYTES(rxhead);
+  
+  bufsize = rxstart - rxhead;
+
+  rxtail = ENC624J600_READ_REG(chip->base_address, ERXTAIL);
+  rxtail = SWAPBYTES(rxtail);
+
+  bytesfree = rxtail - ENC624J600_MEM_END;
   if (bytesfree < 0) {
     bytesfree = -bytesfree;
   }
@@ -209,5 +221,5 @@ void enc624j600_enable_phy_loopback(enc624j600 *chip) {
 
 void enc624j600_disable_phy_loopback(enc624j600 *chip) {
   unsigned short old_phcon1 = enc624j600_read_phy_reg(chip, PHCON1);
-  enc624j600_write_phy_reg(chip, PHCON1, old_phcon1);
+  enc624j600_write_phy_reg(chip, PHCON1, old_phcon1 & ~PHCON1_PLOOPBK);
 }

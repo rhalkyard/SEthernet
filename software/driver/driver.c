@@ -33,8 +33,9 @@ until the last one has signaled completion.
 
 The frame data is given as a Write Data Structure (WDS) - a list of
 address-length pairs like an iovec, we need to read from each one in sequence,
-the end of the WDS is signaled by an entry with a zero length. The driver is
-expected to copy the hardware address into the source address field.
+the end of the WDS is signaled by an entry with a zero length. The ethernet
+header is already prepared for us, we just have to write our hardware address
+into the source field.
 */
 OSStatus doEWrite(driverGlobalsPtr theGlobals, EParamBlkPtr pb) {
   WDSElement *wds; /* a WDS is a list of address-length pairs like an iovec */
@@ -78,7 +79,6 @@ OSStatus doEWrite(driverGlobalsPtr theGlobals, EParamBlkPtr pb) {
   for (int i = 0; i < 6; i++) {
     *dest++ = theGlobals->info.stdInfo.ethernetAddress[i];
     source++;
-    entryLen--;
   }
 
   /* Send it! */
