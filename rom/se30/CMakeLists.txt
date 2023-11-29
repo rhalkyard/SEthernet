@@ -4,6 +4,10 @@ add_compile_options(-nodefaultlibs -nostartfiles -e directory)
 # Compile to an object file only, no linking
 add_library(declrom OBJECT declrom.S)
 
+# Use sethernet30_board_defs.h from shared library to keep hardware IDs in sync
+# with software
+target_link_libraries(declrom board_defs)
+
 # Use objcopy to flatten the object file and patch in the CRC field with our
 # script
 add_custom_command(

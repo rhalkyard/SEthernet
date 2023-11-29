@@ -3,7 +3,10 @@
 add_compile_options(-mpcrel -ffreestanding)
 add_link_options(-Wl,--mac-flat -nodefaultlibs -nostartfiles -e header_start)
 
-set(DRIVER_SOURCES header.S driver.c enc624j600.c isr.c multicast.c protocolhandler.c registertools.c util.c)
+set(DRIVER_SOURCES header.S driver.c isr.c multicast.c protocolhandler.c registertools.c util.c)
+
+add_library(driver_control INTERFACE)
+target_include_directories(driver_control INTERFACE include/)
 
 # With the SE, the ethernet driver needs to be a 'DRVR' code resource. In theory
 # we could create an INIT to load this into the driver table at startup, but for
@@ -12,6 +15,7 @@ set(SE_RESOURCE SE_driver.resource)
 add_executable(${SE_RESOURCE} ${DRIVER_SOURCES})
 target_compile_options(${SE_RESOURCE} PRIVATE -m68000)
 target_compile_definitions(${SE_RESOURCE} PRIVATE TARGET_SE)
+target_link_libraries(${SE_RESOURCE} enc624j600 driver_control board_defs)
 add_custom_command(
     OUTPUT SEthernet.bin
     COMMAND ${REZ} -I ${REZ_INCLUDE_PATH}
@@ -32,6 +36,7 @@ set(SE30_RESOURCE SE30_driver.resource)
 add_executable(${SE30_RESOURCE} ${DRIVER_SOURCES})
 target_compile_options(${SE30_RESOURCE} PRIVATE -m68030)
 target_compile_definitions(${SE30_RESOURCE} PRIVATE TARGET_SE30)
+target_link_libraries(${SE30_RESOURCE} enc624j600 driver_control board_defs)
 add_custom_command(
         OUTPUT SEthernet30.bin
         COMMAND ${REZ} -I ${REZ_INCLUDE_PATH}
@@ -39,7 +44,7 @@ add_custom_command(
                         --copy ${CMAKE_CURRENT_SOURCE_DIR}/NetworkIcons.rsrc.bin
                         -o SEthernet30.bin
                         -t comd
-                        -c Enet
+                        -c sEth
                         
         DEPENDS ${SE30_RESOURCE} ${CMAKE_CURRENT_SOURCE_DIR}/SEthernet.r ${CMAKE_CURRENT_SOURCE_DIR}/NetworkIcons.rsrc.bin)
 add_custom_target(SEthernet30 ALL DEPENDS SEthernet30.bin)

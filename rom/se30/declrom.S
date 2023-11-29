@@ -1,16 +1,6 @@
 #include "ROMDefs.inc"
 #include "declrom_macros.inc"
-
-/* 
-Identifier constants
-
-These would originally have been assigned by Apple to hardware developers, but
-these days I guess we just pick numbers that we like and hope they don't collide
-with anything.
-*/
-my_boardId = 9635 /* Board identifier */
-my_drSw = 9635 /* Functional sResource driver software interface ID */
-my_drHw = 1 /* Functional sResourc driver hardware ID */
+#include "sethernet30_board_defs.h"
 
 /* Declaration ROM starts here. The sResource directory should be at the lowest
 address */

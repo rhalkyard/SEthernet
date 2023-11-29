@@ -1,1 +1,2 @@
 add_subdirectory(showDrivers)
+add_subdirectory(testMemory)
