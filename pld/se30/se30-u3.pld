@@ -12,10 +12,10 @@ Device      g16v8a ;
 Address-decoding logic for SEthernet/30
 
 Pseudoslot address, IRQ line, and BCLK source are configured using SLOTID jumpers
-  00 = Slot 9, IRQ 1
-  01 = Slot E, IRQ 1 - Not very useful, conflicts with onboard video!
-  10 = Slot A, IRQ 2
-  11 = Slot B, IRQ 3
+  00 = Slot 9, IRQ 1    Default, suitable for SE/30 and IIsi
+  01 = Slot E, IRQ 1    For IIfx (conflicts with onboard video in SE/30 and IIsi)
+  10 = Slot A, IRQ 2    Suitable for SE/30 and IIsi
+  11 = Slot B, IRQ 3    Suitable for SE/30 and IIsi
 
 Device-selection decoded on address bit 16:
   FsxF xxxx: ROM
