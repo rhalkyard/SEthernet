@@ -16,6 +16,9 @@ unsigned char pToCStr(Str255 pstr, char *cstr) {
 }
 
 int main(int argc, char ** argv) {
+    (void) argc;
+    (void) argv;
+
     short tableSize = LMGetUnitTableEntryCount();
     Ptr tableBase = LMGetUTableBase();
     DCtlHandle dCtlH;
@@ -86,14 +89,14 @@ int main(int argc, char ** argv) {
 
             if (numDrivers > 0 && numDrivers % 20 == 0) {
                 printf("Press RETURN for more...\n");
-                getchar();
+                while (getchar() != 'n') {}
             }
         }
     }
 
     printf("\n%d total drivers\n", numDrivers);
     printf("Press RETURN to exit...\n");
-    getchar();
+    while (getchar() != 'n') {}
 
     return 0;
 }
