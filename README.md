@@ -179,6 +179,26 @@ written to RAM using byte or word operations only.
 Revision 1 glue logic will enforce a delay between back-to-back write accesses
 so that longword writes comply with the ENC624J600's timing specifications.
 
+#### Spurious interrupts may be generated on a warm restart
+
+Because the ENC624J600 has no hardware reset input, spurious interrupts may be
+generated on a warm restart if the link state changes or packets are received.
+
+##### Symptoms
+
+After a warm restart, the Mac will display a Sad Mac error or crash with a
+System Error early in the boot process.
+
+##### Workaround
+
+Shut the Mac down fully and cold-boot it, or disconnect the ethernet cable
+before warm-restarting.
+
+##### Resolution
+
+Revision 1 glue logic will gate interrupts on reset, and only enable them after
+the driver has signaled that the ENC624J600 has been initialized.
+
 ## Useful reference material
 
 - [ENC624J600 datasheet](https://ww1.microchip.com/downloads/aemDocuments/documents/OTH/ProductDocuments/DataSheets/39935c.pdf)
