@@ -1,9 +1,7 @@
 #ifndef ENC624J600_REGISTERS_H
 #define ENC624J600_REGISTERS_H
 
-#define ENC624J600_MEM_END 0x6000
-
-#define SWAPBYTES(value) ((((value) >> 8) & 0x00FF) | (((value) << 8) & 0xFF00))
+#define ENC624J600_MEM_END ((unsigned short) 0x6000)
 
 #define BIT(n) (1 << (n))
 
@@ -49,9 +47,27 @@ registers to be set or cleared, saving us a read-modify-write cycle. Note that
 while the bit-set and -clear registers are at a fixed offset from the main
 registers, not all registers can be manipulated in this way!
 */
+
+/*
+Set bits in a register using the set-bit register at reg_offset + 0x100
+
+Equivalent to (but faster than):
+  unsignd short tmp = ENC624J600_READ_REG(base, reg_offset);
+  tmp |= bitfield
+  ENC624J600_WRITE_REG(base, reg_offset, tmp);
+*/
 #define ENC624J600_SET_BITS(base, reg_offset, bitfield)                       \
   ENC624J600_WRITE_REG(base, reg_offset + ENC624J600_SET_BIT_REGISTER_OFFSET, \
                        bitfield)
+
+/*
+Clear bits in a register using the clear-bit register at reg_offset + 0x180
+
+Equivalent to (but faster than):
+  unsigned short tmp = ENC624J600_READ_REG(base, reg_offset);
+  tmp &= ~bitfield
+  ENC624J600_WRITE_REG(base, reg_offset, tmp);
+*/
 #define ENC624J600_CLEAR_BITS(base, reg_offset, bitfield) \
   ENC624J600_WRITE_REG(                                   \
       base, reg_offset + ENC624J600_CLEAR_BIT_REGISTER_OFFSET, bitfield)
@@ -67,12 +83,16 @@ For bitfields, this is taken care of in the bit definitions below (i.e. bit 15
 in the datasheet is represented as bit 7, bit 0 as bit 8, etc.), but pointers
 etc. will need to be byteswapped.
 
-This makes things a bit convoluted but it's much less of a performance hit than
-having to swap the bytes in every network packet!
+This makes register access a bit convoluted but it's much less of a performance
+hit than having to swap the bytes in every network packet!
 
-In short:
+Some general rules for register access:
   - Always access bitfield registers as whole words and select bits using the
     definitions below.
+
+  - Use set-bit (register + 0x100) and clear-bit (register + 0x180) registers
+    whenever possible - it's faster than a read-modify-write, and it avoids any
+    risk of disturbing other data in the register.
 
   - Swap bytes when accessing word registers such as pointers.
 
@@ -98,7 +118,7 @@ In short:
 #define EDMALEN 0x7e0c
 #define EDMADST 0x7e0e
 #define EDMACS 0x7e10
-#define EXTSTAT 0x7e12
+#define ETXSTAT 0x7e12
 #define ETXWIRE 0x7e14
 
 #define EUDAST 0x7e16

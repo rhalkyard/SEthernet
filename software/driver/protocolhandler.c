@@ -2,10 +2,12 @@
 
 #include "driver.h"
 
+#include "enc624j600.h"
+
 /* Find a protocol-handler table entry matching protocol number 'theProtocol'.
 Returns a pointer to the entry. */
 protocolHandlerEntry* findPH(driverGlobalsPtr theGlobals, unsigned short theProtocol) {
-    for (int i = 0; i < numberOfPhs; i++) {
+    for (unsigned short i = 0; i < numberOfPhs; i++) {
         if (theGlobals->protocolHandlers[i].ethertype == theProtocol) {
             return &theGlobals->protocolHandlers[i];
         }
@@ -52,6 +54,11 @@ OSStatus doEAttachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
     thePHSlot->handler = (void *)pb->u.EParms1.ePointer;
     // thePHSlot->readPB = -1; /* not used */
 
+    if (theGlobals->phCount == 0) {
+      enc624j600_start(&theGlobals->chip);
+    }
+    theGlobals->phCount++;
+
     return noErr;
   }
 }
@@ -69,10 +76,16 @@ OSStatus doEDetachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
 
   thePHSlot = findPH(theGlobals, pb->u.EParms1.eProtType);
   if (thePHSlot != nil) {
-    thePHSlot->ethertype = 1;
+    thePHSlot->ethertype = phProtocolFree;
+    thePHSlot->handler = nil;
     // if (thePHSlot->readPB != -1){
     //     /* Cancel pending ERead calls */
     // }
+    theGlobals->phCount--;
+    if (theGlobals->phCount == 0) {
+      enc624j600_suspend(&theGlobals->chip);
+    }
+
     return noErr;
   } else
     return lapProtErr;
@@ -82,7 +95,7 @@ OSStatus doEDetachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
 Initialize the protocol handler table, called during initial Open routine.
 */
 void InitPHTable(driverGlobalsPtr theGlobals) {
-    for (int i = 0; i < numberOfPhs; i++) {
+    for (unsigned short i = 0; i < numberOfPhs; i++) {
         theGlobals->protocolHandlers[i].ethertype = phProtocolFree;
         theGlobals->protocolHandlers[i].handler = nil;
         // theGlobals->protocolHandlers[i].readPB = -1; /* not used */

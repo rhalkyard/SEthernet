@@ -6,6 +6,7 @@ struct enc624j600 {
                                   buffer) */
   unsigned char *rxbuf_start;  /* Pointer to start of receive buffer */
   unsigned char *rxbuf_end;    /* Pointer to end of receive buffer */
+  unsigned char *rxptr;
 };
 typedef struct enc624j600 enc624j600;
 
@@ -42,6 +43,8 @@ int enc624j600_init(enc624j600 *chip, unsigned short rxbuf_len);
 
 /* Start accepting packets */
 void enc624j600_start(enc624j600 *chip);
+
+void enc624j600_suspend(enc624j600 *chip);
 
 /* Read device-ID and revision registers
     device_id: out-parameter, 1 byte
@@ -85,8 +88,9 @@ void enc624j600_decrement_rx_pending_count(enc624j600 *chip);
 /* Update tail of receive ring buffer. tail is a 'real' pointer into the receive
 buffer (as opposed to an offset relative to the chip base address).
 Automatically aligns to word boundaries */
-void enc624j600_update_rx_tail(enc624j600 *chip, unsigned char *tail);
+void enc624j600_update_rxptr(enc624j600 *chip, unsigned char *rxptr);
 
+/* Read the number of pending bytes in the receive FIFO */
 unsigned short enc624j600_read_rx_fifo_level(enc624j600 *chip);
 
 /* Convert a chip address into a real pointer */
@@ -105,8 +109,10 @@ void enc624j600_write_phy_reg(enc624j600 *chip, unsigned char phyreg,
 void enc624j600_enable_phy_loopback(enc624j600 * chip);
 void enc624j600_disable_phy_loopback(enc624j600 * chip);
 
+unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest, unsigned short len);
+
 /* Exchange the bytes in a word value */
-#define SWAPBYTES(value) ((((value) >> 8) & 0x00FF) | (((value) << 8) & 0xFF00))
+#define SWAPBYTES(value) (((value) >> 8) | ((value) << 8))
 
 /* An integer with bit n set */
 #define BIT(n) (1 << (n))
@@ -116,6 +122,7 @@ void enc624j600_disable_phy_loopback(enc624j600 * chip);
   ((rsv).bytes[((bitnum) >> 3)] & (BIT((bitnum)&0x7)))
 
 /* Flag bits for irq functions */
+
 /* Master IRQ enable (only valid for enc624j600_enable/disable_irq) */
 #define IRQ_ENABLE BIT(7)
 /* Modular exponentiation intrrupt */
@@ -140,6 +147,15 @@ void enc624j600_disable_phy_loopback(enc624j600 * chip);
 #define IRQ_PCNT_FULL BIT(8)
 
 /* Useful bits in the Receive Status Vector, for use with RSV_BIT() macro */
+
+/* Packet was received with CRC error */
+#define RSV_BIT_CRC_ERR (20)
+/* Packet length check error */
+#define RSV_BIT_LENGTH_CHECK_ERR (21)
+/* Packet length out of range */
+#define RSV_BIT_LENGTH_RANGE_ERR (22)
+/* Packet was received without errors */
+#define RSV_BIT_OK (23)
 /* Destination is multicast */
 #define RSV_BIT_MULTICAST (24)
 /* Destination is broadcast */

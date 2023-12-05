@@ -1,17 +1,20 @@
 #include "isr.h"
 
 #include <Debugging.h>
+#include <stdio.h>
 
 #include "driver.h"
 #include "enc624j600.h"
+#include "enc624j600_registers.h"
 #include "multicast.h"
 #include "protocolhandler.h"
+
+static char strbuf[256];
 
 #if defined(TARGET_SE)
 /* I really wanted to keep register-poking abstracted out of the core driver
 code, but on the SE we need to examine the interrupt status in the
 assembly-language wedge for the interrupt vector */
-#include "enc624j600_registers.h"
 
 /* Dirty macro-quoting tricks to inject the status register's address into our
 inline asm*/
@@ -27,207 +30,9 @@ void (*originalInterruptVector)();
 driverGlobalsPtr isrGlobals;
 #endif
 
-/*
-ReadPacket and ReadRest are called by protocol handlers to copy data from
-the receive FIFO into their own buffers. Their calling conventions and register
-usage are particularly awkward, hence implementing them in asm.
-
-ReadPacket reads a given number of bytes from the packet. ReadRest does the
-same, but signals completion to the driver and discards any remaining unread
-data. Protocol handlers can call ReadPacket any number of times, but they MUST
-call ReadRest once (and only once) when they are finished with a packet.
-
-The address of ReadPacket must be in A4 when the protocol handler is called.
-DO NOT CALL THIS FUNCTION FROM THE DRIVER.
-
-On entry:
-  A0: Pointer to globals (guaranteed preserved by protocol handler)
-  A1: Unused, but guaranteed preserved by protocol handler.
-  A3: buffer to write into
-  D1: number of bytes remaining (*** IM only documents this for AppleTalk
-      .MPP protocol handlers, but looking at the MACE driver, ethernet
-      does this too ***)
-  D3: maximum number of bytes to read
-
-On exit:
-  A0-A2: Preserved
-  A3: updated buffer pointer (byte following last byte)
-  A4-A5: Preserved
-  D0: clobbered
-  D1: number of bytes remaining
-  D2: preserved
-  D3: 0 if requested number of bytes read
-      <0 if packet was (-D3) bytes too large to fit in buffer (ReadRest)
-      >0 if D3 bytes weren't read
-  D4-D7: Preserved
-*/
-static void ReadPacket() {
-  asm volatile(
-      /* ReadRest is defined to start two bytes after ReadPacket */
-      "   BRA        RealReadPacket_%=\n\t"
-      /* ReadRest */
-      "   MOVE.W     %%D3, %%D0\n\t" /* d0 = d3 = maximum number of bytes to
-                                      * read */
-      "   CMP.W      %%D1, %%D3\n\t"
-      "   BLS        SizeOK1_%=\n\t" /* if d3 >= number of bytes remaining... */
-      "   MOVE.W     %%D1, %%D0\n"   /* read all remaining bytes */
-      "SizeOK1_%=:\n\t"
-      "   SUB.W      %%D0, %%D3\n\t"
-      "   TST.W      %%D0\n\t"        /* if read length is zero... */
-      "   BEQ        ReadDone_%=\n\t" /* nothing more to do */
-      "   BSR        ReadBuf\n"       /* otherwise read some bytes*/
-      "   BRA        ReadDone_%=\n\t"
-
-      "RealReadPacket_%=:\n\t"
-      "   MOVE.W     %%D3, %%D0\n\t" /* size check as above */
-      "   CMP.W      %%D1, %%D3\n\t"
-      "   BLS        SizeOK2_%=\n\t"
-      "   MOVE.W     %%D1, %%D0\n"
-      "SizeOK2_%=:\n\t"
-      "   SUB.W      %%D0, %%D3\n\t"
-      "   SUB.W      %%D0, %%D1\n\t"
-      "   TST.W      %%D0\n\t"
-      "   BEQ        ReadDone_%=\n\t"
-      "   BSR        ReadBuf\n"
-      "ReadDone_%=:\n\t"
-      :
-      :
-      :);
-}
-
-/*
-Copy routine used internally by ReadBuf, broken out into a separate function
-for clarity. Don't call this!
-
-On entry:
-  A1: Source address
-  A3: Destination address
-  D0: Number of bytes to read
-
-Internal:
-  D0: Loop counter
-  D5: Saved read length
-
-On exit:
-  A1: 1 byte past last byte read
-  A3: 1 byte past last byte written
-  D0: destroyed
-  D5: destroyed
-  D6: destroyed
-*/
-__attribute__((used)) static void ReadChunk(void) {
-  asm volatile(
-      /* Check for starting address word-alignment */
-      "   MOVE.W     %%A1, %%D5\n\t"
-      "   BTST       #0, %%D5\n\t"
-      "   BEQ        evenRead_%=\n\t"
-
-      /* if start is not word-aligned, read 1 byte before entering loop */
-      "   SUBQ.W     #1, %%A1\n\t"
-      "   MOVE.W     (%%A1)+, %%D5\n\t"
-      "   MOVE.B     %%D5, (%%A3)+\n\t"
-      "   SUBQ.W     #1, %%D0\n"
-      "evenRead_%=:\n\t"
-      /* Set up loop */
-      "   MOVE.W     %%D0, %%D5\n\t" /* D0 is loop counter; save read length for
-                                     later */
-      "   LSR.W      #2, %%D0\n\t"   /* we're reading 4 bytes per iteration,
-                                     divide counter by 4 */
-      "   BRA        loopCnt_%=\n"
-      "readLoop_%=:\n\t"
-      /* Read 4 bytes at a time. Presumably using MOVE.Ws to avoid having to
-      handle both word and long alignment cases */
-      "   MOVE.W     (%%A1)+, (%%A3)+\n\t"
-      "   MOVE.W     (%%A1)+, (%%A3)+\n"
-      "loopCnt_%=:\n\t"
-      "   DBRA       %%D0, readLoop_%=\n\t"
-
-      /* fixup read length */
-      "   BTST       #1, %%D5\n\t"
-      "   BEQ        finishByte_%=\n\t"
-      "   MOVE.W     (%%A1)+, (%%A3)+\n" /* handle extra word */
-      "finishByte_%=:\n\t"
-      "   BTST       #0, %%D5\n\t"
-      "   BEQ        chunkDone_%=\n\t"
-      "   MOVE.B     (%%A1)+, (%%A3)+\n" /* handle extra byte */
-      "chunkDone_%=:"
-      :
-      :
-      :);
-}
-
-/*
-ReadBuf: copy from receive FIFO into memory
-
-Weird ugly asm code in order to comply with the awkward register usage specified
-for ReadPacket/ReadRest.
-
-On entry:
-  A0: Pointer to driver globals
-  A3: Destination buffer
-  D0: Number of bytes to read
-
-  theGlobals->rx_read_ptr pointing to first byte to read from RX FIFO
-
-Internal:
-  D0: Byte count for ReadChunk (used by ReadChunk call)
-  D5: Used by ReadChunk
-  D6: Temporary byte count when splitting a wraparound read
-
-On exit:
-  A0: Preservd
-  A1: Receive FIFO read pointer (1 byte after last read location)
-  A2: Preserved
-  A3: Updated destination pointer
-  D0: Destroyed
-
-  theGlobals->rx_read_ptr pointing to byte following last byte read
-  enc624j600 RX tail pointing to last whole word read (i.e. 2-3 bytes behind
-    rx_read_ptr)
-*/
-#pragma parameter __A1 ReadBuf(__A0, __A3, __D0)
-Byte *ReadBuf(driverGlobalsPtr theGlobals, Byte *dest, unsigned short len) {
-  register Byte *src asm("a1");
-  asm volatile(
-      "   MOVEM.L    %%D5-%%D6, -(%%SP)\n\t"
-      "   MOVE.L     %[readptr],%%A1\n\t"
-      "   MOVE.L     %[rxbuf_end], %%D6\n\t"
-
-      /* handle wraparound of circular buffer and split read into chunks if
-         needed */
-      "   SUB.L      %%A1, %%D6\n\t"
-      "   BLS        OneAndDone_%=\n\t" /* Non-wrapping read, just one chunk */
-      "   SUB.W      %%D6, %%D0\n\t"    /* Set up first half of wrapped read */
-      "   EXG        %%D6, %%D0\n\t"
-      "   BSR        ReadChunk\n\t" /* Read first chunk */
-
-      /* Set up for second half and fall through to non-wrapping case */
-      "   MOVE.W     %%D6, %%D0\n\t"
-      "   MOVEA.L    %[rxbuf_start], %%A1\n"
-
-      "OneAndDone_%=:\n\t"
-      "   BSR        ReadChunk\n\t"
-      "   MOVEM.L    (%%SP)+, %%D5-%%D6\n\t" /* Done with temporary registers */
-      "   MOVE.L     %%A1, %[readptr]\n\t" /* update read pointer in globals */
-
-      /* update ENC624J600 RX tail pointer to free up buffer space as we read */
-      "   MOVEM.L    %%A0-%%A1/%%D0-%%D2,-(%%SP)\n\t" /* save call-clobbered
-                                                         regs */
-      "   MOVE.L     %%A1, -(%%SP)\n\t"
-      "   MOVE.L     %[chip], -(%%SP)\n\t"
-      "   BSR        enc624j600_update_rx_tail\n\t" /* (&theGlobals->chip, A1)
-                                                     */
-      "   ADDQ.L     #8, %%SP\n\t"
-      "   MOVEM.L    (%%SP)+, %%A0-%%A1/%%D0-%%D2\n\t"
-
-      : "=r"(dest), "=r"(src), "+r"(len)
-      : [readptr] "m"(theGlobals->rx_read_ptr),
-        [rxbuf_start] "m"(theGlobals->chip.rxbuf_start),
-        [rxbuf_end] "m"(theGlobals->chip.rxbuf_end),
-        [chip] "m"(theGlobals->chip)
-      :);
-  return src;
-}
+/* ReadPacket callback function that we pass to protocol handlers. We don't (and
+shouldn't) call it ourselves */
+extern void ReadPacket();
 
 /*
 Wrapper to call protocol handlers from C.
@@ -254,10 +59,10 @@ C assumes that A0-A1 and D0-D2 will be destroyed, we just need to save A2, A3,
 and D3.
 */
 #pragma parameter __D0 callPH(__A0, __A1, __A3, __A4, __D1)
-static void callPH(driverGlobalsPtr theGlobals, void *phProc, Byte *payloadPtr,
+static void callPH(enc624j600 *chip, void *phProc, Byte *payloadPtr,
                    void (*readPacketProc)(), unsigned short payloadLen) {
   /* make our register arguments look used */
-  (void)(theGlobals);
+  (void)(chip);
   (void)(phProc);
   (void)(payloadPtr);
   (void)(readPacketProc);
@@ -272,22 +77,15 @@ static void callPH(driverGlobalsPtr theGlobals, void *phProc, Byte *payloadPtr,
 
 /* Handle a packet from the receive FIFO */
 static void handlePacket(driverGlobalsPtr theGlobals) {
-  unsigned short
-      nextPkt_chip; /* address (in chip space) of next packet. LITTLE-ENDIAN.*/
-  enc624j600_rsv rsv;            /* Receive status vector */
+  enc624j600_rsv *rsv;           /* Receive status vector */
   Byte *destMac;                 /* Destination ethernet address */
-  unsigned short *protocol;      /* Protocol number/ethertype */
+  unsigned short protocol;       /* Protocol number/ethertype */
   unsigned short pktLen;         /* Length of packet */
   unsigned short bytesPending;   /* Number of bytes pending in receive FIFO */
   unsigned short packetsPending; /* Number of packets pending in receive FIFO */
   protocolHandlerEntry *protocolSlot; /* Protocol handler */
 
-  Byte *rhaPtr = theGlobals->recvHeaderArea;  /* Pointer into header buffer */
-
-  /* this should have been set for us already, but just to make sure ... */
-  if (theGlobals->rx_read_ptr != theGlobals->nextPkt) {
-    DebugStr("\pstarting a new packet in the wrong place!");
-  }
+  Byte *rhaPtr = theGlobals->recvHeaderArea; /* Pointer into header buffer */
 
   /* Record some FIFO stats */
   packetsPending = enc624j600_read_rx_pending_count(&theGlobals->chip);
@@ -304,88 +102,130 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
 
     2 bytes         pointer to next entry (relative to chip base address)
     6 bytes         receive status vector
-    64-1518 bytes   layer 2 frame
+    6 bytes         destination address
+    6 bytes         source address
+    2 bytes         ethertype
+    ...             layer 3 payload
   */
+  enc624j600_read_rxbuf(&theGlobals->chip, theGlobals->recvHeaderArea,
+                        sizeof(unsigned short) + sizeof(enc624j600_rsv) +
+                            6 * 2 + sizeof(unsigned short));
+
   /* Read next-packet pointer*/
-  ReadBuf(theGlobals, (Byte *)&nextPkt_chip, sizeof(nextPkt_chip));
+  // enc624j600_read_rxbuf(&theGlobals->chip, (Byte *)&nextPkt_chip,
+  //                       sizeof(nextPkt_chip));
   /* Next-packet pointer is little-endian and relative to the chip
   address space. Convert this to a 'real' pointer. */
-  theGlobals->nextPkt =
-      enc624j600_addr_to_ptr(&theGlobals->chip, SWAPBYTES(nextPkt_chip));
+  theGlobals->nextPkt = enc624j600_addr_to_ptr(
+      &theGlobals->chip, SWAPBYTES(*(unsigned short *)rhaPtr));
+  rhaPtr += sizeof(unsigned short);
 
   /* Read packet length */
-  ReadBuf(theGlobals, (Byte *)&rsv, sizeof(rsv));
-  pktLen = SWAPBYTES(rsv.pkt_len_le);
-  /* pktLen is the entire length of the layer 2 frame, including padding and
-  CRC*/
-  if (pktLen > 1518 || pktLen < 64) {
-    /* Packet too long or short. These shouldn't make it past our receive
-    filters, but drop them here just in case. */
-    goto drop;
-  }
+  // enc624j600_read_rxbuf(&theGlobals->chip, (Byte *)&rsv, sizeof(rsv));
+  rsv = (enc624j600_rsv *)rhaPtr;
+  rhaPtr += sizeof(enc624j600_rsv);
+  pktLen = SWAPBYTES(rsv->pkt_len_le);
 
   /* The actual frame starts here. Read the destination, source, and ethertype
   into the Receive Header Area */
-  ReadBuf(theGlobals, rhaPtr, 6 * sizeof(unsigned short));
+  // enc624j600_read_rxbuf(&theGlobals->chip, rhaPtr, 6 * sizeof(unsigned
+  // char));
   destMac = rhaPtr;
   rhaPtr += 6;
 
-  ReadBuf(theGlobals, rhaPtr, 6 * sizeof(unsigned short));
+  // enc624j600_read_rxbuf(&theGlobals->chip, rhaPtr, 6 * sizeof(unsigned
+  // char));
   /* sourceMac = rhaPtr; */
   rhaPtr += 6;
 
-  ReadBuf(theGlobals, rhaPtr, sizeof(protocol));
-  protocol = (unsigned short *)rhaPtr;
-  rhaPtr += 2;
+  // enc624j600_read_rxbuf(&theGlobals->chip, rhaPtr, sizeof(unsigned short));
+  protocol = *(unsigned short *)rhaPtr;
+  rhaPtr += sizeof(unsigned short);
 
+  /* Check for CRC errors. By default the ENC624J600 drops bad-CRC packets
+  silently in hardware, but collect stats in case we disable that filter. */
+  if (RSV_BIT(*rsv, RSV_BIT_CRC_ERR)) {
+    theGlobals->info.fcsErrors++;
+    goto drop;
+  }
+
+  /* Check for runt frames (typically dropped in hardware, but collect stats in
+  case the filter gets disabled) */
+  if (pktLen < 64) {
+    theGlobals->info.rxRunt++;
+    goto drop;
+  }
+
+  /* Check for too-long frames (typically dropped in hardware, but collect stats
+  in case the filter gets disabled) */
+  if (pktLen > 1518) {
+    theGlobals->info.rxTooLong++;
+    goto drop;
+  }
+
+  unsigned short rxhead =
+      ENC624J600_READ_REG(theGlobals->chip.base_address, ERXHEAD);
+  rxhead = SWAPBYTES(rxhead);
+
+  unsigned short rxtail =
+      ENC624J600_READ_REG(theGlobals->chip.base_address, ERXTAIL);
+  rxtail = SWAPBYTES(rxtail);
+
+  /* Sanity-check our receive filters */
+  if (RSV_BIT(*rsv, RSV_BIT_UNICAST)) {
+    /* Destination is broadcast or unicast to us */
+    goto accept;
+  } else if (RSV_BIT(*rsv, RSV_BIT_BROADCAST)) {
+    theGlobals->info.broadcastRxFrameCount++;
+    goto accept;
+  } else if (RSV_BIT(*rsv, RSV_BIT_MULTICAST) && RSV_BIT(*rsv, RSV_BIT_HASH_MATCH)) {
+    /* Destination hash matches a multicast we're listening to */
+    if (findMulticastEntry(theGlobals, destMac)) {
+      /* Actual destination address matches a multicast we're listening to */
+      theGlobals->info.multicastRxFrameCount++;
+      goto accept;
+    } else {
+      /* Multicast hash collision */
+      theGlobals->info.rxUnwanted++;
+      goto drop;
+    }
+  } else {
+    /* Hash collision with a non-multicast address */
+    theGlobals->info.rxUnwanted++;
+    goto drop;
+  }
+
+accept:
   /* An ethertype field of < 0x600 indicates an 802.2 Type 1 frame (Ethernet
   Phase II in Apple parlance). We assign this the protocol number 0. The LAP
   manager always registers itself as the handler for this protocol. */
-  if (*protocol < 0x0600) {
-    *protocol = phProtocolPhaseII;
+  if (protocol < 0x0600) {
+    protocolSlot = findPH(theGlobals, phProtocolPhaseII);
+  } else {
+    protocolSlot = findPH(theGlobals, protocol);
   }
-
   /* Search the protocol-handler table for a handler for this ethertype */
-  protocolSlot = findPH(theGlobals, *protocol);
   if (protocolSlot == nil) {
     /* no handler for this protocol, drop it */
     goto drop;
   }
 
-  /* Sanity-check our receive filters */
-  if (RSV_BIT(rsv, RSV_BIT_UNICAST) || RSV_BIT(rsv, RSV_BIT_BROADCAST)) {
-    /* Destination is broadcast or unicast to us */
-    goto accept;
-  } else if (RSV_BIT(rsv, RSV_BIT_HASH_MATCH) &&
-             RSV_BIT(rsv, RSV_BIT_MULTICAST)) {
-    /* Destination is multicast AND address hash matches a multicast we're
-    listening to */
-    if (findMulticastEntry(theGlobals, destMac)) {
-      /* Actual destination address matches a multicast we're listening to */
-      goto accept;
-    } else {
-      /* Multicast hash collision */
-      theGlobals->info.stdInfo.rxIncorectAddressCount++;
-      goto drop;
-    }
-  } else {
-    /* Hash collision with a non-multicast address */
-    theGlobals->info.stdInfo.rxIncorectAddressCount++;
-    goto drop;
-  }
-
-accept:
-  theGlobals->info.rxPackets++;
-  theGlobals->info.rxBytes += pktLen;
-
+  // strbuf[0] = sprintf(strbuf + 1,
+  //                     "RX: proto=%04x, len=%d, rha @ %08x, rx=%04x, h=%04x, "
+  //                     "t=%04x, cnt=%d, next=%08x",
+  //                     protocol, pktLen, (unsigned int) rhaPtr, (unsigned int) theGlobals->chip.rxptr & 0xffff, rxhead, rxtail,
+  //                     enc624j600_read_rx_pending_count(&theGlobals->chip),
+  //                     (unsigned int) theGlobals->nextPkt);
+  // DebugStr((unsigned char *) strbuf);
   /* Call the protocol handler to read the rest of the packet */
-  callPH(theGlobals, protocolSlot->handler, rhaPtr, ReadPacket, pktLen - 18);
+  callPH(&theGlobals->chip, protocolSlot->handler, rhaPtr, ReadPacket,
+         pktLen - 18);
+  theGlobals->info.rxFrameCount++;
 
 drop:
   /* finished with packet, discard any remaining data by advancing read pointer
   and rx buffer tail to the start of the next packet */
-  theGlobals->rx_read_ptr = theGlobals->nextPkt;
-  enc624j600_update_rx_tail(&theGlobals->chip, theGlobals->nextPkt - 2);
+  enc624j600_update_rxptr(&theGlobals->chip, theGlobals->nextPkt);
 
   /* decrement pending-receive counter */
   enc624j600_decrement_rx_pending_count(&theGlobals->chip);
@@ -398,6 +238,22 @@ static void userISR(driverGlobalsPtr theGlobals) {
 
   if (irq_status & IRQ_TX) {
     /* Transmit complete; signal successful completion */
+    unsigned short txstat =
+        ENC624J600_READ_REG(theGlobals->chip.base_address, ETXSTAT);
+    unsigned short collisions =
+        (txstat >> ETXSTAT_COLCNT_SHIFT) & ETXSTAT_COLCNT_MASK;
+    if (txstat & ETXSTAT_DEFER) {
+      theGlobals->info.deferredFrames++;
+    }
+    if (collisions >= 1) {
+      theGlobals->info.collisionFrames++;
+      if (collisions == 1) {
+        theGlobals->info.singleCollisionFrames++;
+      } else {
+        theGlobals->info.multiCollisionFrames++;
+      }
+    }
+    theGlobals->info.txFrameCount++;
     IODone((DCtlPtr)theGlobals->driverDCE, noErr);
     enc624j600_clear_irq(&theGlobals->chip, IRQ_TX);
   }
@@ -414,7 +270,18 @@ static void userISR(driverGlobalsPtr theGlobals) {
     Not sure how best to express these so for simplicity let's just call them
     all timeouts.
     */
-    theGlobals->info.stdInfo.txTimeoutCount++;
+    unsigned short txstat =
+        ENC624J600_READ_REG(theGlobals->chip.base_address, ETXSTAT);
+    if (txstat & ETXSTAT_EXDEFER) {
+      theGlobals->info.excessiveDeferrals++;
+    } else if (txstat & ETXSTAT_MAXCOL) {
+      theGlobals->info.excessiveCollisions++;
+    } else if (txstat & ETXSTAT_LATECOL) {
+      theGlobals->info.lateCollisions++;
+    } else {
+      theGlobals->info.internalRxErrors++;
+    }
+
     IODone((DCtlPtr)theGlobals->driverDCE, excessCollsns);
     enc624j600_clear_irq(&theGlobals->chip, IRQ_TX_ABORT);
   }
@@ -462,7 +329,7 @@ void driverISR() {
   C always saves A2-A6 and D3-D7, so we just need to save A0, D1, D2.
   */
   asm("MOVEM %A0/%D1-%D2, -(%SP)\n\t"
-      "BSR _driverISR\n\t"
+      "JSR _driverISR\n\t"
       "MOVEM (%sp)+, %A0/%D1-%D2");
 #elif defined(TARGET_SE)
   asm volatile (
@@ -477,7 +344,7 @@ void driverISR() {
     /* We have an interrupt waiting: call our ISR */
     "   MOVEM   %%a0-%%a1/%%d1-%%d2,  -(%%sp) \n\t"
     "   LEA     isrGlobals(%%pc), %%a1 \n\t"
-    "   BSR     _driverISR  \n\t"
+    "   JSR     _driverISR  \n\t"
     "   MOVEM   (%%sp)+, %%a0-%%a1/%%d1-%%d2\n\t"
     "   MOVE.W  (%%sp)+, %%d0  \n\t"
     "   RTE\n"
@@ -499,7 +366,7 @@ void driverISR() {
 __attribute__((used)) static unsigned long _driverISR(
     driverGlobalsPtr theGlobals) {
   unsigned short irq_status;
-  int irq_handled = 0;
+  unsigned char irq_handled = 0;
 
   /* Mask all interrupts inside ISR */
   enc624j600_disable_irq(&theGlobals->chip, IRQ_ENABLE);
@@ -517,7 +384,7 @@ __attribute__((used)) static unsigned long _driverISR(
     /* Packet dropped due to full receive FIFO or packet-counter saturation.
     Unlike the DP8390 we don't need to do anything to recover from this state
     except process some pending packets (below) */
-    theGlobals->info.stdInfo.rxOverflowCount++;
+    theGlobals->info.internalRxErrors++;
 
     enc624j600_clear_irq(&theGlobals->chip,
                          irq_status & (IRQ_RX_ABORT | IRQ_PCNT_FULL));

@@ -1,3 +1,6 @@
+#ifndef SETHERNET_BOARD_DEFS_H
+#define SETHERNET_BOARD_DEFS_H
+
 /*
 Board-level defintions for SEthernet.
 
@@ -16,3 +19,5 @@ Interrupt priority level used by SEthernet board. Level 1 is shared with the
 VIA.
 */
 #define SETHERNET_INTERRUPT (1)
+
+#endif /* SETHERNET_BOARD_DEFS_H */

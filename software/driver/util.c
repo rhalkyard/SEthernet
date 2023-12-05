@@ -1,6 +1,7 @@
 #include "util.h"
 
 #include <MacTypes.h>
+#include <OSUtils.h>
 #include <Timer.h>
 
 #define CRC_POLYNOMIAL (0x04c11db7)
@@ -9,7 +10,7 @@
 table. Doesn't need to be fast or fancy since it's only called when we add or
 remove a multicast address */
 unsigned long crc32(const Byte *data, const unsigned short len) {
-  int i, j;
+  unsigned short i, j;
   unsigned long byte, crc;
 
   crc = 0xffffffff;
@@ -27,21 +28,22 @@ unsigned long crc32(const Byte *data, const unsigned short len) {
   return crc;
 }
 
-/* Busy-wait for the given number of microseconds */
-void busyWait(const unsigned long time_us) {
-  UInt64 start, now;
+/* Busy-wait for one Tick (1/60s) */
+void waitTicks(const unsigned short ticks) {
+
+  unsigned int start, now;
   /* UnsignedWide is technically a struct of two unsigned longs in big-endian
   order, it's interchangeable with a UInt64 but GCC doesn't know this. */
-  Microseconds((UnsignedWide *)&start);
+  start = TickCount();
   do {
-    Microseconds((UnsignedWide *)&now);
-  } while (now - start < time_us);
+    now = TickCount();
+  } while (now - start < ticks);
 }
 
 /* Compare two ethernet addresses for equality */
 Boolean ethAddrsEqual(const Byte *addr1, const Byte *addr2) {
   /* could do this as a long and a word but lets keep things simple for now */
-  for (int i = 0; i < 6; i++) {
+  for (unsigned short i = 0; i < 6; i++) {
     if (addr1[i] != addr2[i]) {
       return false;
     }
@@ -50,9 +52,15 @@ Boolean ethAddrsEqual(const Byte *addr1, const Byte *addr2) {
 }
 
 /* Copy an ethernet address */
-void copyEthAddrs(const Byte *source, Byte *dest) {
+void copyEthAddrs(Byte *dest, const Byte *source) {
   /* could do this as a long and a word but lets keep things simple for now */
-  for (int i = 0; i < 6; i++) {
+  for (unsigned short i = 0; i < 6; i++) {
     dest[i] = source[i];
+  }
+}
+
+void my_memcpy(unsigned char * dest, unsigned char * source, unsigned short len) {
+  for (int i = 0; i < len; i++) {
+    *dest++ = *source++;
   }
 }

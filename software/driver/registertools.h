@@ -1,5 +1,6 @@
+#pragma once
+
 #include "driver.h"
-#include "enc624j600_control.h"
 
 #include <Devices.h>
 #include <ENET.h>

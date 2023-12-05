@@ -1,3 +1,6 @@
+#ifndef SETHERNET30_BOARD_DEFS_H
+#define SETHERNET30_BOARD_DEFS_H
+
 /* 
 Slot Manager board identifier constants for SEthernet/30.
 
@@ -18,7 +21,11 @@ changes here will require new builds of both ROM and software.
 /* Driver software interface ID. All hardware that
 implements the same software interface should use this identifier. */
 #define SETHERNET30_DRSW (9635)
+#define SETHERNET30_ROM_DRSW (SETHERNET30_DRSW)
 
 /* Driver hardware ID. This identifier allows software to tell apart different
 hardware that implements the same software interface. */
 #define SETHERNET30_DRHW (1)
+#define SETHERNET30_ROM_DRHW (SETHERNET30_DRHW)
+
+#endif /* SETHERNET30_BOARD_DEFS_H */

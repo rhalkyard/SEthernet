@@ -3,11 +3,13 @@
 #include "enc624j600.h"
 #include "util.h"
 
+#include <string.h>
+
 /* Look up an address in our table of multicast addresses. Returns a pointer to
 the multicast table entry if found, nil if no match */
 multicastEntry* findMulticastEntry(const driverGlobalsPtr theGlobals,
                                    const Byte address[6]) {
-  for (int i = 0; i < numberofMulticasts; i++) {
+  for (unsigned short i = 0; i < numberofMulticasts; i++) {
     if (theGlobals->multicasts[i].refCount > 0) {
       if (ethAddrsEqual(address, theGlobals->multicasts[i].address)) {
         return &theGlobals->multicasts[i];
@@ -20,7 +22,7 @@ multicastEntry* findMulticastEntry(const driverGlobalsPtr theGlobals,
 /* Find a free entry in the multicast table. Returns a pointer to the first free
 entry found, nil if no free entries */
 static multicastEntry* findFreeMulticastEntry(driverGlobalsPtr theGlobals) {
-  for (int i = 0; i < numberofMulticasts; i++) {
+  for (unsigned short i = 0; i < numberofMulticasts; i++) {
     if (theGlobals->multicasts[i].refCount == 0) {
       return &theGlobals->multicasts[i];
     }
@@ -35,10 +37,9 @@ static void updateMulticastHashTable(const driverGlobalsPtr theGlobals) {
   unsigned long hashValue;
 
   /* Zero out hash table */
-  ((unsigned long *) hashTable)[0] = 0;
-  ((unsigned long *) hashTable)[1] = 0;
+  memset(hashTable, 0, 4 * sizeof(unsigned short));
 
-  for (int i = 0; i < numberofMulticasts; i++) {
+  for (unsigned short i = 0; i < numberofMulticasts; i++) {
     if (theGlobals->multicasts[i].refCount > 0) {
       hashValue = crc32(theGlobals->multicasts[i].address, 6);
 

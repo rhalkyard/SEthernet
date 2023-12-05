@@ -1,9 +1,8 @@
 # Build drivers as code resources; PC-relative (no relocation necessary) flat
 # binaries with no startup code
-add_compile_options(-mpcrel -ffreestanding)
-add_link_options(-Wl,--mac-flat -nodefaultlibs -nostartfiles -e header_start)
+add_link_options(-Wl,--mac-flat -nostartfiles -e header_start)
 
-set(DRIVER_SOURCES header.S driver.c isr.c multicast.c protocolhandler.c registertools.c util.c)
+set(DRIVER_SOURCES header.S readpacket.s driver.c isr.c multicast.c protocolhandler.c registertools.c util.c)
 
 add_library(driver_control INTERFACE)
 target_include_directories(driver_control INTERFACE include/)
@@ -46,6 +45,7 @@ add_custom_command(
                         -t comd
                         -c sEth
                         
-        DEPENDS ${SE30_RESOURCE} ${CMAKE_CURRENT_SOURCE_DIR}/SEthernet.r ${CMAKE_CURRENT_SOURCE_DIR}/NetworkIcons.rsrc.bin)
+        DEPENDS ${SE30_RESOURCE} ${CMAKE_CURRENT_SOURCE_DIR}/SEthernet30.r
+            ${CMAKE_CURRENT_SOURCE_DIR}/NetworkIcons.rsrc.bin)
 add_custom_target(SEthernet30 ALL DEPENDS SEthernet30.bin)
 

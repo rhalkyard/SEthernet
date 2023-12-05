@@ -6,7 +6,8 @@
 address */
 directory:
     OSLstEntry 1, board_sResource
-    OSLstEntry 128, functional_sResource
+    OSLstEntry 128, eth_functional_sResource
+    OSLstEntry 128, rom_functional_sResource
     EndLstEntry
 
 board_sResource:
@@ -15,7 +16,7 @@ board_sResource:
     /* boardId values were assigned by Apple to hardware developers. I guess
     these days we just pick a number we like and hope we don't collide with
     anything. */
-    DatLstEntry boardId, 9635
+    DatLstEntry boardId, SETHERNET30_BOARDID
     OSLstEntry vendorInfo, vendor_info
     EndLstEntry
 
@@ -23,7 +24,7 @@ board_sResource_rsrctype:
     RsrcType catBoard, typeBoard, drSwBoard, drHwBoard
 
 board_name:
-    .ascii "SEthernet/30 Card"
+    .ascii "SEthernet/30"
     .byte 0
 
 vendor_info:
@@ -49,21 +50,37 @@ vendor_date:
     .ascii __DATE__ /* C Preprocessor macro, need to make sure this gets preprocessed */
     .byte 0
 
-functional_sResource:
-    OSLstEntry sRsrcType, functional_sResource_rsrctype
-    OSLstEntry sRsrcName, functional_sResource_rsrcname
-    OSLstEntry minorBaseOS, functional_sResource_baseoffset
+eth_functional_sResource:
+    OSLstEntry sRsrcType, eth_functional_sResource_rsrctype
+    OSLstEntry sRsrcName, eth_functional_sResource_rsrcname
+    OSLstEntry minorBaseOS, eth_functional_sResource_baseoffset
     EndLstEntry
 
-functional_sResource_rsrctype:
-    RsrcType catNetwork, typeEtherNet, my_drSw, my_drHw
+eth_functional_sResource_rsrctype:
+    RsrcType catNetwork, typeEtherNet, SETHERNET30_DRSW, SETHERNET30_DRHW
 
-functional_sResource_rsrcname:
-    .ascii "SEthernet/30 Ethernet"
+eth_functional_sResource_rsrcname:
+    .ascii "Network SEthernet/30"
     .byte 0
 
-functional_sResource_baseoffset:
-    .long 0x000E0000
+eth_functional_sResource_baseoffset:
+    .long 0x00000000
+
+rom_functional_sResource:
+    OSLstEntry sRsrcType, rom_functional_sResource_rsrctype
+    OSLstEntry sRsrcName, rom_functional_sResource_rsrcname
+    OSLstEntry minorBaseOS, rom_functional_sResource_baseoffset
+    EndLstEntry
+
+rom_functional_sResource_rsrctype:
+    RsrcType catTest, typeEtherNet, SETHERNET30_ROM_DRSW, SETHERNET30_ROM_DRHW
+
+rom_functional_sResource_rsrcname:
+    .ascii "SEthernet/30 ROM"
+    .byte 0
+
+rom_functional_sResource_baseoffset:
+    .long 0x000F0000
 
 /* Decalration ROM header */
     OSLstEntry 0 directory /* Offset to sResource directory */

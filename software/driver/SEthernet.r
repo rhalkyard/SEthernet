@@ -1,5 +1,5 @@
 #include "Retro68.r"
-#include "MacTypes.r"
+#include "Types.r"
 
 data 'DRVR' (69, locked, ".ENET0") {
     $$read("SE_driver.resource")

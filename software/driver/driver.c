@@ -1,4 +1,3 @@
-
 #include "driver.h"
 
 #include <AppleTalk.h>
@@ -10,6 +9,8 @@
 #include <MacTypes.h>
 #include <Resources.h>
 #include <Slots.h>
+#include <string.h>
+#include <Retro68Runtime.h>
 
 #include "enc624j600.h"
 #include "isr.h"
@@ -18,6 +19,7 @@
 #include "registertools.h"
 #include "util.h"
 
+driverGlobalsPtr ourGlobals;
 
 /*
 EWrite (a.k.a.) Control called with csCode=ENetWrite
@@ -66,9 +68,8 @@ OSStatus doEWrite(driverGlobalsPtr theGlobals, EParamBlkPtr pb) {
 
   /* Copy data from WDS into transmit buffer */
   do {
-    while (entryLen-- > 0) {
-      *dest++ = *source++;
-    }
+    my_memcpy(dest, source, entryLen);
+    dest += entryLen;
     wds++;
     entryLen = wds->entryLength;
     source = (Byte *)wds->entryPtr;
@@ -76,10 +77,8 @@ OSStatus doEWrite(driverGlobalsPtr theGlobals, EParamBlkPtr pb) {
 
   /* Go back and copy our address into the source field */
   dest = theGlobals->chip.base_address + ENC_TX_BUF_START + 6;
-  for (int i = 0; i < 6; i++) {
-    *dest++ = theGlobals->info.stdInfo.ethernetAddress[i];
-    source++;
-  }
+
+  my_memcpy(dest, theGlobals->info.ethernetAddress, 6);
 
   /* Send it! */
   enc624j600_transmit(&theGlobals->chip, theGlobals->chip.base_address,
@@ -109,6 +108,7 @@ OSErr driverOpen(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
   error = noErr;
 
   if (dce->dCtlStorage == nil) {
+    RETRO68_RELOCATE();
     theGlobals = (driverGlobalsPtr)NewPtrSysClear(sizeof(driverGlobals));
     if (!theGlobals) {
       error = MemError();
@@ -116,6 +116,7 @@ OSErr driverOpen(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
       /* dCtlStorage is technically a Handle, but since its use is entirely
       user-defined we can just treat it as a pointer */
       dce->dCtlStorage = (Handle)theGlobals;
+      ourGlobals = theGlobals;
 
 #if defined(TARGET_SE30)
       long gestaltResult;
@@ -171,8 +172,9 @@ OSErr driverOpen(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
 
       /* Wait for the chip to come back after the reset. According to the
       datasheet, we must delay 25us for bus interface and MAC registers to come
-      up, plus an additional 256us for the PHY. */
-      busyWait(25 + 256);
+      up, plus an additional 256us for the PHY. I'm not aware of any easy way to
+      delay with that kind of granularity, so just busy-wait for 1 tick */
+      waitTicks(1);
 
       /* Initialize the ethernet controller. */
       enc624j600_init(&theGlobals->chip, ENC_RX_BUF_START);
@@ -184,18 +186,15 @@ OSErr driverOpen(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
       globals. */
       eadrResourceHandle = GetResource(EAddrRType, dce->dCtlSlot);
       if (eadrResourceHandle) {
-        copyEthAddrs((Byte *)*eadrResourceHandle,
-                     theGlobals->info.stdInfo.ethernetAddress);
+        copyEthAddrs(theGlobals->info.ethernetAddress, (Byte *)*eadrResourceHandle);
         enc624j600_write_hwaddr(&theGlobals->chip, (Byte *)*eadrResourceHandle);
         ReleaseResource(eadrResourceHandle);
       } else {
         enc624j600_read_hwaddr(&theGlobals->chip,
-                               theGlobals->info.stdInfo.ethernetAddress);
+                               theGlobals->info.ethernetAddress);
       }
 
       /* Set up read pointers to the start of the receive FIFO */
-      theGlobals->rx_read_ptr =
-          enc624j600_addr_to_ptr(&theGlobals->chip, ENC_RX_BUF_START);
       theGlobals->nextPkt =
           enc624j600_addr_to_ptr(&theGlobals->chip, ENC_RX_BUF_START);
 
@@ -227,6 +226,8 @@ OSErr driverOpen(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
 #endif
 
       /* Let's go! */
+      
+      Debugger();
       enc624j600_start(&theGlobals->chip);
       enc624j600_enable_irq(&theGlobals->chip,
                             IRQ_ENABLE | IRQ_LINK | IRQ_PKT | IRQ_RX_ABORT |
@@ -316,8 +317,8 @@ OSErr driverControl(EParamBlkPtr pb, DCtlPtr dce) {
       some statistics. We define a packed 'driverInfo' struct containing this
       information as part of our globals, so we can just copy that directly into
       the provided buffer. */
-      if (pb->u.EParms1.eBuffSize > 18) {
-        pb->u.EParms1.eBuffSize = 18;
+      if (pb->u.EParms1.eBuffSize > (short) sizeof(theGlobals->info)) {
+        pb->u.EParms1.eBuffSize = sizeof(theGlobals->info);
       }
 
       BlockMoveData(&theGlobals->info, pb->u.EParms1.ePointer,

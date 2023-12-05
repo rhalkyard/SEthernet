@@ -2,9 +2,37 @@
 
 #include "enc624j600_registers.h"
 
+#include <MacTypes.h>
+#include <string.h>
+
+#include <Debugging.h>
+#include <stdio.h>
+
+static char strbuf[256];
+static char strbuf_2[256];
+
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
+/*
+Promiscuous-mode receive configuration:
+    CRCEN:    discard frames with invalid CRC
+    RUNTEN:   discard runt frames
+    UCEN:     accept unicast frames addressed to us
+    NOTMEEN:  accept unicast frames addressed to destinations other than us
+    MCEN:     accept all multicast frames
+*/
 #define RXFCON_PROMISCUOUS \
   ERXFCON_CRCEN | ERXFCON_RUNTEN | ERXFCON_UCEN | ERXFCON_NOTMEEN | ERXFCON_MCEN
-#define RXFCON_DEFAULT ERXFCON_CRCEN | ERXFCON_RUNTEN | ERXFCON_UCEN | ERXFCON_BCEN
+
+/* Default receive configuration:
+    CRCEN:    discard frames with invalid CRC
+    RUNTEN:   discard runt frames
+    UCEN:     accept unicast frames addressed to us
+    BCEN:     accept broadcast frames
+    HTEN:     accept frames with destination address in our hash table
+              (used for multicast)
+*/
+#define RXFCON_DEFAULT ERXFCON_CRCEN | ERXFCON_RUNTEN | ERXFCON_UCEN | ERXFCON_BCEN | ERXFCON_HTEN
 
 int enc624j600_reset(enc624j600 *chip) {
   /* Write and read-back a 'magic' value to user data start pointer to verify
@@ -26,6 +54,7 @@ int enc624j600_reset(enc624j600 *chip) {
 
 int enc624j600_init(enc624j600 *chip, unsigned short txbuf_size) {
   unsigned short tmp;
+  unsigned short rxbuf_size, rx_tail, flow_hwm, flow_lwm;
   if (txbuf_size & 1) {
     /* Buffer boundary must be word-aligned */
     return -1;
@@ -33,10 +62,25 @@ int enc624j600_init(enc624j600 *chip, unsigned short txbuf_size) {
 
   /* Set up receive buffer between end of transmit buffer and end of RAM */
   ENC624J600_WRITE_REG(chip->base_address, ERXST, SWAPBYTES(txbuf_size));
-  ENC624J600_WRITE_REG(chip->base_address, ERXTAIL,
-                       SWAPBYTES(ENC624J600_MEM_END - 2));
+  rx_tail = ENC624J600_MEM_END - 2;
+  ENC624J600_WRITE_REG(chip->base_address, ERXTAIL, SWAPBYTES(rx_tail));
   chip->rxbuf_start = enc624j600_addr_to_ptr(chip, txbuf_size);
+  chip->rxptr = chip->rxbuf_start;
   chip->rxbuf_end = enc624j600_addr_to_ptr(chip, ENC624J600_MEM_END);
+
+  /* Set up flow control parameters. We only enable flow control for full-duplex
+  links, as half-duplex flow control operates by jamming the medium, which an
+  extremely antisocial thing to do on shared-media links (such as if connected
+  to a hub rather than a switch). */
+  rxbuf_size = ENC624J600_MEM_END - txbuf_size;
+  /* High water mark: Assert flow control when recieve buffer is 3/4 full (in
+  units of 96 bytes) */
+  flow_hwm = (rxbuf_size - (rxbuf_size / 4)) / 96;
+  /* Low water mark: Deassert flow control when receive buffer is 1/2 full (in
+  units of 96 bytes) */
+  flow_lwm = (rxbuf_size / 2) / 96;
+  tmp = (flow_hwm << ERXWM_RXFWM_SHIFT) | (flow_lwm << ERXWM_RXEWM_SHIFT);
+  ENC624J600_WRITE_REG(chip->base_address, ERXWM, tmp);
 
   /* Set up 25MHz clock output (used by glue logic for timing generation). */
   tmp = ENC624J600_READ_REG(chip->base_address, ECON2);
@@ -58,16 +102,27 @@ void enc624j600_duplex_sync(enc624j600 *chip) {
   back-to-back interpacket gap as appropriate. Call on initial startup and
   after link state change.
   */
-  int fullduplex =
+  unsigned fullduplex =
       ENC624J600_READ_REG(chip->base_address, ESTAT) & ESTAT_PHYDPX;
+
+  /* Wait for flow control state machine to be idle before chnaging duplex mode
+  or flow control settings */
+  while (!(ENC624J600_READ_REG(chip->base_address, ESTAT) & ESTAT_FCIDLE)) {};
+  
   if (fullduplex) {
     ENC624J600_SET_BITS(chip->base_address, MACON2, MACON2_FULDPX);
     ENC624J600_WRITE_REG(chip->base_address, MABBIPG,
                          0x15 << MABBIPG_BBIPG_SHIFT);
+    /* Enable automtaic flow control */
+    ENC624J600_SET_BITS(chip->base_address, ECON2, ECON2_AUTOFC);
   } else {
     ENC624J600_CLEAR_BITS(chip->base_address, MACON2, MACON2_FULDPX);
     ENC624J600_WRITE_REG(chip->base_address, MABBIPG,
                          0x12 << MABBIPG_BBIPG_SHIFT);
+    /* Disable automatic flow control */
+    ENC624J600_CLEAR_BITS(chip->base_address, ECON2, ECON2_AUTOFC);
+    /* Ensure flow control is deasserted */
+    ENC624J600_CLEAR_BITS(chip->base_address, ECON1, ECON1_FCOP1 | ECON1_FCOP1);
   }
 }
 
@@ -78,6 +133,16 @@ void enc624j600_start(enc624j600 *chip) {
   /* Accept broadcast packets, use hash table matching for multicast packets */
   ENC624J600_WRITE_REG(chip->base_address, ERXFCON, RXFCON_DEFAULT);
   ENC624J600_SET_BITS(chip->base_address, ECON1, ECON1_RXEN);
+}
+
+void enc624j600_suspend(enc624j600 *chip) {
+  /* Disable receive */
+  ENC624J600_CLEAR_BITS(chip->base_address, ECON1, ECON1_RXEN);
+
+  /* Discard any pending packets */
+  while (enc624j600_read_rx_pending_count(chip)) {
+    enc624j600_decrement_rx_pending_count(chip);
+  }
 }
 
 void enc624j600_read_id(enc624j600 *chip, unsigned char *device_id,
@@ -158,42 +223,49 @@ static unsigned short enc624j600_ptr_to_addr(enc624j600 *chip,
 
 void enc624j600_transmit(enc624j600 *chip, const unsigned char *start_addr,
                          unsigned short length) {
+  unsigned short addr = enc624j600_ptr_to_addr(chip, start_addr);
+
+  /* Wait for any in-progress transmit to finish before starting a new one */
   while (ENC624J600_READ_REG(chip->base_address, ECON1) & ECON1_TXRTS) {
   };
 
-  ENC624J600_WRITE_REG(chip->base_address, ETXST,
-                       SWAPBYTES(enc624j600_ptr_to_addr(chip, start_addr)));
+  ENC624J600_WRITE_REG(chip->base_address, ETXST,  SWAPBYTES(addr));
   ENC624J600_WRITE_REG(chip->base_address, ETXLEN, SWAPBYTES(length));
   ENC624J600_SET_BITS(chip->base_address, ECON1, ECON1_TXRTS);
 }
 
-void enc624j600_update_rx_tail(enc624j600 *chip, unsigned char *tail) {
+void enc624j600_update_rxptr(enc624j600 *chip, unsigned char *rxptr) {
   /* Buffer tail must be word-aligned */
-  tail = (unsigned char *)((unsigned long)tail & 0xFFFFFFFE);
-  ENC624J600_WRITE_REG(chip->base_address, ERXTAIL,
-                       SWAPBYTES(enc624j600_ptr_to_addr(chip, tail)));
+  chip->rxptr = rxptr;
+  unsigned char * tail = rxptr - 2;
+  if (tail < chip->rxbuf_start) {
+    tail = chip->rxbuf_end - 2;
+  }
+  unsigned short addr = enc624j600_ptr_to_addr(chip, tail);
+  ENC624J600_WRITE_REG(chip->base_address, ERXTAIL, SWAPBYTES(addr));
 }
 
+/* Read the number of pending bytes in the receive FIFO */
 unsigned short enc624j600_read_rx_fifo_level(enc624j600 *chip) {
-  unsigned short rxstart, rxhead, rxtail, bufsize;
-  int bytesfree;
+  unsigned short rxstart, rxhead, rxtail, buffersize;
 
   rxstart = ENC624J600_READ_REG(chip->base_address, ERXST);
   rxstart = SWAPBYTES(rxstart);
-
+  
   rxhead = ENC624J600_READ_REG(chip->base_address, ERXHEAD);
   rxhead = SWAPBYTES(rxhead);
   
-  bufsize = rxstart - rxhead;
-
   rxtail = ENC624J600_READ_REG(chip->base_address, ERXTAIL);
   rxtail = SWAPBYTES(rxtail);
 
-  bytesfree = rxtail - ENC624J600_MEM_END;
-  if (bytesfree < 0) {
-    bytesfree = -bytesfree;
+  buffersize = ENC624J600_MEM_END - rxstart;
+
+  /* Subtract 2 to account for the 2 reserved bytes at the RX tail pointer */
+  if (rxtail > rxhead) {
+    return buffersize - (rxtail - rxhead) - 2;
+  } else {
+    return rxhead - rxtail - 2;
   }
-  return bufsize - bytesfree;
 }
 
 void enc624j600_write_phy_reg(enc624j600 *chip, unsigned char phyreg,
@@ -222,4 +294,45 @@ void enc624j600_enable_phy_loopback(enc624j600 *chip) {
 void enc624j600_disable_phy_loopback(enc624j600 *chip) {
   unsigned short old_phcon1 = enc624j600_read_phy_reg(chip, PHCON1);
   enc624j600_write_phy_reg(chip, PHCON1, old_phcon1 & ~PHCON1_PLOOPBK);
+}
+
+static void my_memcpy(unsigned char * dest, unsigned char * source, unsigned short len) {
+  for (int i = 0; i < len; i++) {
+    *dest++ = *source++;
+  }
+}
+
+unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest, unsigned short len) {
+  unsigned short count, chunk_len, fifo_level;
+  unsigned char * source;
+  
+  source = chip->rxptr;
+
+  /* Don't try to read more data than is actually available */
+  fifo_level =  enc624j600_read_rx_fifo_level(chip);
+  if (len > fifo_level) {
+    DebugStr("\pFlying too close to the sun");
+  }
+  len = MIN(len, fifo_level);
+  count = len;
+
+  do {
+    if (source >= chip->rxbuf_end) {
+      source = chip->rxbuf_start;
+    }
+
+    if (source + len >= chip->rxbuf_end) {
+      chunk_len = chip->rxbuf_end - source;
+    } else {
+      chunk_len = len;
+    }
+
+    my_memcpy(dest, source, chunk_len);
+    dest += chunk_len;
+    source += chunk_len;
+    len -= chunk_len;
+    enc624j600_update_rxptr(chip, source);
+  } while (len);
+
+  return count;
 }

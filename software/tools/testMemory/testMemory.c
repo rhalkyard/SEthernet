@@ -14,8 +14,8 @@ back-to-back access timing issues.
 #include <ctype.h>
 #include <stdio.h>
 
-#include "sethernet_board_defs.h"
 #include "sethernet30_board_defs.h"
+#include "sethernet_board_defs.h"
 
 #define TICK_SECONDS (1 / 60.0)
 
@@ -237,49 +237,47 @@ int findCards(Ptr cardAddresses[16]) {
   int cardCount = 0;
   long result;
   OSErr err;
-  SpBlock spb;
 
   for (int i = 0; i < 16; i++) {
     cardAddresses[i] = nil;
   }
 
+  SpBlock spb = {.spParamData = 1 << fall,
+                 .spCategory = catNetwork,
+                 .spCType = typeEtherNet,
+                 .spDrvrSW = SETHERNET30_DRSW,
+                 .spDrvrHW = SETHERNET30_DRHW,
+                 .spTBMask = 0,
+                 .spSlot = 1,
+                 .spID = 1,
+                 .spExtDev = 0};
 
-      spb.spParamData = 1 << fall;
-      spb.spCategory = catNetwork;
-      spb.spCType = typeEtherNet;
-      spb.spDrvrSW = SETHERNET30_DRSW;
-      spb.spDrvrHW = SETHERNET30_DRHW;
-      spb.spTBMask = 0;
-      spb.spSlot = 1;
-      spb.spID = 1;
-      spb.spExtDev = 0;
-
-      err = SGetTypeSRsrc(&spb);
-      while (err == noErr) {
-        result = SFindDevBase(&spb);
-        if (result == noErr) {
-          printf("Found SEthernet/30 board in slot %x, base address %08x\n",
-                 spb.spSlot, (unsigned int)spb.spResult);
-          cardAddresses[cardCount++] = (Ptr)spb.spResult;
-        } else {
-          printf(
-              "Found SEthernet/30 board in slot %x, but SFindDevBase() "
-              "returned an error: %d\n",
-              spb.spSlot, (int)result);
-        }
-        err = SGetTypeSRsrc(&spb);
-      }
-      printf("SGetTypeSRsrc: %d\n", err);
+  err = SGetTypeSRsrc(&spb);
+  while (err == noErr) {
+    result = SFindDevBase(&spb);
+    if (result == noErr) {
+      printf("Found SEthernet/30 board in slot %x, base address %08x\n",
+             spb.spSlot, (unsigned int)spb.spResult);
+      cardAddresses[cardCount++] = (Ptr)spb.spResult;
+    } else {
+      printf(
+          "Found SEthernet/30 board in slot %x, but SFindDevBase() "
+          "returned an error: %d\n",
+          spb.spSlot, (int)result);
+    }
+    err = SGetTypeSRsrc(&spb);
+  }
+  printf("SGetTypeSRsrc: %d\n", err);
   return cardCount;
 }
 
 void help(void) {
-    printf(
-        "SEthernet Memory Tester\n"
-        "Choose an option:\n"
-        "  C: Search for and test installed cards\n"
-        "  R: Test and benchmark system RAM\n"
-        "  Q: Quit\n");
+  printf(
+      "SEthernet Memory Tester\n"
+      "Choose an option:\n"
+      "  C: Search for and test installed cards\n"
+      "  R: Test and benchmark system RAM\n"
+      "  Q: Quit\n");
 }
 
 int main(int argc, char **argv) {
@@ -294,7 +292,6 @@ int main(int argc, char **argv) {
 
   help();
   while (1) {
-
     choice = getchar();
 
     switch (toupper(choice)) {

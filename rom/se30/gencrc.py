@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description='Tool for sanity-checking declaration ROM headers and writing the CRC field.')
     parser.add_argument('rom_image', help='Declaration ROM image')
     parser.add_argument('--output', '-o', type=str, help='Output ROM image')
-    parser.add_argument('--pad', '-p', type=int, metavar='SIZE', help='Pad ROM image out to SIZE bytes')
+    parser.add_argument('--pad', '-p', type=int, metavar='SIZE', help='Prepend zeros to pad image out to SIZE bytes')
     parser.add_argument('--verbose', '-v', action='store_true', help='Show ROM information.')
     args = parser.parse_args()
 

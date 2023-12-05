@@ -3,8 +3,10 @@
 #include <Devices.h>
 #include <MacTypes.h>
 #include <Slots.h>
+#include <stddef.h>
 
 #include "enc624j600.h"
+#include "sethernet.h"
 
 #if !(defined(TARGET_SE30) || defined(TARGET_SE))
 #error Must define a target! (TARGET_SE or TARGET_SE30)
@@ -53,45 +55,11 @@ struct multicastEntry {
 };
 typedef struct multicastEntry multicastEntry;
 
-/* Information returned by EGetInfo */
-struct driverInfo {
-  Byte ethernetAddress[6]; /* Our ethernet address */
-  unsigned long
-      rxOverflowCount; /* Number of times our receive FIFO has overflowed */
-  unsigned long
-      txTimeoutCount; /* Number of times packet transmission has timed out */
-  unsigned long
-      rxIncorectAddressCount; /* Number of times we've received a packet with an
-                                 incorrect destination */
-} __attribute__((packed));
-typedef struct driverInfo driverInfo;
-
-struct driverExtInfo {
-  driverInfo stdInfo;
-  unsigned long rxPackets; /* Total packets transmitted */
-  unsigned long rxBytes;   /* Total bytes transmitted */
-  unsigned long txPackets; /* Total packets received */
-  unsigned long txBytes;   /* Total bytes received */
-  unsigned short
-      rxPendingBytesHWM; /* Maximum number of bytes pending in receive FIFO */
-  unsigned char rxPendingPacketsHWM; /* Maximum number of packets pending in
-                                        receive FIFO */
-  unsigned short maxCollisions; /* Maximum number of collisions seen after a
-                                   successful transmit */
-};
-typedef struct driverExtInfo driverExtInfo;
-
 /* Global state used by the driver */
 typedef struct driverGlobals {
-  enc624j600 chip;    /* Ethernet chip state */
-  driverExtInfo info; /* Device info packaged up suitably for EGetInfo */
+  enc624j600 chip; /* Ethernet chip state */
 
-  SlotIntQElement theSInt; /* Our slot interrupt queue entry */
-  AuxDCEPtr driverDCE;     /* Our device control entry */
-
-  Byte* nextPkt;     /* pointer to next packet in receive FIFO */
-  Byte* rx_read_ptr; /* pointer for reading from receive FIFO */
-
+  unsigned short phCount;
   protocolHandlerEntry
       protocolHandlers[numberOfPhs];             /* Protocol handler table */
   multicastEntry multicasts[numberofMulticasts]; /* Multicast address table */
@@ -99,9 +67,13 @@ typedef struct driverGlobals {
   /* Receive Header Area that packet headers are read into before calling a
   Protocol Handler. 8 bytes following the packet header must be provided as
   workspace for the Protocol Handler */
-  Byte recvHeaderArea[14 + 8];
+  Byte recvHeaderArea[8 + 14 + 8];
+
+  SlotIntQElement theSInt; /* Our slot interrupt queue entry */
+  AuxDCEPtr driverDCE;     /* Our device control entry */
+
+  Byte* nextPkt; /* pointer to next packet in receive FIFO */
 
   Boolean usingVM; /* are we running with Virtual Memory enabled? */
+  driverInfo info; /* Device info packaged up suitably for EGetInfo */
 } driverGlobals, *driverGlobalsPtr;
-
-
