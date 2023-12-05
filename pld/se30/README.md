@@ -1,11 +1,14 @@
 # PLD Equations for 68000 PDS Interface
 
-U3 and U4 on the SEthernet/30 board are ATF16V8/GAL16V8 programmable logic devices that
-provides address decoding and glue logic.
+U3 and U4 on the SEthernet/30 board are ATF16V8/GAL16V8 programmable logic
+devices that provides address decoding and glue logic.
 
 The 68030 bus in the SE/30 requires a bit more glue logic than the SE, so
-functions are spread out over two chips. U3 handles address decoding and driving
-of the interrupt lines, while U4 handles bus control signals.
+functions are spread out over two chips (three, counting the Bodge). U3 handles
+address decoding and driving of the interrupt lines, while U4 handles bus
+control signals. After the Revision 0 boards were finalised, a timing bug was
+found that could not be addressed using the available gates in U3 and U4. To
+address this, a third GAL16V8 ("The Bodge") adds a wait-state generator.
 
 ## Address Decoding
 
@@ -24,11 +27,10 @@ A16, so that the card's declaration ROM shows up at the top of the address space
 (as expected by the Slot Manager), with the ENC624J600's address space
 immediately below it.
 
-Note that the Slot E configuration does not seem to be particularly useful, as
-it conflicts with onboard video! I copied these settings from the Asante MacCon
-PDS card, which for some reason did support Slot E. The PDS slot in the IIfx
-_was_ intended to occupy Slot E space (both logically and physically), and seems
-mostly pin-compatible, although with a much faster bus speed. curious.
+Note that the Slot E configuration is not compatible with the SE/30 or IIsi.
+This option exists to allow the card to be used in the PDS slot of a Macintosh
+IIfx. This configuration has been tested and works, but the IIfx case does not
+provide a place to mount the breakout board.
 
 ## Bus Control
 
