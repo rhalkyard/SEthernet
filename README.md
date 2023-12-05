@@ -52,12 +52,21 @@ declaration ROM is a flash chip, with logic to allow for in-system programming.
 Very early days yet! Pardon my dust as I get this repo organised, more thorough
 writeups are hopefully forthcoming.
 
-Rev0 boards have been ordered for the SE and SE/30, and the driver and glue
-logic are theoretically complete but untested and almost certainly broken in
-many fun and exciting ways.
+Rev0 boards have been ordered and built. My SE has suffered a hard disk failure
+so I am concentrating bringup efforts on the SE/30 until I can get around to
+replacing that.
 
-The plan is, once the boards arrive, to bring up the SE board first, given that
-its glue logic is simpler. Once that's functional, I'll move on to the SE/30.
+The Rev0 boards contain a number of hardware bugs (see the Errata section for
+details) and while I have worked around them for the purposes of driver
+development, I do not recommend trying to build this revision - the next
+revision may have incompatible changes as part of the fixes for these bugs.
+
+With the workarounds documented in the Errata section, the SEthernet/30 hardware
+works - I have written a test harness that can successfully send and receieve
+packets. The driver is still a work in progress - the code in this repo is
+currently broken in a number of ways, expect a massive commit once I get the
+driver working and tidy up the mess of debugging code and commented-out
+sections.
 
 A subsequent revision will likely eliminate the awful through-hole PLCC sockets
 for directly-soldered surface-mount chips. This should make for much better
@@ -152,6 +161,23 @@ an optimal wait-state delay of 80 nanoseconds.
 
 Revision 1 glue logic will be implemented on single CPLD with configurable
 wait-state generation built in.
+
+#### Longword write accesses to the SEthernet/30 board do not meet timing specifications.
+
+##### Symptoms
+
+When writing a longword value to card RAM using `MOVE.L` or similar, the written
+value may be corrupted.
+
+##### Workaround
+
+Avoid using longword operations to write data to card RAM - data should be
+written to RAM using byte or word operations only.
+
+##### Resolution
+
+Revision 1 glue logic will enforce a delay between back-to-back write accesses
+so that longword writes comply with the ENC624J600's timing specifications.
 
 ## Useful reference material
 
