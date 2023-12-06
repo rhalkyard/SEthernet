@@ -8,6 +8,9 @@
 #include <Debugging.h>
 #include <stdio.h>
 
+static char strbuf[256];
+static char strbuf_2[256];
+
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 /*
@@ -277,8 +280,7 @@ void enc624j600_write_phy_reg(enc624j600 *chip, unsigned char phyreg,
   while (ENC624J600_READ_REG(chip->base_address, MISTAT) & MISTAT_BUSY) {
   }
   ENC624J600_WRITE_REG8(chip->base_address, MIREGADR, phyreg);
-  ENC624J600_WRITE_REG8(chip->base_address, MIWR, value & 0xff);
-  ENC624J600_WRITE_REG8(chip->base_address, MIWR + 1, value >> 8);
+  ENC624J600_WRITE_REG(chip->base_address, MIWR, SWAPBYTES(value));
 }
 
 unsigned short enc624j600_read_phy_reg(enc624j600 *chip, unsigned char phyreg) {
