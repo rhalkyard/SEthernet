@@ -68,7 +68,7 @@ OSStatus doEWrite(driverGlobalsPtr theGlobals, EParamBlkPtr pb) {
 
   /* Copy data from WDS into transmit buffer */
   do {
-    my_memcpy(dest, source, entryLen);
+    enc624j600_memcpy(dest, source, entryLen);
     dest += entryLen;
     wds++;
     entryLen = wds->entryLength;
@@ -78,7 +78,7 @@ OSStatus doEWrite(driverGlobalsPtr theGlobals, EParamBlkPtr pb) {
   /* Go back and copy our address into the source field */
   dest = theGlobals->chip.base_address + ENC_TX_BUF_START + 6;
 
-  my_memcpy(dest, theGlobals->info.ethernetAddress, 6);
+  enc624j600_memcpy(dest, theGlobals->info.ethernetAddress, 6);
 
   /* Send it! */
   enc624j600_transmit(&theGlobals->chip, theGlobals->chip.base_address,

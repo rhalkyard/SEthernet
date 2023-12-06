@@ -109,6 +109,9 @@ void enc624j600_write_phy_reg(enc624j600 *chip, unsigned char phyreg,
 void enc624j600_enable_phy_loopback(enc624j600 * chip);
 void enc624j600_disable_phy_loopback(enc624j600 * chip);
 
+/* Our own memcpy implementation that avoids longword writes */
+void enc624j600_memcpy(unsigned char * dest, unsigned char * source, unsigned short len);
+
 unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest, unsigned short len);
 
 /* Exchange the bytes in a word value */

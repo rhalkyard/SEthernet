@@ -58,9 +58,3 @@ void copyEthAddrs(Byte *dest, const Byte *source) {
     dest[i] = source[i];
   }
 }
-
-void my_memcpy(unsigned char * dest, unsigned char * source, unsigned short len) {
-  for (int i = 0; i < len; i++) {
-    *dest++ = *source++;
-  }
-}

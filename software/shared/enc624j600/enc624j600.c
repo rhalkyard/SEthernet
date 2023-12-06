@@ -296,7 +296,8 @@ void enc624j600_disable_phy_loopback(enc624j600 *chip) {
   enc624j600_write_phy_reg(chip, PHCON1, old_phcon1 & ~PHCON1_PLOOPBK);
 }
 
-static void my_memcpy(unsigned char * dest, unsigned char * source, unsigned short len) {
+void enc624j600_memcpy(unsigned char * dest, unsigned char * source, unsigned short len) {
+  /* TODO: get rid of this and just use memcpy once issue #3 is resolved */
   for (int i = 0; i < len; i++) {
     *dest++ = *source++;
   }
