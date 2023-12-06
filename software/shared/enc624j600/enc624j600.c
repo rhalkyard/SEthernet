@@ -280,7 +280,8 @@ void enc624j600_write_phy_reg(enc624j600 *chip, unsigned char phyreg,
   while (ENC624J600_READ_REG(chip->base_address, MISTAT) & MISTAT_BUSY) {
   }
   ENC624J600_WRITE_REG8(chip->base_address, MIREGADR, phyreg);
-  ENC624J600_WRITE_REG(chip->base_address, MIWR, SWAPBYTES(value));
+  ENC624J600_WRITE_REG8(chip->base_address, MIWR, value & 0xff);
+  ENC624J600_WRITE_REG8(chip->base_address, MIWR + 1, value >> 8);
 }
 
 unsigned short enc624j600_read_phy_reg(enc624j600 *chip, unsigned char phyreg) {
@@ -312,36 +313,48 @@ void enc624j600_memcpy(unsigned char * dest, unsigned char * source, unsigned sh
 }
 
 unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest, unsigned short len) {
-  unsigned short count, chunk_len, fifo_level;
+  unsigned short chunk_len, fifo_level;
   unsigned char * source;
   
   source = chip->rxptr;
 
-  /* Don't try to read more data than is actually available */
+  /* Don't try to read more data than is actually available. This shouldn't ever
+  happen, but check for it as an indicator of misbehaving software */
   fifo_level =  enc624j600_read_rx_fifo_level(chip);
   if (len > fifo_level) {
-    DebugStr("\pFlying too close to the sun");
+    DebugStr("\pTrying to read more data than is in the buffer!");
   }
   len = MIN(len, fifo_level);
-  count = len;
 
-  do {
-    if (source >= chip->rxbuf_end) {
-      source = chip->rxbuf_start;
-    }
+  /* Do first read, going as far as the end of the buffer */
+  if (source + len >= chip->rxbuf_end) {
+    chunk_len = chip->rxbuf_end - source;
+  } else {
+    chunk_len = len;
+  }
+  enc624j600_memcpy(dest, source, chunk_len);
+  dest += chunk_len;
+  source += chunk_len;
 
-    if (source + len >= chip->rxbuf_end) {
-      chunk_len = chip->rxbuf_end - source;
-    } else {
-      chunk_len = len;
-    }
+  /* Wrap read pointer if we hit the end */
+  if (source >= chip->rxbuf_end) {
+    source = chip->rxbuf_start;
+  }
+  enc624j600_update_rxptr(chip, source);
 
-    my_memcpy(dest, source, chunk_len);
+  /* Do another read if the first read didn't get everything */
+  if (chunk_len < len) {
+    chunk_len = len - chunk_len;
+    enc624j600_memcpy(dest, source, chunk_len);
     dest += chunk_len;
     source += chunk_len;
-    len -= chunk_len;
+    if (source >= chip->rxbuf_end) {
+      /* If we wraparound a second time, something's gone wrong */
+      DebugStr("\prxbuf read wrapped twice!!");
+    }
     enc624j600_update_rxptr(chip, source);
-  } while (len);
+  }
 
-  return count;
+
+  return len;
 }
