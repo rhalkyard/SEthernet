@@ -8,9 +8,6 @@
 #include <Debugging.h>
 #include <stdio.h>
 
-static char strbuf[256];
-static char strbuf_2[256];
-
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 /*
