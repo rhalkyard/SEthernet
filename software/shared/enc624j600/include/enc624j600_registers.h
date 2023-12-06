@@ -19,11 +19,11 @@ address map for the 8 bit bus gives byte offsets.
 
 /* Create a word pointer from a register */
 #define ENC624J600_REG(base, reg_offset) \
-  ((unsigned short *)((base) + (reg_offset)))
+  ((volatile unsigned short *)((base) + (reg_offset)))
 
 /* Create a byte pointer from a register */
 #define ENC624J600_REG8(base, reg_offset) \
-  ((unsigned char *)((base) + (reg_offset)))
+  ((volatile unsigned char *)((base) + (reg_offset)))
 
 /* Write a 16-bit value to a register*/
 #define ENC624J600_WRITE_REG(base, reg_offset, value) \
