@@ -11,6 +11,7 @@
 #include <Slots.h>
 #include <string.h>
 #include <Retro68Runtime.h>
+#include <stdio.h>
 
 #include "enc624j600.h"
 #include "isr.h"
@@ -20,6 +21,8 @@
 #include "util.h"
 
 driverGlobalsPtr ourGlobals;
+
+char strbuf[255];
 
 /*
 EWrite (a.k.a.) Control called with csCode=ENetWrite
@@ -226,8 +229,9 @@ OSErr driverOpen(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
 #endif
 
       /* Let's go! */
-      
-      Debugger();
+      strbuf[0] = sprintf(strbuf + 1, "Driver opened. Globals at %08x", 
+                          (unsigned int) theGlobals);
+      DebugStr((unsigned char *) strbuf);
       enc624j600_start(&theGlobals->chip);
       enc624j600_enable_irq(&theGlobals->chip,
                             IRQ_ENABLE | IRQ_LINK | IRQ_PKT | IRQ_RX_ABORT |
