@@ -107,38 +107,32 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
     2 bytes         ethertype
     ...             layer 3 payload
   */
+  /* Read the above fields into the Receive Header Area */
   enc624j600_read_rxbuf(&theGlobals->chip, theGlobals->recvHeaderArea,
-                        sizeof(unsigned short) + sizeof(enc624j600_rsv) +
-                            6 * 2 + sizeof(unsigned short));
+                        sizeof(unsigned short) + 
+                        sizeof(enc624j600_rsv) +
+                        6 * 2 + 
+                        sizeof(unsigned short));
 
-  /* Read next-packet pointer*/
-  // enc624j600_read_rxbuf(&theGlobals->chip, (Byte *)&nextPkt_chip,
-  //                       sizeof(nextPkt_chip));
-  /* Next-packet pointer is little-endian and relative to the chip
-  address space. Convert this to a 'real' pointer. */
+  /* Next-packet pointer is little-endian and relative to the chip address
+  space. Convert this to a 'real' pointer. */
   theGlobals->nextPkt = enc624j600_addr_to_ptr(
       &theGlobals->chip, SWAPBYTES(*(unsigned short *)rhaPtr));
   rhaPtr += sizeof(unsigned short);
 
   /* Read packet length */
-  // enc624j600_read_rxbuf(&theGlobals->chip, (Byte *)&rsv, sizeof(rsv));
   rsv = (enc624j600_rsv *)rhaPtr;
   rhaPtr += sizeof(enc624j600_rsv);
   pktLen = SWAPBYTES(rsv->pkt_len_le);
 
-  /* The actual frame starts here. Read the destination, source, and ethertype
-  into the Receive Header Area */
-  // enc624j600_read_rxbuf(&theGlobals->chip, rhaPtr, 6 * sizeof(unsigned
-  // char));
+  /* Read destination MAC */
   destMac = rhaPtr;
   rhaPtr += 6;
 
-  // enc624j600_read_rxbuf(&theGlobals->chip, rhaPtr, 6 * sizeof(unsigned
-  // char));
-  /* sourceMac = rhaPtr; */
+  /* Skip over source MAC */
   rhaPtr += 6;
 
-  // enc624j600_read_rxbuf(&theGlobals->chip, rhaPtr, sizeof(unsigned short));
+  /* Read protocol number/802.2 Type 1 length */
   protocol = *(unsigned short *)rhaPtr;
   rhaPtr += sizeof(unsigned short);
 

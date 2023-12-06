@@ -32,6 +32,9 @@ On exit:
       <0 if packet was (-D3) bytes too large to fit in buffer (ReadRest)
       >0 if D3 bytes weren't read
   D4-D7: Preserved
+
+  CCR must reflect state of D3 (specifically, Zero flag set if success, clear 
+  if error)
 */
 
 .global ReadPacket

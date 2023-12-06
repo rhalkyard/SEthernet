@@ -69,7 +69,7 @@ int enc624j600_init(enc624j600 *chip, unsigned short txbuf_size) {
   chip->rxbuf_end = enc624j600_addr_to_ptr(chip, ENC624J600_MEM_END);
 
   /* Set up flow control parameters. We only enable flow control for full-duplex
-  links, as half-duplex flow control operates by jamming the medium, which an
+  links, as half-duplex flow control operates by jamming the medium, which is an
   extremely antisocial thing to do on shared-media links (such as if connected
   to a hub rather than a switch). */
   rxbuf_size = ENC624J600_MEM_END - txbuf_size;
@@ -99,13 +99,13 @@ int enc624j600_init(enc624j600 *chip, unsigned short txbuf_size) {
 void enc624j600_duplex_sync(enc624j600 *chip) {
   /*
   Read autonegotiated full/half-duplex status from PHY, set MAC duplex and
-  back-to-back interpacket gap as appropriate. Call on initial startup and
-  after link state change.
+  back-to-back interpacket gap as appropriate. Call on initial startup and after
+  link state change.
   */
   unsigned fullduplex =
       ENC624J600_READ_REG(chip->base_address, ESTAT) & ESTAT_PHYDPX;
 
-  /* Wait for flow control state machine to be idle before chnaging duplex mode
+  /* Wait for flow control state machine to be idle before changing duplex mode
   or flow control settings */
   while (!(ENC624J600_READ_REG(chip->base_address, ESTAT) & ESTAT_FCIDLE)) {};
   
@@ -229,14 +229,20 @@ void enc624j600_transmit(enc624j600 *chip, const unsigned char *start_addr,
   while (ENC624J600_READ_REG(chip->base_address, ECON1) & ECON1_TXRTS) {
   };
 
+  /* Set transmit start address (should always be chip base address, but set it
+  for safety) */
   ENC624J600_WRITE_REG(chip->base_address, ETXST,  SWAPBYTES(addr));
+  /* Set transmit length */
   ENC624J600_WRITE_REG(chip->base_address, ETXLEN, SWAPBYTES(length));
+  /* Enable transmit (TXRTS bit will clear itself when transmit is complete) */
   ENC624J600_SET_BITS(chip->base_address, ECON1, ECON1_TXRTS);
 }
 
 void enc624j600_update_rxptr(enc624j600 *chip, unsigned char *rxptr) {
-  /* Buffer tail must be word-aligned */
   chip->rxptr = rxptr;
+
+  /* Recieve buffer tail must word aligned and at least 2 bytes behind read
+  pointer */
   unsigned char * tail = rxptr - 2;
   if (tail < chip->rxbuf_start) {
     tail = chip->rxbuf_end - 2;
@@ -270,6 +276,7 @@ unsigned short enc624j600_read_rx_fifo_level(enc624j600 *chip) {
 
 void enc624j600_write_phy_reg(enc624j600 *chip, unsigned char phyreg,
                               unsigned short value) {
+  /* Wait for internal MII to become available */
   while (ENC624J600_READ_REG(chip->base_address, MISTAT) & MISTAT_BUSY) {
   }
   ENC624J600_WRITE_REG8(chip->base_address, MIREGADR, phyreg);
@@ -278,9 +285,11 @@ void enc624j600_write_phy_reg(enc624j600 *chip, unsigned char phyreg,
 }
 
 unsigned short enc624j600_read_phy_reg(enc624j600 *chip, unsigned char phyreg) {
+  /* Wait for internal MII to become available */
   while (ENC624J600_READ_REG(chip->base_address, MISTAT) & MISTAT_BUSY) {
   }
   ENC624J600_WRITE_REG8(chip->base_address, MIREGADR, phyreg);
+  /* Wait for internal MII to finish read operation */
   while (ENC624J600_READ_REG(chip->base_address, MISTAT) & MISTAT_BUSY) {
   }
   return ENC624J600_READ_REG(chip->base_address, MIRD);
