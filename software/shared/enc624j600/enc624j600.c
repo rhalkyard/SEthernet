@@ -1,17 +1,13 @@
 #include "enc624j600.h"
-
 #include "enc624j600_registers.h"
 
 #include <MacTypes.h>
-#include <string.h>
 
+#if defined(DEBUG)
 #include <Debugging.h>
 #include <stdio.h>
-
-static char strbuf[256];
-static char strbuf_2[256];
-
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+char strbuf[255];
+#endif
 
 /*
 Promiscuous-mode receive configuration:
@@ -313,18 +309,24 @@ void enc624j600_memcpy(unsigned char * dest, unsigned char * source, unsigned sh
 }
 
 unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest, unsigned short len) {
-  unsigned short chunk_len, fifo_level;
-  unsigned char * source;
-  
-  source = chip->rxptr;
+  unsigned short chunk_len;
+  unsigned char * source = chip->rxptr;
 
+#if defined(DEBUG)
   /* Don't try to read more data than is actually available. This shouldn't ever
   happen, but check for it as an indicator of misbehaving software */
-  fifo_level =  enc624j600_read_rx_fifo_level(chip);
-  if (len > fifo_level) {
-    DebugStr("\pTrying to read more data than is in the buffer!");
+  if (len > chip->rxbuf_end - chip->rxbuf_start) {
+    strbuf[0] =
+        sprintf(strbuf + 1, "Read length %d exceeds RX buffer size %ld!!", 
+                len, chip->rxbuf_end - chip->rxbuf_start);
+    DebugStr((unsigned char *)strbuf);
+  } else if (len > enc624j600_read_rx_fifo_level(chip)) {
+    strbuf[0] = sprintf(
+        strbuf + 1, "Read length %d exceeds current RX buffer occupancy %d!!",
+        len, enc624j600_read_rx_fifo_level(chip));
+    DebugStr((unsigned char *)strbuf);
   }
-  len = MIN(len, fifo_level);
+#endif
 
   /* Do first read, going as far as the end of the buffer */
   if (source + len >= chip->rxbuf_end) {
@@ -348,13 +350,8 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest, uns
     enc624j600_memcpy(dest, source, chunk_len);
     dest += chunk_len;
     source += chunk_len;
-    if (source >= chip->rxbuf_end) {
-      /* If we wraparound a second time, something's gone wrong */
-      DebugStr("\prxbuf read wrapped twice!!");
-    }
     enc624j600_update_rxptr(chip, source);
   }
-
 
   return len;
 }

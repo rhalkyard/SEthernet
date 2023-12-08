@@ -1,7 +1,6 @@
 #include "driver.h"
 
 #include <AppleTalk.h>
-#include <Debugging.h>
 #include <Devices.h>
 #include <ENET.h>
 #include <Errors.h>
@@ -11,7 +10,6 @@
 #include <Slots.h>
 #include <string.h>
 #include <Retro68Runtime.h>
-#include <stdio.h>
 
 #include "enc624j600.h"
 #include "isr.h"
@@ -20,9 +18,11 @@
 #include "registertools.h"
 #include "util.h"
 
-driverGlobalsPtr ourGlobals;
-
+#if defined(DEBUG)
+#include <Debugging.h>
+#include <stdio.h>
 char strbuf[255];
+#endif
 
 /*
 EWrite (a.k.a.) Control called with csCode=ENetWrite
@@ -119,7 +119,6 @@ OSErr driverOpen(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
       /* dCtlStorage is technically a Handle, but since its use is entirely
       user-defined we can just treat it as a pointer */
       dce->dCtlStorage = (Handle)theGlobals;
-      ourGlobals = theGlobals;
 
 #if defined(TARGET_SE30)
       long gestaltResult;
@@ -228,10 +227,12 @@ OSErr driverOpen(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
       );
 #endif
 
+#if defined(DEBUG)
       /* Let's go! */
       strbuf[0] = sprintf(strbuf + 1, "Driver opened. Globals at %08x", 
                           (unsigned int) theGlobals);
       DebugStr((unsigned char *) strbuf);
+#endif
       enc624j600_start(&theGlobals->chip);
       enc624j600_enable_irq(&theGlobals->chip,
                             IRQ_ENABLE | IRQ_LINK | IRQ_PKT | IRQ_RX_ABORT |
@@ -367,7 +368,11 @@ OSErr driverControl(EParamBlkPtr pb, DCtlPtr dce) {
       return doENCDisableLoopback(theGlobals);
 
     default:
-      DebugStr("\pUnhandled csCode");
+#if defined(DEBUG)
+      strbuf[0] = sprintf(strbuf + 1,
+                        "Unhandled csCode %d", pb->csCode);
+      DebugStr((unsigned char *) strbuf);
+#endif
       return controlErr;
   }
 }

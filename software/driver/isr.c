@@ -1,15 +1,16 @@
 #include "isr.h"
 
-#include <Debugging.h>
-#include <stdio.h>
-
 #include "driver.h"
 #include "enc624j600.h"
 #include "enc624j600_registers.h"
 #include "multicast.h"
 #include "protocolhandler.h"
 
-static char strbuf[256];
+#if defined(DEBUG)
+#include <Debugging.h>
+#include <stdio.h>
+static char strbuf[255];
+#endif
 
 #if defined(TARGET_SE)
 /* I really wanted to keep register-poking abstracted out of the core driver
@@ -157,14 +158,6 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
     goto drop;
   }
 
-  unsigned short rxhead =
-      ENC624J600_READ_REG(theGlobals->chip.base_address, ERXHEAD);
-  rxhead = SWAPBYTES(rxhead);
-
-  unsigned short rxtail =
-      ENC624J600_READ_REG(theGlobals->chip.base_address, ERXTAIL);
-  rxtail = SWAPBYTES(rxtail);
-
   /* Sanity-check our receive filters */
   if (RSV_BIT(*rsv, RSV_BIT_UNICAST)) {
     /* Destination is broadcast or unicast to us */
@@ -204,13 +197,6 @@ accept:
     goto drop;
   }
 
-  // strbuf[0] = sprintf(strbuf + 1,
-  //                     "RX: proto=%04x, len=%d, rha @ %08x, rx=%04x, h=%04x, "
-  //                     "t=%04x, cnt=%d, next=%08x",
-  //                     protocol, pktLen, (unsigned int) rhaPtr, (unsigned int) theGlobals->chip.rxptr & 0xffff, rxhead, rxtail,
-  //                     enc624j600_read_rx_pending_count(&theGlobals->chip),
-  //                     (unsigned int) theGlobals->nextPkt);
-  // DebugStr((unsigned char *) strbuf);
   /* Call the protocol handler to read the rest of the packet */
   callPH(&theGlobals->chip, protocolSlot->handler, rhaPtr, ReadPacket,
          pktLen - 18);
@@ -402,6 +388,12 @@ __attribute__((used)) static unsigned long _driverISR(
     IRQs to it */
     return 1;
   }
+
+#if defined(DEBUG)
+  if (irq_handled == 0) {
+    DebugStr("\pENC624J600: spurious interrupt");
+  }
+#endif
 
   enc624j600_enable_irq(&theGlobals->chip, IRQ_ENABLE);
 
