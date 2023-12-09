@@ -49,21 +49,23 @@ On protocol handler exit:
 C assumes that A0-A1 and D0-D2 will be destroyed, we just need to save A2, A3,
 and D3.
 */
-#pragma parameter __D0 callPH(__A0, __A1, __A3, __A4, __D1)
 static void callPH(enc624j600 *chip, void *phProc, Byte *payloadPtr,
                    void (*readPacketProc)(), unsigned short payloadLen) {
-  /* make our register arguments look used */
-  (void)(chip);
-  (void)(phProc);
-  (void)(payloadPtr);
-  (void)(readPacketProc);
-  (void)(payloadLen);
-
-  /* C calling conventions expect A0-A1, D0-D2 to be clobbered by functions
-  anyway. Only save the extra clobbered registers (A2, A3, D3). */
-  asm("MOVEM    %A2-%A3/%D3, -(%SP)\n\t"
-      "JSR      (%A1)\n\t"
-      "MOVEM    (%SP)+, %A2-%A3/%D3");
+  asm volatile (
+    "   MOVE.L    %[chip], %%a0 \n\t"
+    "   MOVE.L    %[phProc], %%a1 \n\t"
+    "   MOVE.L    %[payloadPtr], %%a3 \n\t"
+    "   MOVE.L    %[readPacketProc], %%a4 \n\t"
+    "   MOVE.W    %[payloadLen], %%d1 \n\t"
+    "   JSR       (%%a1) \n\t"
+    : 
+    : [chip] "m" (chip),
+      [phProc] "m" (phProc),
+      [payloadPtr] "m" (payloadPtr),
+      [readPacketProc] "m" (readPacketProc),
+      [payloadLen] "m" (payloadLen)
+    : "a0", "a1", "a2", "a3", "a4", "d0", "d1", "d2", "d3"
+  );
 }
 
 /* Handle a packet from the receive FIFO */
