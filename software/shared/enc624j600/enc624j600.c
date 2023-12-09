@@ -98,20 +98,33 @@ void enc624j600_duplex_sync(enc624j600 *chip) {
   back-to-back interpacket gap as appropriate. Call on initial startup and after
   link state change.
   */
-  unsigned fullduplex =
-      ENC624J600_READ_REG(chip->base_address, ESTAT) & ESTAT_PHYDPX;
+  unsigned short estat = ENC624J600_READ_REG(chip->base_address, ESTAT);
+
+  /* Get link state info. TODO: read link speed from PHY */
+  if (estat & ESTAT_PHYLNK) {
+    if (estat & ESTAT_PHYDPX) {
+      chip->link_state = LINK_UP_FULLDPX;
+    } else {
+      chip->link_state = LINK_UP;
+    }
+  } else {
+    /* Don't bother if link is down */
+    chip->link_state = LINK_DOWN;
+  }
 
   /* Wait for flow control state machine to be idle before changing duplex mode
   or flow control settings */
   while (!(ENC624J600_READ_REG(chip->base_address, ESTAT) & ESTAT_FCIDLE)) {};
-  
-  if (fullduplex) {
+
+  if (estat & ESTAT_PHYDPX) {
+    /* Full duplex */
     ENC624J600_SET_BITS(chip->base_address, MACON2, MACON2_FULDPX);
     ENC624J600_WRITE_REG(chip->base_address, MABBIPG,
                          0x15 << MABBIPG_BBIPG_SHIFT);
     /* Enable automtaic flow control */
     ENC624J600_SET_BITS(chip->base_address, ECON2, ECON2_AUTOFC);
   } else {
+    /* Half duplex */
     ENC624J600_CLEAR_BITS(chip->base_address, MACON2, MACON2_FULDPX);
     ENC624J600_WRITE_REG(chip->base_address, MABBIPG,
                          0x12 << MABBIPG_BBIPG_SHIFT);

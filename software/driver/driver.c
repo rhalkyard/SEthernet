@@ -86,6 +86,11 @@ OSStatus doEWrite(driverGlobalsPtr theGlobals, EParamBlkPtr pb) {
 
   enc624j600_memcpy(dest, theGlobals->info.ethernetAddress, 6);
 
+  if (theGlobals->chip.link_state == LINK_DOWN) {
+    /* don't bother trying to send packets on a down link */
+    return 0; /* TODO: find an appropriate error code */
+  }
+
   /* Send it! */
   enc624j600_transmit(&theGlobals->chip, theGlobals->chip.base_address,
                       totalLength);

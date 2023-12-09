@@ -1,12 +1,20 @@
 #ifndef _ENC624J600_H_
 #define _ENC624J600_H_
 
+enum enc624j600_link_state {
+  LINK_DOWN = 0,
+  LINK_UP,
+  LINK_UP_FULLDPX
+};
+typedef enum enc624j600_link_state enc624j600_link_state;
+
 struct enc624j600 {
   unsigned char *base_address; /* Base address of chip (also start of transmit
                                   buffer) */
   unsigned char *rxbuf_start;  /* Pointer to start of receive buffer */
   unsigned char *rxbuf_end;    /* Pointer to end of receive buffer */
   unsigned char *rxptr;
+  enc624j600_link_state link_state;
 };
 typedef struct enc624j600 enc624j600;
 
