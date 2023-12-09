@@ -178,8 +178,10 @@ accept:
   manager always registers itself as the handler for this protocol. */
   if (protocol < 0x0600) {
     protocolSlot = findPH(theGlobals, phProtocolPhaseII);
+    pktLen = protocol;
   } else {
     protocolSlot = findPH(theGlobals, protocol);
+    pktLen = pktLen - 18;
   }
   /* Search the protocol-handler table for a handler for this ethertype */
   if (protocolSlot == nil) {
@@ -189,7 +191,7 @@ accept:
 
   /* Call the protocol handler to read the rest of the packet */
   callPH(&theGlobals->chip, protocolSlot->handler, rhaPtr, ReadPacket,
-         pktLen - 18);
+         pktLen);
   theGlobals->info.rxFrameCount++;
 
 drop:
