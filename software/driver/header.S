@@ -73,6 +73,9 @@ The C impls should be declared with:
 #pragma parameter __D0 driverOpen(__A0, __A1)
 #pragma parameter __D0 driverControl(__A0, __A1)
 #pragma parameter __D0 driverClose(__A0, __A1)
+
+Note that BSR must be used here rather than JSR because our code may not have
+been relocated yet!
 */
 doOpen:
         MOVEM.L %A0-%A1,-(%SP)          /* Save registers */

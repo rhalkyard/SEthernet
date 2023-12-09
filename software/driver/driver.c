@@ -119,7 +119,20 @@ OSErr driverOpen(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
   error = noErr;
 
   if (dce->dCtlStorage == nil) {
+    /* 
+    Unlike classic Mac OS toolchains, Retro68 does NOT generate PC-relative
+    code, and if you use -mpcrel to force it to, it'll appear to work for simple
+    programs but start to come unraveled as things get more complicated. For
+    simplicity's sake, it's much easier to just live with relocation rather than
+    fighting it.
+
+    For applications, the Retro68 runtime automatically relocates us at startup,
+    but for non-application code such as a driver, we have to call the relocator
+    ourselves before we can access global and static variables, or call
+    functions.
+    */
     RETRO68_RELOCATE();
+
     theGlobals = (driverGlobalsPtr)NewPtrSysClear(sizeof(driverGlobals));
     if (!theGlobals) {
       error = MemError();
