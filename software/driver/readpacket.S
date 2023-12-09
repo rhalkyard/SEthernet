@@ -33,57 +33,57 @@ On exit:
       >0 if D3 bytes weren't read
   D4-D7: Preserved
 
-  CCR must reflect state of D3 (specifically, Zero flag set if success, clear 
-  if error)
+  CCR Z flag indicates error state (set if no error, clear if error)
 */
 
 .global ReadPacket
 ReadPacket:
-    /* ReadRest is called as ReadPacket+2, this branch must fit into 2 bytes! 
-    gas is apparently not smart enough to use the narrowest possible branch
-    displacement. Use BRA.B to expliclty emit a single-byte BRA (60 xx) so that
-    we fit. */
+    /* ReadRest is called as ReadPacket+2, this branch must fit into 2 bytes! */
     BRA.B       RealReadPacket
 
 ReadRest:
-    MOVE.W      %d3, %d0    /* d0 = d3 = maximum number of bytes to read */
-    CMP.W       %d1, %d3
-    BLS         1f
-    MOVE.W      %d1, %d0    /* limit read length to remaining bytes */
+    .if . != ReadPacket+2   /* just to make sure */
+    .err
+    .endif
+    MOVE.W      %d3, %d0                /* d0 = requested byte count */
+    SUB.W       %d1, %d0                /* d0 = requested - available */
+    TST.W       %d3                     /* check for zero-size read */
+    BEQ         1f                      /* nothing to do */
+    BSR         ReadBuf                 /* read the data */
 1:
-    SUB.W       %d0, %d3    /* generate return code */
-    TST.W       %d0
-    BEQ         ReadDone    /* exit if read length = 0 */
-    BRA         ReadBuf     /* otherwise read some bytes */
-
-RealReadPacket:
-    MOVE.W      %d3, %d0    /* size check as above */
-    CMP.W       %d1, %d3
-    BLS         1f
-    MOVE.W      %d1, %d0
-1:
-    SUB.W       %d0, %d3    /* generate return code */
-    SUB.W       %d0, %d1    /* Update bytes-remaining count */
-    TST.W       %d0
-    BEQ         ReadDone    /* exit if read length = 0 */
-    /* fall through to ReadBuf */
-ReadBuf:
-    MOVEM.L     %a0-%a1/%d1-%d2, -(%sp) /* Preserve registers clobbered by C */
-    LINK        %a6, #0
-    MOVEM.W     %d0, -(%sp) /* D0 - number of bytes to read */
-    MOVEM.L     %a3, -(%sp) /* A3 - destination address */
-    MOVEM.L     %a0, -(%sp) /* A0 - address of chip data structure */
-    JSR         enc624j600_read_rxbuf /* D0 = enc624j600_read_rxbuf(A0, A3, D0) */
-    EXT.L       %d0
-    ADD.L       %d0, %a3 /* Advance destination buffer pointer */
-    UNLK        %a6
-    MOVEM.L     (%sp)+, %a0-%a1/%d1-%d2
-    TST.W       %d3 /* Z flag must be set if OK, clear if error */
-ReadDone:
+    MOVE.W      %d0, %d3                /* d3 = requested - available */
+    MOVEQ       #0, %d0                 /* set Z flag, no failure no matter what */
     RTS
 
-/* The ReadRest entrypoint is called as ReadPacket+2, if ReadRest starts
-somewhere else, we have a problem. */
-.if ReadRest != ReadPacket+2
-.err
-.endif
+RealReadPacket:
+    CMP.W       %d3, %d1                /* compare requested byte count (D3) against remaining bytes (D1) */
+    BLO         1f                      /* bail out if requested > remaining */
+    BSR         ReadBuf                 /* otherwise, read the data */
+    TST.W       %d3                     /* check for leftover bytes */
+    BEQ         2f
+1:
+#ifdef DEBUG
+    .short      0xa9ff                  /* Debugger */
+#endif
+    MOVEQ       #-92, %d0               /* eLenErr */
+2:
+    RTS
+
+ReadBuf:
+    MOVE.W      %d3, %d0                /* d0 = byte count */
+    CMP.W       %d1, %d3                /* Check for byte count > remaining bytes */
+    BLS         1f
+    MOVE        %d1, %d0                /* If so, only read what's available */
+1:
+    MOVEM.L     %a0-%a1/%d1-%d2, -(%sp) /* Preserve registers clobbered by C */
+    MOVE.W      %d0, -(%sp)             /* D0.W - number of bytes to read */
+    MOVE.L      %a3, -(%sp)             /* A3   - destination address */
+    MOVE.L      %a0, -(%sp)             /* A0   - address of chip struct */
+    BSR         enc624j600_read_rxbuf   /* D0.W = enc624j600_read_rxbuf(A0, A3, D0.W) */
+    ADD.W       #10, %sp                /* Dispose of args */
+    MOVEM.L     (%sp)+, %a0-%a1/%d1-%d2 /* Restore registers */
+
+    ADD.W       %d0, %a3                /* Advance destination buffer pointer */
+    SUB.W       %d0, %d1                /* Decrement remaining-byte count */
+    SUB.W       %d0, %d3                /* Calculate remainder for this read */
+    RTS
