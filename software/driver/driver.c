@@ -223,7 +223,7 @@ OSErr driverOpen(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
         controller, so we have to coexist with them. */
         /* Mask interrupts while we change out interrupt vectors */
         "MOVE.W  %%sr, -(%%sp) \n\t"
-        "ORI.W   #0x700, %%sr  \n\t"
+        "ORI.W   %[srMaskInterrupts], %%sr  \n\t"
         /* Save the original vector*/
         "MOVE.L  0x64, %[originalInterruptVector]  \n\t"
         /* Install our own */
@@ -231,7 +231,8 @@ OSErr driverOpen(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
         /* Restore interrupts */
         "MOVE.W  (%%sp)+, %%sr"
         : [originalInterruptVector] "=m" (originalInterruptVector)
-        : [driverISR] "r" (driverISR)
+        : [driverISR] "r" (driverISR),
+          [srMaskInterrupts] "i" (0x700)
       );
 #endif
 
@@ -275,13 +276,14 @@ OSErr driverClose(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
   asm volatile (
     /* Mask interrupts while we change out interrupt vectors */
     "MOVE.W  %%sr, -(%%sp) \n\t"
-    "ORI.W   #0x700, %%sr  \n\t"
+    "ORI.W   %[srMaskInterrupts], %%sr  \n\t"
     /* Restore the original interrupt vector */
     "MOVE.L  %[originalInterruptVector], 0x64  \n\t"
     /* Restore interrupts */
     "MOVE.W  (%%sp)+, %%sr"
     :
-    : [originalInterruptVector] "m" (originalInterruptVector)
+    : [originalInterruptVector] "m" (originalInterruptVector),
+      [srMaskInterrupts] "i" (0x700)
   );
 #endif
 

@@ -13,16 +13,6 @@ static char strbuf[255];
 #endif
 
 #if defined(TARGET_SE)
-/* I really wanted to keep register-poking abstracted out of the core driver
-code, but on the SE we need to examine the interrupt status in the
-assembly-language wedge for the interrupt vector */
-
-/* Dirty macro-quoting tricks to inject the status register's address into our
-inline asm*/
-#define QUOTE(name) #name
-#define STR(macro) QUOTE(macro)
-#define ESTAT_ADDR ENC624J600_BASE + ESTAT
-
 /* The original level-1 interrupt vector. If the interrupt fires but we don't
 have a pending interrupt flag, we pass the interrupt through to it*/
 void (*originalInterruptVector)();
@@ -315,9 +305,7 @@ void driverISR() {
   asm volatile (
     /* Read the ENC624J600 EIR register to see if we have an interrupt from it */
     "   MOVE.W  %%d0, -(%%sp) \n\t"
-    /* Have to pull some dirty macro-stringification tricks here because gcc
-    *really* doesn't want me to poke at memory directly like this */
-    "   MOVE.W  " STR(ESTAT_ADDR) ", %%d0  \n\t"
+    "   MOVE.W  (%[estat_reg]), %%d0 \n\t"
     "   ANDI.W  %[estat_int_mask], %%d0  \n\t"
     "   BEQ     not_us_%= \n\t"
 
@@ -336,7 +324,8 @@ void driverISR() {
     "   RTS"  /* push-and-RTS is apparently the quickest way to jump through a
               vector in memory. Once again, shades of the C64 here */
     :
-    : [estat_int_mask] "n" (ESTAT_INT)
+    : [estat_int_mask] "n" (ESTAT_INT),
+      [estat_reg] "a" (ENC624J600_REG(ENC624J600_BASE, ESTAT))
   );
 #endif
 }
