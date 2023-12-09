@@ -13,7 +13,4 @@ extern void (*originalInterruptVector)();
 extern driverGlobalsPtr isrGlobals;
 #endif
 
-#pragma parameter __A1 ReadBuf(__A0, __A3, __D0)
-Byte *ReadBuf(driverGlobalsPtr theGlobals, Byte *dest, unsigned short len);
-
 void driverISR();

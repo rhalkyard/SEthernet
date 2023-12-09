@@ -75,17 +75,17 @@ The C impls should be declared with:
 #pragma parameter __D0 driverClose(__A0, __A1)
 */
 doOpen:
-        MOVEM.L %A0-%A1,-(%SP)
+        MOVEM.L %A0-%A1,-(%SP)          /* Save registers */
         BSR     driverOpen
-        MOVEM.L (%SP)+,%A0-%A1
+        MOVEM.L (%SP)+,%A0-%A1          /* Restore registers */
         MOVE.L  %D0, ioResult(%A0)      /* Return code from Open must go into ioResult */
         RTS
 
 doControl:
-        MOVEM.L %A0-%A1,-(%SP)
+        MOVEM.L %A0-%A1,-(%SP)          /* Save registers */
         BSR     driverControl
-        MOVEM.L (%SP)+,%A0-%A1
-        CMPI.W  #killCode, csCode(%A0)
+        MOVEM.L (%SP)+,%A0-%A1          /* Restore registers */
+        CMP.W   #killCode, csCode(%A0)
         BNE.B   IOReturn
         RTS                             /* Special case for KillIO - skip all the async IO handler stuff and just return */
 
@@ -108,11 +108,11 @@ Queued:
         RTS
 MyIODone:
         MOVE.L  JIODone,-(%SP)       /* push IODone jump vector onto stack */
-        RTS                          /* 'return' through IODone */
+        RTS                          /* tail-call return through IODone vector */
 
 doClose:
-        MOVEM.L %A0-%A1,-(%SP)
+        MOVEM.L %A0-%A1,-(%SP)          /* Save registers */
         BSR     driverClose
-        MOVEM.L (%SP)+,%A0-%A1        
+        MOVEM.L (%SP)+,%A0-%A1          /* Restore registers */     
         RTS
 

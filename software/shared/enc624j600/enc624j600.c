@@ -28,7 +28,8 @@ Promiscuous-mode receive configuration:
     HTEN:     accept frames with destination address in our hash table
               (used for multicast)
 */
-#define RXFCON_DEFAULT ERXFCON_CRCEN | ERXFCON_RUNTEN | ERXFCON_UCEN | ERXFCON_BCEN | ERXFCON_HTEN
+#define RXFCON_DEFAULT \
+  ERXFCON_CRCEN | ERXFCON_RUNTEN | ERXFCON_UCEN | ERXFCON_BCEN | ERXFCON_HTEN
 
 int enc624j600_reset(enc624j600 *chip) {
   /* Write and read-back a 'magic' value to user data start pointer to verify
@@ -240,7 +241,7 @@ void enc624j600_transmit(enc624j600 *chip, const unsigned char *start_addr,
 
   /* Set transmit start address (should always be chip base address, but set it
   for safety) */
-  ENC624J600_WRITE_REG(chip->base_address, ETXST,  SWAPBYTES(addr));
+  ENC624J600_WRITE_REG(chip->base_address, ETXST, SWAPBYTES(addr));
   /* Set transmit length */
   ENC624J600_WRITE_REG(chip->base_address, ETXLEN, SWAPBYTES(length));
   /* Enable transmit (TXRTS bit will clear itself when transmit is complete) */
@@ -252,7 +253,7 @@ void enc624j600_update_rxptr(enc624j600 *chip, unsigned char *rxptr) {
 
   /* Recieve buffer tail must word aligned and at least 2 bytes behind read
   pointer */
-  unsigned char * tail = rxptr - 2;
+  unsigned char *tail = rxptr - 2;
   if (tail < chip->rxbuf_start) {
     tail = chip->rxbuf_end - 2;
   }
@@ -266,10 +267,10 @@ unsigned short enc624j600_read_rx_fifo_level(enc624j600 *chip) {
 
   rxstart = ENC624J600_READ_REG(chip->base_address, ERXST);
   rxstart = SWAPBYTES(rxstart);
-  
+
   rxhead = ENC624J600_READ_REG(chip->base_address, ERXHEAD);
   rxhead = SWAPBYTES(rxhead);
-  
+
   rxtail = ENC624J600_READ_REG(chip->base_address, ERXTAIL);
   rxtail = SWAPBYTES(rxtail);
 
@@ -288,15 +289,16 @@ void enc624j600_write_phy_reg(enc624j600 *chip, unsigned char phyreg,
   /* Wait for internal MII to become available */
   while (ENC624J600_READ_REG(chip->base_address, MISTAT) & MISTAT_BUSY) {
   }
+  /* only write low half of MIREGADR, the high half is reserved */
   ENC624J600_WRITE_REG8(chip->base_address, MIREGADR, phyreg);
-  ENC624J600_WRITE_REG8(chip->base_address, MIWR, value & 0xff);
-  ENC624J600_WRITE_REG8(chip->base_address, MIWR + 1, value >> 8);
+  ENC624J600_WRITE_REG(chip->base_address, MIWR, SWAPBYTES(value));
 }
 
 unsigned short enc624j600_read_phy_reg(enc624j600 *chip, unsigned char phyreg) {
   /* Wait for internal MII to become available */
   while (ENC624J600_READ_REG(chip->base_address, MISTAT) & MISTAT_BUSY) {
   }
+  /* only write low half of MIREGADR, the high half is reserved */
   ENC624J600_WRITE_REG8(chip->base_address, MIREGADR, phyreg);
   /* Wait for internal MII to finish read operation */
   while (ENC624J600_READ_REG(chip->base_address, MISTAT) & MISTAT_BUSY) {
@@ -314,14 +316,16 @@ void enc624j600_disable_phy_loopback(enc624j600 *chip) {
   enc624j600_write_phy_reg(chip, PHCON1, old_phcon1 & ~PHCON1_PLOOPBK);
 }
 
-void enc624j600_memcpy(unsigned char * dest, unsigned char * source, unsigned short len) {
+void enc624j600_memcpy(unsigned char *dest, unsigned char *source,
+                       unsigned short len) {
   /* TODO: get rid of this and just use memcpy once issue #3 is resolved */
   for (int i = 0; i < len; i++) {
     *dest++ = *source++;
   }
 }
 
-unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest, unsigned short len) {
+unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest, 
+                                     unsigned short len) {
   unsigned short chunk_len;
   unsigned char * source = chip->rxptr;
 

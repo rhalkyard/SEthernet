@@ -305,8 +305,8 @@ csCode in the parameter block.
 
 Note that control operations can be asynchronous! The wrapper code in header.s
 handles this for us, all we need to do is return a value <=0 when returning
-synchronously or >=0 for async operations that will be completed by a later
-IODone call.
+synchronously (0 for success, <0 for error) or >0 for async operations that will
+be completed by a later IODone call.
 */
 #pragma parameter __D0 driverControl(__A0, __A1)
 OSErr driverControl(EParamBlkPtr pb, DCtlPtr dce) {
@@ -327,11 +327,9 @@ OSErr driverControl(EParamBlkPtr pb, DCtlPtr dce) {
     case ENetWrite:      /* Send packet */
       return doEWrite(theGlobals, pb);
     case ENetGetInfo: /* Read hardware address and statistics */
-      /* According to Inside Macintosh: Networking, non-SONIC ethernet devices
-      should return 18 bytes of data containing the ethernet address followed by
-      some statistics. We define a packed 'driverInfo' struct containing this
-      information as part of our globals, so we can just copy that directly into
-      the provided buffer. */
+      /* We use an extended version of the driver info struct with some extra
+      fields tacked onto the end. Note that we do not have counters for all the
+      standard fields. */
       if (pb->u.EParms1.eBuffSize > (short) sizeof(theGlobals->info)) {
         pb->u.EParms1.eBuffSize = sizeof(theGlobals->info);
       }
@@ -344,8 +342,8 @@ OSErr driverControl(EParamBlkPtr pb, DCtlPtr dce) {
       /* ENEtSetGeneral tells the driver to prepare to transmit general Ethernet
       packets rather than only AppleTalk packets. Drivers can use this to
       rearrange TX/RX buffer boundaries for the longer maximum frame length
-      (1536 vs. 768 bytes), but we have enough buffer to always operate in
-      general mode, so this is a no-op. */
+      (1536 vs. 768 bytes). We have enough buffer to always operate in general
+      mode, so this is a no-op. */
       return noErr;
 
 #if 0

@@ -30,10 +30,7 @@ unsigned long crc32(const Byte *data, const unsigned short len) {
 
 /* Busy-wait for one Tick (1/60s) */
 void waitTicks(const unsigned short ticks) {
-
   unsigned int start, now;
-  /* UnsignedWide is technically a struct of two unsigned longs in big-endian
-  order, it's interchangeable with a UInt64 but GCC doesn't know this. */
   start = TickCount();
   do {
     now = TickCount();
