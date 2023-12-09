@@ -211,8 +211,8 @@ Some general rules for register access:
 #define PHANA_AD100 BIT(15)
 #define PHANA_AD10FD BIT(14)
 #define PHANA_AD10 BIT(13)
-#define PHANA_ADIEEE_SHIFT (8)
-#define PHANA_ADIEEE_MASK (0x00ff)
+#define PHANA_ADIEEE_SHIFT 8
+#define PHANA_ADIEEE_MASK 0xff00
 
 /* PHANLPA */
 #define PHANLPA_LPNP BIT(7)
@@ -225,8 +225,8 @@ Some general rules for register access:
 #define PHANLPA_LP100 BIT(15)
 #define PHANLPA_LP10FD BIT(14)
 #define PHANLPA_LP10 BIT(13)
-#define PHANLPA_LPIEEE_SHIFT (8)
-#define PHANLPA_LPIEEE_MASK (0x00ff)
+#define PHANLPA_LPIEEE_SHIFT 8
+#define PHANLPA_LPIEEE_MASK 0xff00
 
 /* PHANE */
 #define PHANE_PDFLT BIT(12)
@@ -243,8 +243,8 @@ Some general rules for register access:
 #define PHSTAT2_PLRITY BIT(12)
 
 /* PHSTAT3 */
-#define PHSTAT3_SPDDPX_SHIFT (10)
-#define PHSTAT3_SPDDPX_MASK (0x0007)
+#define PHSTAT3_SPDDPX_SHIFT 10
+#define PHSTAT3_SPDDPX_MASK 0x1c00
 
 /* Bit definitions */
 /* ESTAT */
@@ -254,8 +254,8 @@ Some general rules for register access:
 #define ESTAT_CLKRDY BIT(4)
 #define ESTAT_PHYDPX BIT(2)
 #define ESTAT_PHYLNK BIT(0)
-#define ESTAT_PKTCNT_SHIFT (8)
-#define ESTAT_PKTCNT_MASK (0x00ff)
+#define ESTAT_PKTCNT_SHIFT 8
+#define ESTAT_PKTCNT_MASK 0xff00
 
 /* EIR */
 #define EIR_CRYPTEN BIT(7)
@@ -294,15 +294,15 @@ Some general rules for register access:
 #define ETXSTAT_EXDEFER BIT(0)
 #define ETXSTAT_DEFER BIT(15)
 #define ETXSTAT_CRCBAD BIT(12)
-#define ETXSTAT_COLCNT_SHIFT (8)
-#define ETXSTAT_COLCNT_MASK (0x000f)
+#define ETXSTAT_COLCNT_SHIFT 8
+#define ETXSTAT_COLCNT_MASK 0x0f00
 
 /* ERXFCON */
 #define ERXFCON_HTEN BIT(7)
 #define ERXFCON_MPEN BIT(6)
 #define ERXFCON_NOTPM BIT(4)
-#define ERXFCON_PMEN_SHIFT (0)
-#define ERXFCON_PMEN_MASK (0x000f)
+#define ERXFCON_PMEN_SHIFT 0
+#define ERXFCON_PMEN_MASK 0x000f
 #define ERXFCON_CRCEEN BIT(15)
 #define ERXFCON_CRCEN BIT(14)
 #define ERXFCON_RUNTEEN BIT(13)
@@ -321,28 +321,28 @@ Some general rules for register access:
 #define MACON2_DEFER BIT(6)
 #define MACON2_BPEN BIT(5)
 #define MACON2_NOBKOFF BIT(4)
-#define PMACON2_ADCFG_SHIFT (13)
-#define MACON2_PADCFG_MASK (0xe000)
+#define MACON2_ADCFG_SHIFT 13
+#define MACON2_PADCFG_MASK 0xe000
 #define MACON2_TXCRCEN BIT(12)
 #define MACON2_PHDREN BIT(11)
 #define MACON2_HFRMEN BIT(9)
 #define MACON2_FULDPX BIT(8)
 
 /* MABBIPG */
-#define MABBIPG_BBIPG_SHIFT (8)
-#define MABBIPG_BBIPG_MASK (0x7f00)
+#define MABBIPG_BBIPG_SHIFT 8
+#define MABBIPG_BBIPG_MASK 0x7f00
 
 /* MAIPG */
-#define MAIPG_IPG_SHIFT (8)
-#define MAIPG_IPG_MASK (0x7f00)
+#define MAIPG_IPG_SHIFT 8
+#define MAIPG_IPG_MASK 0x7f00
 
 /* MICMD */
 #define MICMD_MIISCAN BIT(9)
 #define MICMD_IIRD BIT(8)
 
 /* MIREGADR */
-#define MIREGADR_PHREG_SHIFT (8)
-#define MIREGADR_PHREG_MASK (0x1f00)
+#define MIREGADR_PHREG_SHIFT 8
+#define MIREGADR_PHREG_MASK 0x1f00
 
 /* MISTAT */
 #define MISTAT_NVALID BIT(10)
@@ -354,22 +354,22 @@ Some general rules for register access:
 #define ECON2_STRCH BIT(6)
 #define ECON2_TXMAC BIT(5)
 #define ECON2_SHA1MD5 BIT(4)
-#define ECON2_COCON_SHIFT (0)
-#define ECON2_COCON_MASK (0x000f)
+#define ECON2_COCON_SHIFT 0
+#define ECON2_COCON_MASK 0x000f
 #define ECON2_AUTOFC BIT(15)
 #define ECON2_TXRST BIT(14)
 #define ECON2_RXRST BIT(13)
 #define ECON2_ETHRST BIT(12)
-#define ECON2_MODLEN_SHIFT (10)
-#define ECON2_MODLEN_MASK (0x0003)
-#define ECON2_AESLEN_SHIFT (8)
-#define ECON2_AESLEN_MASK (0x0003)
+#define ECON2_MODLEN_SHIFT 10
+#define ECON2_MODLEN_MASK 0x0c00
+#define ECON2_AESLEN_SHIFT 8
+#define ECON2_AESLEN_MASK 0x0300
 
 /* ERXWM */
-#define ERXWM_RXFWM_SHIFT (0)
-#define ERXWM_RXFWM_MASK (0x00ff)
-#define ERXWM_RXEWM_SHIFT (8)
-#define ERXWM_RXEWM_MASK (0x00ff)
+#define ERXWM_RXFWM_SHIFT 0
+#define ERXWM_RXFWM_MASK 0x00ff
+#define ERXWM_RXEWM_SHIFT 8
+#define ERXWM_RXEWM_MASK 0xff00
 
 /* EIE */
 #define EIE_INTIE BIT(7)
@@ -386,12 +386,12 @@ Some general rules for register access:
 
 /* EIDLED */
 #define EIDLED_LACFG_SHIFT 4
-#define EIDLED_LACFG_MASK (0x000f)
+#define EIDLED_LACFG_MASK 0x00f0
 #define EIDLED_LBCFG_SHIFT 0
-#define EIDLED_LBCFG_MASK (0x000f)
-#define EIDLED_DEVID_SHIFT (13)
-#define EIDLED_DEVID_MASK (0x000e)
+#define EIDLED_LBCFG_MASK 0x000f
+#define EIDLED_DEVID_SHIFT 13
+#define EIDLED_DEVID_MASK 0xe000
 #define EIDLED_REVID_SHIFT 8
-#define EIDLED_REVID_MASK 0x001f
+#define EIDLED_REVID_MASK 0x1f00
 
 #endif /* ENC624J600_REGISTERS_H */

@@ -158,8 +158,8 @@ void enc624j600_suspend(enc624j600 *chip) {
 void enc624j600_read_id(enc624j600 *chip, unsigned char *device_id,
                         unsigned char *revision) {
   unsigned short result = ENC624J600_READ_REG(chip->base_address, EIDLED);
-  *device_id = (result >> EIDLED_DEVID_SHIFT) & EIDLED_DEVID_MASK;
-  *revision = (result >> EIDLED_REVID_SHIFT) & EIDLED_REVID_MASK;
+  *device_id = (result & EIDLED_DEVID_MASK) >> EIDLED_DEVID_SHIFT;
+  *revision = (result & EIDLED_REVID_MASK) >> EIDLED_REVID_SHIFT;
 }
 
 void enc624j600_read_hwaddr(enc624j600 *chip, unsigned char addrbuf[6]) {
@@ -213,9 +213,8 @@ void enc624j600_clear_irq(enc624j600 *chip, unsigned short irqmask) {
 }
 
 unsigned char enc624j600_read_rx_pending_count(enc624j600 *chip) {
-  return (ENC624J600_READ_REG(chip->base_address, ESTAT) >>
-          ESTAT_PKTCNT_SHIFT) &
-         ESTAT_PKTCNT_MASK;
+  return (ENC624J600_READ_REG(chip->base_address, ESTAT) &
+         ESTAT_PKTCNT_MASK) >> ESTAT_PKTCNT_SHIFT;
 }
 
 void enc624j600_decrement_rx_pending_count(enc624j600 *chip) {

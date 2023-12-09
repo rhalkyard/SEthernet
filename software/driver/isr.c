@@ -215,7 +215,7 @@ static void userISR(driverGlobalsPtr theGlobals) {
     unsigned short txstat =
         ENC624J600_READ_REG(theGlobals->chip.base_address, ETXSTAT);
     unsigned short collisions =
-        (txstat >> ETXSTAT_COLCNT_SHIFT) & ETXSTAT_COLCNT_MASK;
+        (txstat & ETXSTAT_COLCNT_MASK) >> ETXSTAT_COLCNT_SHIFT;
     if (txstat & ETXSTAT_DEFER) {
       theGlobals->info.deferredFrames++;
     }
