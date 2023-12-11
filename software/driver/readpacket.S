@@ -13,25 +13,23 @@ The address of ReadPacket must be in A4 when the protocol handler is called.
 DO NOT CALL THIS FUNCTION DIRECTLY FROM THE DRIVER.
 
 On entry:
-  A0: Pointer to chip data structure (guaranteed preserved by protocol handler)
-  A1: Unused, but guaranteed preserved by protocol handler.
+  A0: pointer to chip data structure (guaranteed preserved by protocol handler)
+  A1: unused, but guaranteed preserved by protocol handler.
   A3: buffer to write into
-  D1: number of bytes remaining (*** IM:N only documents this for AppleTalk
-      .MPP protocol handlers, but the MACE and SONIC drivers' ReadPacket
-      routines use D1 in this way too ***)
+  D1: number of bytes remaining
   D3: maximum number of bytes to read
 
 On exit:
-  A0-A2: Preserved
-  A3: updated buffer pointer (byte following last byte)
-  A4-A5: Preserved
-  D0: clobbered
-  D1: number of bytes remaining
+  A0-A2: preserved
+  A3: buffer pointer (updated to point to byte following last byte written)
+  A4-A5: preserved
+  D0: changed
+  D1: number of bytes remaining (updated to reflect bytes read)
   D2: preserved
   D3: 0 if requested number of bytes read
-      <0 if packet was (-D3) bytes too large to fit in buffer (ReadRest)
+      <0 if packet was (-D3) bytes too large to fit in buffer (ReadRest only)
       >0 if D3 bytes weren't read
-  D4-D7: Preserved
+  D4-D7: preserved
 
   CCR Z flag indicates error state (set if no error, clear if error)
 */
@@ -45,17 +43,34 @@ ReadRest:
     .if . != ReadPacket+2   /* just to make sure */
     .err
     .endif
-    MOVE.W      %d3, %d0                /* d0 = requested byte count */
-    SUB.W       %d1, %d0                /* d0 = requested - available */
+    LINK        %a6, #0                 /* we don't really need a stack frame but helps with debugging */
     TST.W       %d3                     /* check for zero-size read */
     BEQ         1f                      /* nothing to do */
     BSR         ReadBuf                 /* read the data */
+/* 
+ReadBuf return cases:
+    - We asked for more data than was left in the packet
+        D1 = 0 (no data remaining in packet)
+        D3 > 0 (number of bytes that we asked for but didn't get)
+        => D3 = D3 - 0 = D3
+    - We got exactly as much data as was available
+        D1 = D3 = 0
+        => D3 = 0 - 0 = 0
+    - There was more data left in the packet than we asked for
+        D1 > 0 (bytes remaining in packet)
+        D3 = 0 (we got as many bytes as we asked for)
+        => D3 = 0 - D1 = -D1
+*/
 1:
-    MOVE.W      %d0, %d3                /* d3 = requested - available */
+    SUB.W       %d1, %d3
     MOVEQ       #0, %d0                 /* set Z flag, no failure no matter what */
+    UNLK        %a6
     RTS
 
 RealReadPacket:
+    LINK        %a6, #0
+    TST.W       %d3
+    BEQ         1f                      /* zero-length ReadPacket is silly */
     CMP.W       %d3, %d1                /* compare requested byte count (D3) against remaining bytes (D1) */
     BLO         1f                      /* bail out if requested > remaining */
     BSR         ReadBuf                 /* otherwise, read the data */
@@ -67,23 +82,51 @@ RealReadPacket:
 #endif
     MOVEQ       #-92, %d0               /* eLenErr */
 2:
+    UNLK        %a6
     RTS
 
+/*
+Read routine for ReadPacket/ReadRest. Calls enc624j600_read_rxbuf() to do the
+heavy lifting.
+
+On entry:
+    A0:     Address of chip data structure
+    A3:     Destination pointer
+    D1:     Remaining bytes in packet
+    D3:     Number of bytes to read
+
+On exit:
+    A0-A2:  Preserved
+    A3:     Pointer to one byte past last byte written
+    A4-A5:  Preserved
+    D0:     Number of bytes actually read
+    D1:     Remaining bytes in packet (updated)
+    D2:     Preserved
+    D3:     Difference between requested bytes and actual bytes read 
+            (requested - MIN(available, requested))
+
+    CCR Z flag reflects value of D3 (set = no delta, clear = fewer bytes were
+    read than requested)
+*/
 ReadBuf:
-    MOVE.W      %d3, %d0                /* d0 = byte count */
-    CMP.W       %d1, %d3                /* Check for byte count > remaining bytes */
-    BLS         1f
-    MOVE        %d1, %d0                /* If so, only read what's available */
+    LINK        %a6, #0
+    MOVE.W      %d3, %d0                /* d0 = number of bytes to read */
+    CMP.W       %d1, %d0                /* compare against number of bytes in packet */
+    BLS         1f                      /* branch if d0 <= d1 */
+    MOVE.W      %d1, %d0                /* limit read size to available data */
 1:
-    MOVEM.L     %a0-%a1/%d1-%d2, -(%sp) /* Preserve registers clobbered by C */
-    MOVE.W      %d0, -(%sp)             /* D0.W - number of bytes to read */
-    MOVE.L      %a3, -(%sp)             /* A3   - destination address */
-    MOVE.L      %a0, -(%sp)             /* A0   - address of chip struct */
-    BSR         enc624j600_read_rxbuf   /* D0.W = enc624j600_read_rxbuf(A0, A3, D0.W) */
-    ADD.W       #10, %sp                /* Dispose of args */
-    MOVEM.L     (%sp)+, %a0-%a1/%d1-%d2 /* Restore registers */
+    MOVEM.L     %a0-%a1/%d0-%d2, -(%sp) /* Preserve registers changed by C */
+    MOVE.W      %d0, -(%sp)             /* D0.W: number of bytes to read */
+    MOVE.L      %a3, -(%sp)             /* A3:   destination address */
+    MOVE.L      %a0, -(%sp)             /* A0:   address of chip struct */
+    BSR         enc624j600_read_rxbuf   /* enc624j600_read_rxbuf(A0, A3, D0.W) */
+    ADD.W       #10, %sp                /* Dispose of args (4+4+2 bytes) */
+    MOVEM.L     (%sp)+, %a0-%a1/%d0-%d2 /* Restore registers */
 
     ADD.W       %d0, %a3                /* Advance destination buffer pointer */
-    SUB.W       %d0, %d1                /* Decrement remaining-byte count */
+    SUB.W       %d0, %d1                /* Update remaining-byte count */
+
+    /* This operation must come last so that a successful read sets the zero flag */
     SUB.W       %d0, %d3                /* Calculate remainder for this read */
+    UNLK        %a6
     RTS
