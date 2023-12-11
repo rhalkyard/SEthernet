@@ -43,7 +43,7 @@ The handler calls ReadPacket/ReadRest with the above register definitions, but
 may return with them destroyed.
 
 On protocol handler exit:
-  A0-A4: destroyed
+  A0-A5: destroyed
   D0-D3: destroyed
 
 C assumes that A0-A1 and D0-D2 will be destroyed, we just need to save A2, A3,
@@ -57,14 +57,19 @@ static void callPH(enc624j600 *chip, void *phProc, Byte *payloadPtr,
     "   MOVE.L    %[payloadPtr], %%a3 \n\t"
     "   MOVE.L    %[readPacketProc], %%a4 \n\t"
     "   MOVE.W    %[payloadLen], %%d1 \n\t"
+    /* One would expect that if you put A5 in the list of used registers for an
+    inline asm block, gcc would save and restore A5 as it does with other
+    registers on the used list. Apparently not!! */
+    "   MOVE.L    %%a5, -(%%sp) \n\t"
     "   JSR       (%%a1) \n\t"
+    "   MOVE.L    (%%sp)+, %%a5 \n\t"
     : 
     : [chip] "m" (chip),
       [phProc] "m" (phProc),
       [payloadPtr] "m" (payloadPtr),
       [readPacketProc] "m" (readPacketProc),
       [payloadLen] "m" (payloadLen)
-    : "a0", "a1", "a2", "a3", "a4", "d0", "d1", "d2", "d3"
+    : "a0", "a1", "a2", "a3", "a4", "a5", "d0", "d1", "d2", "d3"
   );
 }
 
