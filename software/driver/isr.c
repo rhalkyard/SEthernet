@@ -324,7 +324,7 @@ void driverISR() {
 
     /* We have an interrupt waiting: call our ISR */
     "   MOVEM.L %%a0-%%a1/%%d1-%%d2,  -(%%sp) \n\t"
-    "   LEA     isrGlobals(%%pc), %%a1 \n\t"
+    "   LEA     isrGlobals, %%a1 \n\t"
     "   MOVE.L  %%a1, -(%%sp) \n\t"
     "   JSR     _driverISR  \n\t"
     "   ADDQ    #4, %%sp \n\t"
@@ -335,7 +335,7 @@ void driverISR() {
     /* The interrupt wasn't us: chain through to the original vector */
     "not_us_%=:\n\t"
     "   MOVE.W  (%%sp)+, %%d0  \n\t"
-    "   MOVE.L  originalInterruptVector(%%pc), -(%%sp)  \n\t"
+    "   MOVE.L  originalInterruptVector, -(%%sp)  \n\t"
     "   RTS"  /* push-and-RTS is apparently the quickest way to jump through a
               vector in memory. Once again, shades of the C64 here */
     :
