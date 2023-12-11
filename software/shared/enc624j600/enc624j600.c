@@ -82,13 +82,14 @@ int enc624j600_init(enc624j600 *chip, unsigned short txbuf_size) {
   /* Set up 25MHz clock output (used by glue logic for timing generation). */
   tmp = ENC624J600_READ_REG(chip->base_address, ECON2);
   tmp &= ~ECON2_COCON_MASK;
-  tmp |= 0b0010 << ECON2_COCON_SHIFT;
+  tmp |= 0x2 << ECON2_COCON_SHIFT; /* COCON=0010 = 25MHz clock output */
   ENC624J600_WRITE_REG(chip->base_address, ECON2, tmp);
 
   /* LED A = link, LED B = activity */
   ENC624J600_WRITE_REG(
       chip->base_address, EIDLED,
-      (0b0010 << EIDLED_LACFG_SHIFT) | (0b0110 << EIDLED_LBCFG_SHIFT));
+      (0x2 << EIDLED_LACFG_SHIFT) | /* LACFG=0010 = LED A indicates link state */
+      (0x6 << EIDLED_LBCFG_SHIFT)); /* LBCFG=0110 = LED B indicates activity */
 
   return 0;
 }
@@ -368,6 +369,7 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest,
     source += chunk_len;
     enc624j600_update_rxptr(chip, source);
   }
+
 
   return len;
 }
