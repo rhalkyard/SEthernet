@@ -70,35 +70,38 @@ These wrappers (adapted from IM: Devices listing 1-8) allow the actual
 implementations to be written in C.
 
 The C impls should be declared with:
-#pragma parameter __D0 driverOpen(__A0, __A1)
-#pragma parameter __D0 driverControl(__A0, __A1)
-#pragma parameter __D0 driverClose(__A0, __A1)
+OSErr driverOpen(EParamBlkPtr pb, DCtlPtr dce)
+OSErr driverControl(EParamBlkPtr pb, DCtlPtr dce)
+OSErr driverClose(EParamBlkPtr pb, DCtlPtr dce)
 
 Note that BSR must be used here rather than JSR because our code may not have
 been relocated yet!
 */
 doOpen:
         MOVEM.L %A0-%A1,-(%SP)          /* Save registers */
+        MOVEM.L %A0-%A1,-(%SP)          /* Push args onto stack for C */
         BSR     driverOpen
+        ADDQ    #8, %SP                 /* Dispose of args */
         MOVEM.L (%SP)+,%A0-%A1          /* Restore registers */
-        MOVE.L  %D0, ioResult(%A0)      /* Return code from Open must go into ioResult */
         RTS
 
 doControl:
         MOVEM.L %A0-%A1,-(%SP)          /* Save registers */
+        MOVEM.L %A0-%A1,-(%SP)          /* Push args onto stack for C */
         BSR     driverControl
+        ADDQ    #8, %SP                 /* Dispose of args */
         MOVEM.L (%SP)+,%A0-%A1          /* Restore registers */
         CMP.W   #killCode, csCode(%A0)
-        BNE.B   IOReturn
+        BNE     IOReturn
         RTS                             /* Special case for KillIO - skip all the async IO handler stuff and just return */
 
 IOReturn:
         MOVE.W  ioTrap(%A0), %D1
         BTST    #noQueueBit, %D1
-        BEQ.B   Queued              /* Handle queued I/O */
+        BEQ     Queued              /* Handle queued I/O */
 
         TST.W   %D0                 /* test asynchronous return result */
-        BLE.B   ImmedRTS            /* result must be <= 0 */
+        BLE     ImmedRTS            /* result must be <= 0 */
         CLR.W   %D0                 /* "in progress" result (> 0) not passed back */
 ImmedRTS:
         MOVE.W  %D0,ioResult(%A0)   /* for immediate calls you must explicitly place the result in the ioResult field */
@@ -106,7 +109,7 @@ ImmedRTS:
 
 Queued:
         TST.W   %D0                 /* test asynchronous return result */
-        BLE.B   MyIODone            /* I/O is complete if result <= 0 */
+        BLE     MyIODone            /* I/O is complete if result <= 0 */
         CLR.W   %D0                 /* "in progress" result (> 0) not passed back */
         RTS
 MyIODone:
@@ -115,7 +118,9 @@ MyIODone:
 
 doClose:
         MOVEM.L %A0-%A1,-(%SP)          /* Save registers */
+        MOVEM.L %A0-%A1,-(%SP)          /* Push args onto stack for C */
         BSR     driverClose
+        ADDQ    #8, %SP                 /* Dispose of args */
         MOVEM.L (%SP)+,%A0-%A1          /* Restore registers */     
         RTS
 

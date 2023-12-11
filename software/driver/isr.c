@@ -300,11 +300,13 @@ void driverISR() {
     D0: 1 if IRQ was handled, 0 otherwise
     D1-D7: preserved
 
-  C always saves A2-A6 and D3-D7, so we just need to save A0, D1, D2.
+  C functions always save A2-A6 and D3-D7, so we just need to save A0, D1, D2.
   */
-  asm("MOVEM %A0/%D1-%D2, -(%SP)\n\t"
+  asm("MOVEM.L %A0/%D1-%D2, -(%SP)\n\t"
+      "MOVE.L %A1, -(%SP)\n\t"
       "JSR _driverISR\n\t"
-      "MOVEM (%sp)+, %A0/%D1-%D2");
+      "ADDQ #4, %SP\n\t"
+      "MOVEM.L (%sp)+, %A0/%D1-%D2");
 #elif defined(TARGET_SE)
   asm volatile (
     /* Read the ENC624J600 EIR register to see if we have an interrupt from it */
@@ -314,10 +316,12 @@ void driverISR() {
     "   BEQ     not_us_%= \n\t"
 
     /* We have an interrupt waiting: call our ISR */
-    "   MOVEM   %%a0-%%a1/%%d1-%%d2,  -(%%sp) \n\t"
+    "   MOVEM.L %%a0-%%a1/%%d1-%%d2,  -(%%sp) \n\t"
     "   LEA     isrGlobals(%%pc), %%a1 \n\t"
+    "   MOVE.L  %%a1, -(%%sp) \n\t"
     "   JSR     _driverISR  \n\t"
-    "   MOVEM   (%%sp)+, %%a0-%%a1/%%d1-%%d2\n\t"
+    "   ADDQ    #4, %%sp \n\t"
+    "   MOVEM.L (%%sp)+, %%a0-%%a1/%%d1-%%d2\n\t"
     "   MOVE.W  (%%sp)+, %%d0  \n\t"
     "   RTE\n"
 
@@ -330,16 +334,18 @@ void driverISR() {
     :
     : [estat_int_mask] "n" (ESTAT_INT),
       [estat_reg] "a" (ENC624J600_REG(ENC624J600_BASE, ESTAT))
+      /* UGLY HACK: mark non-saved registers as in-use so that any
+      automatically-allocated registers will be saved and restored */
+    : "a0", "a1", "d0", "d1", "d2"
   );
 #endif
 }
 
 /* The 'real' interrupt handler, called by driverISR above. */
-#pragma parameter __D0 _driverISR(__A1)
 __attribute__((used)) static unsigned long _driverISR(
     driverGlobalsPtr theGlobals) {
   unsigned short irq_status;
-  unsigned char irq_handled = 0;
+  unsigned long irq_handled = 0;
 
   /* Mask all interrupts inside ISR */
   enc624j600_disable_irq(&theGlobals->chip, IRQ_ENABLE);

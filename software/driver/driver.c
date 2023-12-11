@@ -42,7 +42,7 @@ the end of the WDS is signaled by an entry with a zero length. The ethernet
 header is already prepared for us, we just have to write our hardware address
 into the source field.
 */
-OSStatus doEWrite(driverGlobalsPtr theGlobals, EParamBlkPtr pb) {
+OSErr doEWrite(driverGlobalsPtr theGlobals, EParamBlkPtr pb) {
   WDSElement *wds; /* a WDS is a list of address-length pairs like an iovec */
   short entryLen;  /* length of current WDS entry */
   unsigned long totalLength; /* total length of frame */
@@ -110,11 +110,10 @@ chip up.
 
 If driver is already open, do nothing.
 */
-#pragma parameter __D0 driverOpen(__A0, __A1)
-OSErr driverOpen(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
+OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
   driverGlobalsPtr theGlobals;
   Handle eadrResourceHandle;
-  OSStatus error;
+  OSErr error;
 
   error = noErr;
 
@@ -274,8 +273,7 @@ Ethernet drivers don't generally get closed, as drivers don't (can't?) implement
 reference counting and software has no way of knowing if other software is using
 it. Still, drivers all seem to implement some kind of token shutdown procedure.
 */
-#pragma parameter __D0 driverClose(__A0, __A1)
-OSErr driverClose(__attribute__((unused)) IOParamPtr pb, AuxDCEPtr dce) {
+OSErr driverClose(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
   driverGlobalsPtr theGlobals = (driverGlobalsPtr)dce->dCtlStorage;
 
   /* Reset the chip; this is just a 'big hammer' to stop transmitting, disable
@@ -321,8 +319,7 @@ handles this for us, all we need to do is return a value <=0 when returning
 synchronously (0 for success, <0 for error) or >0 for async operations that will
 be completed by a later IODone call.
 */
-#pragma parameter __D0 driverControl(__A0, __A1)
-OSErr driverControl(EParamBlkPtr pb, DCtlPtr dce) {
+OSErr driverControl(EParamBlkPtr pb, AuxDCEPtr dce) {
   driverGlobalsPtr theGlobals = (driverGlobalsPtr)dce->dCtlStorage;
   switch (pb->csCode) {
     case ENetDelMulti: /* Delete address from multicast table */
