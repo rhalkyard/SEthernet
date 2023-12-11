@@ -256,7 +256,7 @@ static void userISR(driverGlobalsPtr theGlobals) {
     } else if (txstat & ETXSTAT_LATECOL) {
       theGlobals->info.lateCollisions++;
     } else {
-      theGlobals->info.internalRxErrors++;
+      theGlobals->info.internalTxErrors++;
     }
 
 #if defined(DEBUG)
