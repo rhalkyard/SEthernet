@@ -260,7 +260,8 @@ static void userISR(driverGlobalsPtr theGlobals) {
     }
 
 #if defined(DEBUG)
-    DebugStr("\pTX abort!");
+    strbuf[0] = sprintf(strbuf+1, "TX abort! ETXSTAT=%04x", txstat);
+    DebugStr((unsigned char *)strbuf);
 #endif
 
     IODone((DCtlPtr)theGlobals->driverDCE, excessCollsns);
@@ -372,6 +373,11 @@ __attribute__((used)) static unsigned long _driverISR(
     except process some pending packets (below) */
     theGlobals->info.internalRxErrors++;
 
+#if defined(DEBUG)
+    strbuf[0] = sprintf(strbuf+1, "RX abort! EIR=%04x", irq_status);
+    DebugStr((unsigned char *)strbuf);
+#endif
+
     enc624j600_clear_irq(&theGlobals->chip,
                          irq_status & (IRQ_RX_ABORT | IRQ_PCNT_FULL));
     irq_handled = 1;
@@ -397,7 +403,8 @@ __attribute__((used)) static unsigned long _driverISR(
 
 #if defined(DEBUG)
   if (irq_handled == 0) {
-    DebugStr("\pENC624J600: spurious interrupt");
+    strbuf[0] = sprintf(strbuf+1, "Spurious interrupt! EIR=%04x", irq_status);
+    DebugStr((unsigned char *)strbuf);
   }
 #endif
 
