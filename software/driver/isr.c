@@ -82,8 +82,12 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
   unsigned short bytesPending;   /* Number of bytes pending in receive FIFO */
   unsigned short packetsPending; /* Number of packets pending in receive FIFO */
   protocolHandlerEntry *protocolSlot; /* Protocol handler */
-
   Byte *rhaPtr = theGlobals->recvHeaderArea; /* Pointer into header buffer */
+  /* Length of packet header (including ENC624J600 data) */
+  const unsigned short headerLen = sizeof(unsigned short) +  /* next-packet pointer */
+                                   sizeof(enc624j600_rsv) +  /* RSV */
+                                   6 * 2 +                   /* dest + src addrs */
+                                   sizeof(unsigned short);   /* ethertype/size */
 
   /* Record some FIFO stats */
   packetsPending = enc624j600_read_rx_pending_count(&theGlobals->chip);
@@ -106,11 +110,7 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
     ...             layer 3 payload
   */
   /* Read the above fields into the Receive Header Area */
-  enc624j600_read_rxbuf(&theGlobals->chip, theGlobals->recvHeaderArea,
-                        sizeof(unsigned short) + 
-                        sizeof(enc624j600_rsv) +
-                        6 * 2 + 
-                        sizeof(unsigned short));
+  enc624j600_read_rxbuf(&theGlobals->chip, theGlobals->recvHeaderArea, headerLen);
 
   /* Next-packet pointer is little-endian and relative to the chip address
   space. Convert this to a 'real' pointer. */
@@ -185,10 +185,8 @@ accept:
   manager always registers itself as the handler for this protocol. */
   if (protocol < 0x0600) {
     protocolSlot = findPH(theGlobals, phProtocolPhaseII);
-    pktLen = protocol;
   } else {
     protocolSlot = findPH(theGlobals, protocol);
-    pktLen = pktLen - 18;
   }
   /* Search the protocol-handler table for a handler for this ethertype */
   if (protocolSlot == nil) {
@@ -198,7 +196,7 @@ accept:
 
   /* Call the protocol handler to read the rest of the packet */
   callPH(&theGlobals->chip, protocolSlot->handler, rhaPtr, ReadPacket,
-         pktLen);
+         pktLen-18);
   theGlobals->info.rxFrameCount++;
 
 drop:
