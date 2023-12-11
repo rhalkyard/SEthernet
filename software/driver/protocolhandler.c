@@ -4,6 +4,14 @@
 
 #include "enc624j600.h"
 
+#if defined(DEBUG)
+#include <Debugging.h>
+#include <stdio.h>
+char strbuf[255];
+extern void ReadPacket();
+extern void * header_start;
+#endif
+
 /* Find a protocol-handler table entry matching protocol number 'theProtocol'.
 Returns a pointer to the entry. */
 protocolHandlerEntry* findPH(driverGlobalsPtr theGlobals, unsigned short theProtocol) {
@@ -32,14 +40,29 @@ OSStatus doEAttachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
   theProtocol = pb->u.EParms1.eProtType;
   if (theProtocol > 0 && theProtocol <= 1500) {
     /* Not a valid ethertype */
+  #if defined(DEBUG)
+    strbuf[0] = sprintf(strbuf+1, "Failed to install handler for protocol %04x. Invalid.", 
+                        theProtocol);
+    DebugStr((unsigned char *)strbuf);
+#endif
     return lapProtErr;
   }
   if (findPH(theGlobals, theProtocol) != nil) {
     /* Protocol handler already installed*/
+#if defined(DEBUG)
+    strbuf[0] = sprintf(strbuf+1, "Failed to install handler for protocol %04x. Protocol in use.", 
+                        theProtocol);
+    DebugStr((unsigned char *)strbuf);
+#endif
     return lapProtErr;
   }
   if (pb->u.EParms1.ePointer == nil) {
     /* TODO: support ERead */
+
+#if defined(DEBUG)
+    strbuf[0] = sprintf(strbuf+1, "Failed to install ENetRead handler for protocol %04x. Not implemented.", theProtocol);
+    DebugStr((unsigned char *)strbuf);
+#endif
     return lapProtErr;
   }
 
@@ -47,12 +70,23 @@ OSStatus doEAttachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
   thePHSlot = findPH(theGlobals, phProtocolFree);
 
   if (thePHSlot == nil) {
+#if defined(DEBUG)
+    strbuf[0] = sprintf(strbuf+1, "Failed to install handler for protocol %04x. No free slots.", 
+                        theProtocol);
+    DebugStr((unsigned char *)strbuf);
+#endif
     return lapProtErr;
   } else {
   /* install the handler */
     thePHSlot->ethertype = theProtocol;
     thePHSlot->handler = (void *)pb->u.EParms1.ePointer;
     // thePHSlot->readPB = -1; /* not used */
+
+#if defined(DEBUG)
+    strbuf[0] = sprintf(strbuf+1, "Installing handler %08x for protocol %04x", 
+                        (unsigned int) thePHSlot->handler, theProtocol);
+    DebugStr((unsigned char *)strbuf);
+#endif
 
     if (theGlobals->phCount == 0) {
       enc624j600_start(&theGlobals->chip);
@@ -85,6 +119,12 @@ OSStatus doEDetachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
     if (theGlobals->phCount == 0) {
       enc624j600_suspend(&theGlobals->chip);
     }
+
+#if defined(DEBUG)
+    strbuf[0] = sprintf(strbuf+1, "Uninstalling handler for protocol %04x", 
+                        pb->u.EParms1.eProtType);
+    DebugStr((unsigned char *)strbuf);
+#endif
 
     return noErr;
   } else

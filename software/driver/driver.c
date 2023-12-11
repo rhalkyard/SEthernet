@@ -22,6 +22,8 @@
 #include <Debugging.h>
 #include <stdio.h>
 char strbuf[255];
+extern void ReadPacket();
+extern void * header_start;
 #endif
 
 /*
@@ -250,8 +252,10 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
 
 #if defined(DEBUG)
       /* Let's go! */
-      strbuf[0] = sprintf(strbuf + 1, "Driver opened. Globals at %08x", 
-                          (unsigned int) theGlobals);
+      strbuf[0] = sprintf(strbuf + 1, "Driver opened. Header at %08x. Globals at %08x. ReadPacket at %08x.", 
+                          (unsigned int) &header_start,
+                          (unsigned int) theGlobals,
+                          (unsigned int) ReadPacket);
       DebugStr((unsigned char *) strbuf);
 #endif
       enc624j600_start(&theGlobals->chip);
@@ -331,8 +335,10 @@ OSErr driverControl(EParamBlkPtr pb, AuxDCEPtr dce) {
     case ENetDetachPH: /* Detach receive handler for ethertype */
       return doEDetachPH(theGlobals, pb);
     case ENetRead:       /* Read packets directly without a handler routine */
+      DebugStr("\pENetRead not implemented!");
       return controlErr; /* TODO: support this */
     case ENetRdCancel:   /* Cancel a pending ENetRead */
+      DebugStr("\pENetRdCancel not implemented!");
       return controlErr; /* TODO: support this */
     case ENetWrite:      /* Send packet */
       return doEWrite(theGlobals, pb);

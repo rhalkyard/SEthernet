@@ -256,6 +256,10 @@ static void userISR(driverGlobalsPtr theGlobals) {
       theGlobals->info.internalRxErrors++;
     }
 
+#if defined(DEBUG)
+    DebugStr("\pTX abort!");
+#endif
+
     IODone((DCtlPtr)theGlobals->driverDCE, excessCollsns);
     enc624j600_clear_irq(&theGlobals->chip, IRQ_TX_ABORT);
   }
