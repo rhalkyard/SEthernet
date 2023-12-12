@@ -47,7 +47,7 @@ the end of the WDS is signaled by an entry with a zero length. The ethernet
 header is already prepared for us, we just have to write our hardware address
 into the source field.
 */
-OSErr doEWrite(driverGlobalsPtr theGlobals, EParamBlkPtr pb) {
+static OSErr doEWrite(driverGlobalsPtr theGlobals, EParamBlkPtr pb) {
   WDSElement *wds; /* a WDS is a list of address-length pairs like an iovec */
   short entryLen;  /* length of current WDS entry */
   unsigned long totalLength; /* total length of frame */
@@ -178,11 +178,15 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
 
   if (dce->dCtlStorage == nil) {
     /* 
-    Unlike classic Mac OS toolchains, Retro68 does NOT generate PC-relative
-    code, and if you use -mpcrel to force it to, it'll appear to work for simple
-    programs but start to come unraveled as things get more complicated. For
-    simplicity's sake, it's much easier to just live with relocation rather than
-    fighting it.
+    Unlike classic Mac OS toolchains, Retro68 does NOT generate
+    position-independent code, and if you use -mpcrel to force it to, it'll
+    appear to work for simple programs but start to come unraveled as things get
+    more complicated (specifically, libgcc is not built with -mpcrel, so the
+    libgcc calls that gcc emits for, say, optimized math operations, will cause
+    a crash).
+
+    For simplicity's sake, it's much easier to just live with relocation rather
+    than fighting it.
 
     For applications, the Retro68 runtime automatically relocates us at startup,
     but for non-application code such as a driver, we have to call the relocator
@@ -226,8 +230,13 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
         dce->dCtlFlags |= dVMImmuneMask; /* Tell the OS that we're VM-safe */
       }
 #elif defined(TARGET_SE)
-      /* SE: base address is hardcoded. Try writing and reading back a value to
-      probe for hardware. No need to worry about virtual memory here! */
+      /*
+      SE: base address is hardcoded. Try writing and reading back a value to
+      probe for hardware. No need to worry about virtual memory here!
+
+      TODO: figure out a more robust test (ID registers etc), and probably check
+      to make sure that we're actually running on an SE.
+      */
       theGlobals->chip.base_address = (void *) ENC624J600_BASE;
       volatile unsigned long * test = (unsigned long *) theGlobals->chip.base_address;
       *test = 0x123455aa;
@@ -446,6 +455,7 @@ OSErr driverControl(EParamBlkPtr pb, AuxDCEPtr dce) {
       reeturn controlErr;
 #endif
 
+#if 0
     /* Custom csCodes for debugging this driver. */
     case ENCReadReg: /* Read ENC624J600 register */
       return doENCReadReg(theGlobals, (CntrlParamPtr)pb);
@@ -459,6 +469,7 @@ OSErr driverControl(EParamBlkPtr pb, AuxDCEPtr dce) {
       return doENCEnableLoopback(theGlobals);
     case ENCDisableLoopback: /* Disable PHY internal loopback */
       return doENCDisableLoopback(theGlobals);
+#endif
 
     default:
 #if defined(DEBUG)

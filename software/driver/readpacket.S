@@ -15,8 +15,8 @@ The address of ReadPacket must be in A4 when the protocol handler is called.
 DO NOT CALL THIS FUNCTION DIRECTLY FROM THE DRIVER.
 
 On entry:
-  A0: pointer to chip data structure (guaranteed preserved by protocol handler)
-  A1: unused, but guaranteed preserved by protocol handler.
+  A0: ours (pointer to chip data structure)
+  A1: ours (unused)
   A3: buffer to write into
   D1: number of bytes remaining
   D3: maximum number of bytes to read
@@ -25,7 +25,7 @@ On exit:
   A0-A2: preserved
   A3: buffer pointer (updated to point to byte following last byte written)
   A4-A5: preserved
-  D0: changed
+  D0: changed (OSErr value)
   D1: number of bytes remaining (updated to reflect bytes read)
   D2: preserved
   D3: 0 if requested number of bytes read
@@ -45,10 +45,9 @@ ReadRest:
     .if . != ReadPacket+2   /* just to make sure */
     .err
     .endif
-    LINK        %a6, #0                 /* we don't really need a stack frame but helps with debugging */
     TST.W       %d3                     /* check for zero-size read */
     BEQ         1f                      /* nothing to do */
-    BSR         ReadBuf                 /* read the data */
+    JSR         ReadBuf                 /* read the data */
 /* 
 ReadBuf return cases:
     - We asked for more data than was left in the packet
@@ -66,17 +65,15 @@ ReadBuf return cases:
 1:
     SUB.W       %d1, %d3
     MOVEQ       #0, %d0                 /* set Z flag, no failure no matter what */
-    UNLK        %a6
     RTS
     MacsbugSymbol "ReadRest"
 
 RealReadPacket:
-    LINK        %a6, #0
     TST.W       %d3
     BEQ         1f                      /* zero-length ReadPacket is silly */
     CMP.W       %d3, %d1                /* compare requested byte count (D3) against remaining bytes (D1) */
     BLO         1f                      /* bail out if requested > remaining */
-    BSR         ReadBuf                 /* otherwise, read the data */
+    JSR         ReadBuf                 /* otherwise, read the data */
     TST.W       %d3                     /* check for leftover bytes */
     BEQ         2f
 1:
@@ -85,7 +82,6 @@ RealReadPacket:
 #endif
     MOVEQ       #-92, %d0               /* eLenErr */
 2:
-    UNLK        %a6
     RTS
     MacsbugSymbol "ReadPacket"
 
@@ -113,17 +109,16 @@ On exit:
     read than requested)
 */
 ReadBuf:
-    LINK        %a6, #0
     MOVE.W      %d3, %d0                /* d0 = number of bytes to read */
     CMP.W       %d1, %d0                /* compare against number of bytes in packet */
     BLS         1f                      /* branch if d0 <= d1 */
-    MOVE.W      %d1, %d0                /* limit read size to available data */
+    MOVE.W      %d1, %d0                /* d0 = MIN(d1, d3) */
 1:
     MOVEM.L     %a0-%a1/%d0-%d2, -(%sp) /* Preserve registers changed by C */
     MOVE.W      %d0, -(%sp)             /* D0.W: number of bytes to read */
     MOVE.L      %a3, -(%sp)             /* A3:   destination address */
     MOVE.L      %a0, -(%sp)             /* A0:   address of chip struct */
-    BSR         enc624j600_read_rxbuf   /* enc624j600_read_rxbuf(A0, A3, D0.W) */
+    JSR         enc624j600_read_rxbuf   /* enc624j600_read_rxbuf(A0, A3, D0.W) */
     ADD.W       #10, %sp                /* Dispose of args (4+4+2 bytes) */
     MOVEM.L     (%sp)+, %a0-%a1/%d0-%d2 /* Restore registers */
 
@@ -132,6 +127,5 @@ ReadBuf:
 
     /* This operation must come last so that a successful read sets the zero flag */
     SUB.W       %d0, %d3                /* Calculate remainder for this read */
-    UNLK        %a6
     RTS
     MacsbugSymbol "ReadBuf"

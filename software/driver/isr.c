@@ -56,6 +56,7 @@ static void callPH(enc624j600 *chip, void *phProc, Byte *payloadPtr,
     "   MOVE.L    %[phProc], %%a1 \n\t"
     "   MOVE.L    %[payloadPtr], %%a3 \n\t"
     "   MOVE.L    %[readPacketProc], %%a4 \n\t"
+    "   CLR.L     %d1 \n\t" /* Just in case? */
     "   MOVE.W    %[payloadLen], %%d1 \n\t"
     /* One would expect that if you put A5 in the list of used registers for an
     inline asm block, gcc would save and restore A5 as it does with other
@@ -274,16 +275,81 @@ static void userISR(driverGlobalsPtr theGlobals) {
       handlePacket(theGlobals);
     } while (enc624j600_read_rx_pending_count(&theGlobals->chip));
 
-    /* IRQ_PKT flag is not directly clearable, it is cleared when
-    pending-receive counter reaches zero */
+    /* IRQ_PKT flag is not directly clearable - it indicates that the
+    pending-receive count (decremented in the loop above) is nonzero */
   }
 
   enc624j600_enable_irq(&theGlobals->chip, IRQ_ENABLE);
 }
 
+/* Interrupt handler, wrapped by driverISR below. */
+__attribute__((used)) static unsigned long _driverISR(
+    driverGlobalsPtr theGlobals) {
+  unsigned short irq_status;
+  unsigned long irq_handled = 0;
+
+  /* Mask all interrupts inside ISR */
+  enc624j600_disable_irq(&theGlobals->chip, IRQ_ENABLE);
+  irq_status = enc624j600_read_irqstate(&theGlobals->chip);
+
+  if (irq_status & IRQ_LINK) {
+    /* Link status has changed; update MAC duplex configuration to match
+    autonegotiated PHY values */
+    enc624j600_duplex_sync(&theGlobals->chip);
+    enc624j600_clear_irq(&theGlobals->chip, IRQ_LINK);
+    irq_handled = 1;
+  }
+
+  if (irq_status & (IRQ_RX_ABORT | IRQ_PCNT_FULL)) {
+    /* Packet dropped due to full receive FIFO or packet-counter saturation.
+    Unlike the DP8390 we don't need to do anything to recover from this state
+    except process some pending packets (below) */
+    theGlobals->info.internalRxErrors++;
+
+#if defined(DEBUG)
+    strbuf[0] = sprintf(strbuf+1, "RX abort! EIR=%04x", irq_status);
+    DebugStr((unsigned char *)strbuf);
+#endif
+
+    enc624j600_clear_irq(&theGlobals->chip, IRQ_RX_ABORT | IRQ_PCNT_FULL);
+    irq_handled = 1;
+  }
+
+  if (irq_status & (IRQ_TX | IRQ_TX_ABORT | IRQ_PKT)) {
+    /* Transmit and receive handlers touch user memory. On Virtual Memory
+    systems, this could cause a double fault if the ISR runs during a page fault
+    and the user buffer is not paged in. DeferUserFn will delay calling the
+    handler until a safe time. */
+    if (theGlobals->usingVM) {
+      if (DeferUserFn(userISR, theGlobals) != noErr) {
+        return 0;
+      }
+    } else {
+      /* No VM, just call the handler directly. */
+      userISR(theGlobals);
+    }
+
+    /* Note that in this case we return immediately without re-enabling IRQs;
+    userISR may run AFTER we return if it gets deferred, so we leave re-enabling
+    IRQs to it */
+    return 1;
+  }
+
+#if defined(DEBUG)
+  if (irq_handled == 0) {
+    strbuf[0] = sprintf(strbuf+1, "Spurious interrupt! EIR=%04x", irq_status);
+    DebugStr((unsigned char *)strbuf);
+  }
+#endif
+
+  enc624j600_enable_irq(&theGlobals->chip, IRQ_ENABLE);
+
+  return irq_handled;
+}
+
 /*
 Our interrupt service routine - actually just a wrapper that calls the 'real'
-_driverISR() routine below.
+_driverISR() routine above.
 
 On the SE/30, we register our ISR with the Slot Manager, so all we need to do is
 wrap it in some MOVEMs to preserve the right registers.
@@ -294,7 +360,7 @@ is also used by the VIA, so our ISR must query the card's interrupt status, and
 decide whether to service it with _driverISR() or jump to the original Level 1
 vector to service a VIA interrupt.
 */
-void driverISR() {
+void driverISR(void) {
 #if defined(TARGET_SE30)
   /*
   SE/30: register-preservation wrapper for slot interrupt
@@ -347,68 +413,4 @@ void driverISR() {
     : "a0", "a1", "d0", "d1", "d2"
   );
 #endif
-}
-
-/* The 'real' interrupt handler, called by driverISR above. */
-__attribute__((used)) static unsigned long _driverISR(
-    driverGlobalsPtr theGlobals) {
-  unsigned short irq_status;
-  unsigned long irq_handled = 0;
-
-  /* Mask all interrupts inside ISR */
-  enc624j600_disable_irq(&theGlobals->chip, IRQ_ENABLE);
-  irq_status = enc624j600_read_irqstate(&theGlobals->chip);
-
-  if (irq_status & IRQ_LINK) {
-    /* Link status has changed; update MAC duplex configuration to match
-    autonegotiated PHY values */
-    enc624j600_duplex_sync(&theGlobals->chip);
-    enc624j600_clear_irq(&theGlobals->chip, IRQ_LINK);
-    irq_handled = 1;
-  }
-
-  if (irq_status & (IRQ_RX_ABORT | IRQ_PCNT_FULL)) {
-    /* Packet dropped due to full receive FIFO or packet-counter saturation.
-    Unlike the DP8390 we don't need to do anything to recover from this state
-    except process some pending packets (below) */
-    theGlobals->info.internalRxErrors++;
-
-#if defined(DEBUG)
-    strbuf[0] = sprintf(strbuf+1, "RX abort! EIR=%04x", irq_status);
-    DebugStr((unsigned char *)strbuf);
-#endif
-
-    enc624j600_clear_irq(&theGlobals->chip,
-                         irq_status & (IRQ_RX_ABORT | IRQ_PCNT_FULL));
-    irq_handled = 1;
-  }
-
-  if (irq_status & (IRQ_TX | IRQ_TX_ABORT | IRQ_PKT)) {
-    /* Transmit and receive handlers touch user memory. On Virtual Memory
-    systems, this could cause a double fault if the ISR runs during a page fault
-    and the user buffer is not paged in. DeferUserFn will delay calling the
-    handler until a safe time. */
-    if (theGlobals->usingVM) {
-      DeferUserFn(userISR, theGlobals);
-    } else {
-      /* No VM, just call the handler directly. */
-      userISR(theGlobals);
-    }
-
-    /* Note that in this case we return immediately without re-enabling IRQs;
-    userISR may run AFTER we return if it gets deferred, so we leave re-enabling
-    IRQs to it */
-    return 1;
-  }
-
-#if defined(DEBUG)
-  if (irq_handled == 0) {
-    strbuf[0] = sprintf(strbuf+1, "Spurious interrupt! EIR=%04x", irq_status);
-    DebugStr((unsigned char *)strbuf);
-  }
-#endif
-
-  enc624j600_enable_irq(&theGlobals->chip, IRQ_ENABLE);
-
-  return irq_handled;
 }
