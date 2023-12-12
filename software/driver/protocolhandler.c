@@ -82,12 +82,6 @@ OSStatus doEAttachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
     thePHSlot->handler = (void *)pb->u.EParms1.ePointer;
     // thePHSlot->readPB = -1; /* not used */
 
-#if defined(DEBUG)
-    strbuf[0] = sprintf(strbuf+1, "Installing handler %08x for protocol %04x", 
-                        (unsigned int) thePHSlot->handler, theProtocol);
-    DebugStr((unsigned char *)strbuf);
-#endif
-
     if (theGlobals->phCount == 0) {
       enc624j600_start(&theGlobals->chip);
     }

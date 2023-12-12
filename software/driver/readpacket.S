@@ -1,3 +1,5 @@
+#include "macsbug.inc"
+
 /*
 ReadPacket and ReadRest are called by protocol handlers to copy data from
 the receive FIFO into their own buffers. Their calling conventions and register
@@ -66,6 +68,7 @@ ReadBuf return cases:
     MOVEQ       #0, %d0                 /* set Z flag, no failure no matter what */
     UNLK        %a6
     RTS
+    MacsbugSymbol "ReadRest"
 
 RealReadPacket:
     LINK        %a6, #0
@@ -84,6 +87,7 @@ RealReadPacket:
 2:
     UNLK        %a6
     RTS
+    MacsbugSymbol "ReadPacket"
 
 /*
 Read routine for ReadPacket/ReadRest. Calls enc624j600_read_rxbuf() to do the
@@ -130,3 +134,4 @@ ReadBuf:
     SUB.W       %d0, %d3                /* Calculate remainder for this read */
     UNLK        %a6
     RTS
+    MacsbugSymbol "ReadBuf"

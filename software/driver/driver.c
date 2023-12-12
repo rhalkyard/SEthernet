@@ -193,6 +193,11 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
     theGlobals = (driverGlobalsPtr)NewPtrSysClear(sizeof(driverGlobals));
     if (!theGlobals) {
       error = MemError();
+#if defined(DEBUG)
+    strbuf[0] = sprintf(strbuf+1, "Couldn't allocate %lu bytes for globals!", 
+                        sizeof(driverGlobals));
+    DebugStr((unsigned char *)strbuf);
+#endif
     } else {
       /* dCtlStorage is technically a Handle, but since its use is entirely
       user-defined we can just treat it as a pointer */
@@ -312,10 +317,9 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
 
 #if defined(DEBUG)
       /* Let's go! */
-      strbuf[0] = sprintf(strbuf + 1, "Driver opened. Header at %08x. Globals at %08x. ReadPacket at %08x.", 
+      strbuf[0] = sprintf(strbuf + 1, "Driver opened. Revision " GIT_REV ". Header at %08x. Globals at %08x.;g",
                           (unsigned int) &header_start,
-                          (unsigned int) theGlobals,
-                          (unsigned int) ReadPacket);
+                          (unsigned int) theGlobals);
       DebugStr((unsigned char *) strbuf);
 #endif
       enc624j600_start(&theGlobals->chip);
@@ -395,10 +399,14 @@ OSErr driverControl(EParamBlkPtr pb, AuxDCEPtr dce) {
     case ENetDetachPH: /* Detach receive handler for ethertype */
       return doEDetachPH(theGlobals, pb);
     case ENetRead:       /* Read packets directly without a handler routine */
+#if defined(DEBUG)
       DebugStr("\pENetRead not implemented!");
+#endif
       return controlErr; /* TODO: support this */
     case ENetRdCancel:   /* Cancel a pending ENetRead */
+#if defined(DEBUG)
       DebugStr("\pENetRdCancel not implemented!");
+#endif
       return controlErr; /* TODO: support this */
     case ENetWrite:      /* Send packet */
       return doEWrite(theGlobals, pb);
