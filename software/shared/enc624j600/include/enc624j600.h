@@ -123,7 +123,7 @@ void enc624j600_memcpy(unsigned char * dest, unsigned char * source, unsigned sh
 unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest, unsigned short len);
 
 /* Exchange the bytes in a word value */
-#define SWAPBYTES(value) (((value) >> 8) | ((value) << 8))
+#define SWAPBYTES(value) (((value & 0xff00) >> 8) | ((value & 0x00ff) << 8))
 
 /* An integer with bit n set */
 #define BIT(n) (1 << (n))
