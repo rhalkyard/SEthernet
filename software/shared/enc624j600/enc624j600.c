@@ -6,7 +6,7 @@
 #if defined(DEBUG)
 #include <Debugging.h>
 #include <stdio.h>
-char strbuf[255];
+extern char strbuf[255];
 #endif
 
 /*

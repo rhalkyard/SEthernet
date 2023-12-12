@@ -4,6 +4,10 @@
 #include <OSUtils.h>
 #include <Timer.h>
 
+#if defined(DEBUG)
+char strbuf[255];
+#endif
+
 #define CRC_POLYNOMIAL (0x04c11db7)
 
 /* Naive CRC32 implementation, used in calculating the multicast-filter hash
