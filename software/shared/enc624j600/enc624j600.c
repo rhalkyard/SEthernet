@@ -234,11 +234,13 @@ static unsigned short enc624j600_ptr_to_addr(enc624j600 *chip,
 
 void enc624j600_transmit(enc624j600 *chip, const unsigned char *start_addr,
                          unsigned short length) {
-  unsigned short addr = enc624j600_ptr_to_addr(chip, start_addr);
+  /* Cancel any transmit that's currently in-progress. This shouldn't happen,
+  but if it does, the transmit data will have been stomped on when the transmit
+  buffer was rewritten prior to this call, so it's better to stop it now than
+  wait for it to finish. */
+  ENC624J600_CLEAR_BITS(chip->base_address, ECON1, ECON1_TXRTS);
 
-  /* Wait for any in-progress transmit to finish before starting a new one */
-  while (ENC624J600_READ_REG(chip->base_address, ECON1) & ECON1_TXRTS) {
-  };
+  unsigned short addr = enc624j600_ptr_to_addr(chip, start_addr);
 
   /* Set transmit start address (should always be chip base address, but set it
   for safety) */
@@ -352,9 +354,7 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest,
   } else {
     chunk_len = len;
   }
-  /* Read operations are not subject to the timing bug in issue #3; use regular
-  memcpy to get a bit more speed */
-  memcpy(dest, source, chunk_len);
+  enc624j600_memcpy(dest, source, chunk_len);
   dest += chunk_len;
   source += chunk_len;
 
@@ -362,14 +362,17 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest,
   if (source >= chip->rxbuf_end) {
     source = chip->rxbuf_start;
   }
+  enc624j600_update_rxptr(chip, source);
 
   /* Do another read if the first read didn't get everything */
   if (chunk_len < len) {
     chunk_len = len - chunk_len;
-    memcpy(dest, source, chunk_len);
+    enc624j600_memcpy(dest, source, chunk_len);
+    dest += chunk_len;
     source += chunk_len;
+    enc624j600_update_rxptr(chip, source);
   }
 
-  enc624j600_update_rxptr(chip, source);
+
   return len;
 }
