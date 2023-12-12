@@ -58,9 +58,8 @@ static void callPH(enc624j600 *chip, void *phProc, Byte *payloadPtr,
     "   MOVE.L    %[readPacketProc], %%a4 \n\t"
     "   CLR.L     %d1 \n\t" /* Just in case? */
     "   MOVE.W    %[payloadLen], %%d1 \n\t"
-    /* One would expect that if you put A5 in the list of used registers for an
-    inline asm block, gcc would save and restore A5 as it does with other
-    registers on the used list. Apparently not!! */
+    /* Save and restore A5 'manually' as workaround for bug in Retro68's
+    modified GCC - see https://github.com/autc04/Retro68/issues/220 */
     "   MOVE.L    %%a5, -(%%sp) \n\t"
     "   JSR       (%%a1) \n\t"
     "   MOVE.L    (%%sp)+, %%a5 \n\t"
