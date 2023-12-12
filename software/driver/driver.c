@@ -7,11 +7,13 @@
 #include <Gestalt.h>
 #include <MacTypes.h>
 #include <Resources.h>
-#include <Slots.h>
-#include <string.h>
 #include <Retro68Runtime.h>
+#include <ROMDefs.h>
+#include <ShutDown.h>
+#include <Slots.h>
 
 #include "enc624j600.h"
+#include "sethernet30_board_defs.h"
 #include "isr.h"
 #include "multicast.h"
 #include "protocolhandler.h"
@@ -99,6 +101,60 @@ OSErr doEWrite(driverGlobalsPtr theGlobals, EParamBlkPtr pb) {
 
   /* Return >0 to indicate operation in progress */
   return 1;
+}
+
+/*
+Shutdown procedure
+
+Set to run at shutdown by ShutDwnInstall.
+
+Mitigation for issue #4 (rev0 hardware produces spurious interrupts on warm
+restart). Annoyingly, there is no good way to pass data to a shutdown procedure,
+so we have to figure out where our cards are ourselves.
+*/
+static void doShutdown(void) {
+  enc624j600 chip;
+#if defined(TARGET_SE30)
+  /* SEthernet/30: Use the Slot Manager to search for Functional sResources
+  that look like SEthernet/30 cards */
+
+  int cardCount = 0;
+  Ptr cardAddresses[16];
+  long result;
+  OSErr err;
+
+  for (int i = 0; i < 16; i++) {
+    cardAddresses[i] = nil;
+  }
+
+  SpBlock spb = {.spCategory = catNetwork,
+                 .spCType = typeEtherNet,
+                 .spDrvrSW = SETHERNET30_DRSW,
+                 .spDrvrHW = SETHERNET30_DRHW,
+                 .spTBMask = 0,
+                 .spSlot = 1,
+                 .spID = 1,
+                 .spExtDev = 0};
+
+  err = SGetTypeSRsrc(&spb);
+  while (err == noErr && cardCount < 15) {
+    result = SFindDevBase(&spb);
+    if (result == noErr) {
+      cardAddresses[cardCount++] = (Ptr)spb.spResult;
+    } 
+    err = SGetTypeSRsrc(&spb);
+  }
+
+  for (int i = 0; i < cardCount; i++) {
+    chip.base_address = (unsigned char *) cardAddresses[i];
+    enc624j600_reset(&chip);
+  }
+#elif defined(TARGET_SE)
+  /* SEthernet: if we've gotten this far, just YOLO it and assume that the card
+  is there. We're shutting down anyway, so who cares? */
+  chip.base_address = (unsigned char *) ENC624J600_BASE;
+  enc624j600_reset(&chip);
+#endif
 }
 
 /*
@@ -202,6 +258,10 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
 
       /* Initialize the ethernet controller. */
       enc624j600_init(&theGlobals->chip, ENC_RX_BUF_START);
+
+      /* Install a shutdown procedure to reset the ENC624J600 as mitigation for
+      issue #4 (rev0 hardware produces spurious interrupts on warm restart) */
+      ShutDwnInstall(doShutdown, sdOnDrivers);
 
       /* Figure out our ethernet address. First we look for an 'eadr' resource
       with an ID corresponding to our slot. If one exists, we save it to our
