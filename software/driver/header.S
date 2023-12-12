@@ -1,10 +1,16 @@
+#include "version.h"
+
 /* Header for 'enet' driver resource */
 
 /* output a length-prefixed "pascal" style string */
-.macro pstring str1, str2
+.macro pstring str1, str2, str3, str4, str5, str6
         .byte pstring_end_\@ - . - 1
         .ascii "\str1"
         .ascii "\str2"
+        .ascii "\str3"
+        .ascii "\str4"
+        .ascii "\str5"
+        .ascii "\str6"
 pstring_end_\@:
 .endm
 
@@ -53,12 +59,12 @@ header_start:
 /* version number as long and as string */
         .long 0x00000001
 #if defined(TARGET_SE30)
-        pstring "SEthernet/30 Driver v0.0.1 ", __DATE__
+        pstring "SEthernet/30 Driver v0.0.1 git:", GIT_REV
 #elif defined(TARGET_SE)
-        pstring "SEthernet Driver v0.0.1 ", __DATE__
+        pstring "SEthernet Driver v0.0.1 git:", GIT_REV
 #endif
+        .align 2
 
-.text
 /* 
 Driver entry points have a 'special' calling convention - they are called with
 their arguments (pointers to the parameter block and device control structure)
@@ -123,4 +129,3 @@ doClose:
         ADDQ    #8, %SP                 /* Dispose of args */
         MOVEM.L (%SP)+,%A0-%A1          /* Restore registers */     
         RTS
-

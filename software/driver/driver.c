@@ -19,6 +19,7 @@
 #include "protocolhandler.h"
 #include "registertools.h"
 #include "util.h"
+#include "version.h"
 
 #if defined(DEBUG)
 #include <Debugging.h>

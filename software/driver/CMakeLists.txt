@@ -14,7 +14,7 @@ set(SE_RESOURCE SE_driver.resource)
 add_executable(${SE_RESOURCE} ${DRIVER_SOURCES})
 target_compile_options(${SE_RESOURCE} PRIVATE -m68000)
 target_compile_definitions(${SE_RESOURCE} PRIVATE TARGET_SE)
-target_link_libraries(${SE_RESOURCE} enc624j600 driver_control board_defs)
+target_link_libraries(${SE_RESOURCE} enc624j600 driver_control board_defs version)
 add_custom_command(
     OUTPUT SEthernet.bin
     COMMAND ${REZ} -I ${REZ_INCLUDE_PATH}
@@ -35,7 +35,7 @@ set(SE30_RESOURCE SE30_driver.resource)
 add_executable(${SE30_RESOURCE} ${DRIVER_SOURCES})
 target_compile_options(${SE30_RESOURCE} PRIVATE -m68030)
 target_compile_definitions(${SE30_RESOURCE} PRIVATE TARGET_SE30)
-target_link_libraries(${SE30_RESOURCE} enc624j600 driver_control board_defs)
+target_link_libraries(${SE30_RESOURCE} enc624j600 driver_control board_defs version)
 add_custom_command(
         OUTPUT SEthernet30.bin
         COMMAND ${REZ} -I ${REZ_INCLUDE_PATH}
