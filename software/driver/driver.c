@@ -283,7 +283,7 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
 
       /* Install a shutdown procedure to reset the ENC624J600 as mitigation for
       issue #4 (rev0 hardware produces spurious interrupts on warm restart) */
-      ShutDwnInstall(doShutdown, sdOnDrivers);
+      ShutDwnInstall(doShutdown, sdRestartOrPower);
 
       /* Figure out our ethernet address. First we look for an 'eadr' resource
       with an ID corresponding to our slot. If one exists, we save it to our
