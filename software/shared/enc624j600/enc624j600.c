@@ -2,6 +2,7 @@
 #include "enc624j600_registers.h"
 
 #include <MacTypes.h>
+#include <string.h>
 
 #if defined(DEBUG)
 #include <Debugging.h>
@@ -351,7 +352,9 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest,
   } else {
     chunk_len = len;
   }
-  enc624j600_memcpy(dest, source, chunk_len);
+  /* Read operations are not subject to the timing bug in issue #3; use regular
+  memcpy to get a bit more speed */
+  memcpy(dest, source, chunk_len);
   dest += chunk_len;
   source += chunk_len;
 
@@ -359,17 +362,14 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest,
   if (source >= chip->rxbuf_end) {
     source = chip->rxbuf_start;
   }
-  enc624j600_update_rxptr(chip, source);
 
   /* Do another read if the first read didn't get everything */
   if (chunk_len < len) {
     chunk_len = len - chunk_len;
-    enc624j600_memcpy(dest, source, chunk_len);
-    dest += chunk_len;
+    memcpy(dest, source, chunk_len);
     source += chunk_len;
-    enc624j600_update_rxptr(chip, source);
   }
 
-
+  enc624j600_update_rxptr(chip, source);
   return len;
 }
