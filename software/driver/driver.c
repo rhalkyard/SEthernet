@@ -75,7 +75,7 @@ static OSErr doEWrite(driverGlobalsPtr theGlobals, EParamBlkPtr pb) {
   /* Restore WDS pointer to start of list */
   wds = (WDSElement *)pb->u.EParms1.ePointer;
   source = (Byte *)wds->entryPtr;
-  dest = theGlobals->chip.base_address + ENC_TX_BUF_START;
+  dest = enc624j600_addr_to_ptr(&theGlobals->chip, ENC_TX_BUF_START);
   entryLen = wds->entryLength;
 
   /* Copy data from WDS into transmit buffer */
@@ -88,7 +88,7 @@ static OSErr doEWrite(driverGlobalsPtr theGlobals, EParamBlkPtr pb) {
   } while (entryLen > 0);
 
   /* Go back and copy our address into the source field */
-  dest = theGlobals->chip.base_address + ENC_TX_BUF_START + 6;
+  dest = enc624j600_addr_to_ptr(&theGlobals->chip, ENC_TX_BUF_START);
 
   enc624j600_memcpy(dest, theGlobals->info.ethernetAddress, 6);
 
