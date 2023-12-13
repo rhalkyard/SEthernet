@@ -7,7 +7,7 @@
 #include <MacErrors.h>
 #include <MacTypes.h>
 
-OSErr doENCReadReg(driverGlobalsPtr theGlobals, CntrlParamPtr pb) {
+OSErr doENCReadReg(const driverGlobalsPtr theGlobals, CntrlParamPtr pb) {
     ENCRegister * r = (ENCRegister *) pb->csParam;
     r->value = ENC624J600_READ_REG(&theGlobals->chip, r->reg);
     r->value = SWAPBYTES(r->value);
@@ -15,14 +15,14 @@ OSErr doENCReadReg(driverGlobalsPtr theGlobals, CntrlParamPtr pb) {
     return noErr;
 }
 
-OSErr doENCWriteReg(driverGlobalsPtr theGlobals, CntrlParamPtr pb) {
+OSErr doENCWriteReg(const driverGlobalsPtr theGlobals, const CntrlParamPtr pb) {
     ENCRegister * r = (ENCRegister *) pb->csParam;
     ENC624J600_WRITE_REG(&theGlobals->chip, r->reg, SWAPBYTES(r->value));
 
     return noErr;
 }
 
-OSErr doENCReadPhy(driverGlobalsPtr theGlobals, CntrlParamPtr pb) {
+OSErr doENCReadPhy(const driverGlobalsPtr theGlobals, CntrlParamPtr pb) {
     ENCRegister * r = (ENCRegister *) pb->csParam;
     r->value = enc624j600_read_phy_reg(&theGlobals->chip, r->reg);
     r->value = SWAPBYTES(r->value);
@@ -30,7 +30,7 @@ OSErr doENCReadPhy(driverGlobalsPtr theGlobals, CntrlParamPtr pb) {
     return noErr;
 }
 
-OSErr doENCWritePhy(driverGlobalsPtr theGlobals, CntrlParamPtr pb) {
+OSErr doENCWritePhy(const driverGlobalsPtr theGlobals, const CntrlParamPtr pb) {
     ENCRegister * r = (ENCRegister *) pb->csParam;
     ENC624J600_WRITE_REG(&theGlobals->chip, r->reg, SWAPBYTES(r->value));
     enc624j600_write_phy_reg(&theGlobals->chip, r->reg, SWAPBYTES(r->value));
@@ -38,12 +38,12 @@ OSErr doENCWritePhy(driverGlobalsPtr theGlobals, CntrlParamPtr pb) {
     return noErr;
 }
 
-OSErr doENCEnableLoopback(driverGlobalsPtr theGlobals) {
+OSErr doENCEnableLoopback(const driverGlobalsPtr theGlobals) {
     enc624j600_enable_phy_loopback(&theGlobals->chip);
     return noErr;
 }
 
-OSErr doENCDisableLoopback(driverGlobalsPtr theGlobals) {
+OSErr doENCDisableLoopback(const driverGlobalsPtr theGlobals) {
     enc624j600_disable_phy_loopback(&theGlobals->chip);
     return noErr;
 }

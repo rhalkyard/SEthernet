@@ -7,9 +7,9 @@
 #include <MacErrors.h>
 #include <MacTypes.h>
 
-OSErr doENCReadReg(driverGlobalsPtr theGlobals, CntrlParamPtr pb);
-OSErr doENCWriteReg(driverGlobalsPtr theGlobals, CntrlParamPtr pb);
-OSErr doENCReadPhy(driverGlobalsPtr theGlobals, CntrlParamPtr pb);
-OSErr doENCWritePhy(driverGlobalsPtr theGlobals, CntrlParamPtr pb);
-OSErr doENCEnableLoopback(driverGlobalsPtr theGlobals);
-OSErr doENCDisableLoopback(driverGlobalsPtr theGlobals);
+OSErr doENCReadReg(const driverGlobalsPtr theGlobals, CntrlParamPtr pb);
+OSErr doENCWriteReg(const driverGlobalsPtr theGlobals, const CntrlParamPtr pb);
+OSErr doENCReadPhy(const driverGlobalsPtr theGlobals, CntrlParamPtr pb);
+OSErr doENCWritePhy(const driverGlobalsPtr theGlobals, const CntrlParamPtr pb);
+OSErr doENCEnableLoopback(const driverGlobalsPtr theGlobals);
+OSErr doENCDisableLoopback(const driverGlobalsPtr theGlobals);

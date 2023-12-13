@@ -55,25 +55,40 @@ struct multicastEntry {
 };
 typedef struct multicastEntry multicastEntry;
 
+/* Receive Header Area that packet headers (including the ENC624J600's
+next-packet pointer and Receive Status Vector) are read into before calling a
+Protocol Handler. */
+struct receiveHeaderArea {
+  /* ENC624J600 stuff */
+  unsigned short nextPkt_le;  /* pointer to next packet (little-endian, relative 
+                                 to chip address space) */
+  enc624j600_rsv rsv;         /* Receive status vector */
+  /* Actual Ethernet data begins here */
+  Byte dest[6];               /* Destination Ethernet address */
+  Byte source[6];             /* Source Ethernet address */
+  unsigned short protocol;    /* Ethernet Protocol field */
+  /* 8 bytes following the packet header must be provided as workspace for the 
+  Protocol Handler */
+  Byte workspace[8];          /* Protocol handler workspace */
+};
+typedef struct receiveHeaderArea receiveHeaderArea;
+
 /* Global state used by the driver */
 typedef struct driverGlobals {
   enc624j600 chip; /* Ethernet chip state */
 
-  unsigned short phCount;
+  SlotIntQElement theSInt; /* Our slot interrupt queue entry */
+  AuxDCEPtr driverDCE;     /* Our device control entry */
+  Boolean usingVM; /* are we running with Virtual Memory enabled? */
+
   protocolHandlerEntry
       protocolHandlers[numberOfPhs];             /* Protocol handler table */
   multicastEntry multicasts[numberofMulticasts]; /* Multicast address table */
 
-  /* Receive Header Area that packet headers are read into before calling a
-  Protocol Handler. 8 bytes following the packet header must be provided as
-  workspace for the Protocol Handler */
-  Byte recvHeaderArea[8 + 14 + 8];
+  receiveHeaderArea rha;
 
-  SlotIntQElement theSInt; /* Our slot interrupt queue entry */
-  AuxDCEPtr driverDCE;     /* Our device control entry */
-
-  Byte* nextPkt; /* pointer to next packet in receive FIFO */
-
-  Boolean usingVM; /* are we running with Virtual Memory enabled? */
-  driverInfo info; /* Device info packaged up suitably for EGetInfo */
+  /* The driverInfo struct is packed (dictated by the Ethernet driver API).
+  Align its start point to avoid awkwardness in accessing its longword counter
+  fields. */
+  driverInfo info __attribute__((aligned (2)));
 } driverGlobals, *driverGlobalsPtr;

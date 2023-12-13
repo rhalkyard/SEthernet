@@ -32,7 +32,7 @@ Promiscuous-mode receive configuration:
 #define RXFCON_DEFAULT \
   ERXFCON_CRCEN | ERXFCON_RUNTEN | ERXFCON_UCEN | ERXFCON_BCEN | ERXFCON_HTEN
 
-int enc624j600_reset(enc624j600 *chip) {
+int enc624j600_reset(const enc624j600 *chip) {
   /* Write and read-back a 'magic' value to user data start pointer to verify
   that chip is present and functioning */
   unsigned short magic = 0x1234;
@@ -50,7 +50,7 @@ int enc624j600_reset(enc624j600 *chip) {
   return 0;
 }
 
-int enc624j600_init(enc624j600 *chip, unsigned short txbuf_size) {
+int enc624j600_init(enc624j600 *chip, const unsigned short txbuf_size) {
   unsigned short tmp;
   unsigned short rxbuf_size, rx_tail, flow_hwm, flow_lwm;
   if (txbuf_size & 1) {
@@ -147,24 +147,14 @@ void enc624j600_start(enc624j600 *chip) {
   ENC624J600_SET_BITS(chip->base_address, ECON1, ECON1_RXEN);
 }
 
-void enc624j600_suspend(enc624j600 *chip) {
-  /* Disable receive */
-  ENC624J600_CLEAR_BITS(chip->base_address, ECON1, ECON1_RXEN);
-
-  /* Discard any pending packets */
-  while (enc624j600_read_rx_pending_count(chip)) {
-    enc624j600_decrement_rx_pending_count(chip);
-  }
-}
-
-void enc624j600_read_id(enc624j600 *chip, unsigned char *device_id,
+void enc624j600_read_id(const enc624j600 *chip, unsigned char *device_id,
                         unsigned char *revision) {
   unsigned short result = ENC624J600_READ_REG(chip->base_address, EIDLED);
   *device_id = (result & EIDLED_DEVID_MASK) >> EIDLED_DEVID_SHIFT;
   *revision = (result & EIDLED_REVID_MASK) >> EIDLED_REVID_SHIFT;
 }
 
-void enc624j600_read_hwaddr(enc624j600 *chip, unsigned char addrbuf[6]) {
+void enc624j600_read_hwaddr(const enc624j600 *chip, unsigned char addrbuf[6]) {
   unsigned short *words = (unsigned short *)addrbuf;
 
   words[0] = ENC624J600_READ_REG(chip->base_address, MAADR1);
@@ -172,7 +162,8 @@ void enc624j600_read_hwaddr(enc624j600 *chip, unsigned char addrbuf[6]) {
   words[2] = ENC624J600_READ_REG(chip->base_address, MAADR3);
 }
 
-void enc624j600_write_hwaddr(enc624j600 *chip, const unsigned char addrbuf[6]) {
+void enc624j600_write_hwaddr(const enc624j600 *chip,
+                             const unsigned char addrbuf[6]) {
   unsigned short *words = (unsigned short *)addrbuf;
 
   ENC624J600_WRITE_REG(chip->base_address, MAADR1, words[0]);
@@ -180,7 +171,7 @@ void enc624j600_write_hwaddr(enc624j600 *chip, const unsigned char addrbuf[6]) {
   ENC624J600_WRITE_REG(chip->base_address, MAADR3, words[2]);
 }
 
-void enc624j600_write_multicast_table(enc624j600 *chip,
+void enc624j600_write_multicast_table(const enc624j600 *chip,
                                       const unsigned short table[4]) {
   ENC624J600_WRITE_REG(chip->base_address, EHT1, SWAPBYTES(table[0]));
   ENC624J600_WRITE_REG(chip->base_address, EHT2, SWAPBYTES(table[1]));
@@ -188,52 +179,57 @@ void enc624j600_write_multicast_table(enc624j600 *chip,
   ENC624J600_WRITE_REG(chip->base_address, EHT4, SWAPBYTES(table[3]));
 }
 
-void enc624j600_enable_promiscuous(enc624j600 *chip) {
+void enc624j600_enable_promiscuous(const enc624j600 *chip) {
   ENC624J600_WRITE_REG(chip->base_address, ERXFCON, RXFCON_PROMISCUOUS);
 }
 
-void enc624j600_disable_promiscuous(enc624j600 *chip) {
+void enc624j600_disable_promiscuous(const enc624j600 *chip) {
   ENC624J600_WRITE_REG(chip->base_address, ERXFCON, RXFCON_DEFAULT);
 }
 
-void enc624j600_enable_irq(enc624j600 *chip, unsigned short irqmask) {
+void enc624j600_enable_irq(const enc624j600 *chip,
+                           const unsigned short irqmask) {
   ENC624J600_SET_BITS(chip->base_address, EIE, irqmask);
 }
 
-void enc624j600_disable_irq(enc624j600 *chip, unsigned short irqmask) {
+void enc624j600_disable_irq(const enc624j600 *chip,
+                            const unsigned short irqmask) {
   ENC624J600_CLEAR_BITS(chip->base_address, EIE, irqmask);
 }
 
-unsigned short enc624j600_read_irqstate(enc624j600 *chip) {
+unsigned short enc624j600_read_irqstate(const enc624j600 *chip) {
   /* CRYPTEN bit of EIR is not an interrupt flag! mask it out */
   return ENC624J600_READ_REG(chip->base_address, EIR) & (~EIR_CRYPTEN);
 }
 
-void enc624j600_clear_irq(enc624j600 *chip, unsigned short irqmask) {
+void enc624j600_clear_irq(const enc624j600 *chip,
+                          const unsigned short irqmask) {
   /* CRYPTEN bit of EIR is not an interrupt flag! mask it out */
   ENC624J600_CLEAR_BITS(chip->base_address, EIR, irqmask & (~EIR_CRYPTEN));
 }
 
-unsigned char enc624j600_read_rx_pending_count(enc624j600 *chip) {
+unsigned char enc624j600_read_rx_pending_count(const enc624j600 *chip) {
   return (ENC624J600_READ_REG(chip->base_address, ESTAT) &
          ESTAT_PKTCNT_MASK) >> ESTAT_PKTCNT_SHIFT;
 }
 
-void enc624j600_decrement_rx_pending_count(enc624j600 *chip) {
+void enc624j600_decrement_rx_pending_count(const enc624j600 *chip) {
   ENC624J600_SET_BITS(chip->base_address, ECON1, ECON1_PKTDEC);
 }
 
-unsigned char *enc624j600_addr_to_ptr(enc624j600 *chip, unsigned short addr) {
+unsigned char *enc624j600_addr_to_ptr(const enc624j600 *chip,
+                                      const unsigned short addr) {
   return chip->base_address + addr;
 }
 
-static unsigned short enc624j600_ptr_to_addr(enc624j600 *chip,
+static unsigned short enc624j600_ptr_to_addr(const enc624j600 *chip,
                                              const unsigned char *ptr) {
   return ptr - chip->base_address;
 }
 
-void enc624j600_transmit(enc624j600 *chip, const unsigned char *start_addr,
-                         unsigned short length) {
+void enc624j600_transmit(const enc624j600 *chip,
+                         const unsigned char *start_addr,
+                         const unsigned short length) {
   /* Cancel any transmit that's currently in-progress. This shouldn't happen,
   but if it does, the transmit data will have been stomped on when the transmit
   buffer was rewritten prior to this call, so it's better to stop it now than
@@ -251,12 +247,12 @@ void enc624j600_transmit(enc624j600 *chip, const unsigned char *start_addr,
   ENC624J600_SET_BITS(chip->base_address, ECON1, ECON1_TXRTS);
 }
 
-void enc624j600_update_rxptr(enc624j600 *chip, unsigned char *rxptr) {
+void enc624j600_update_rxptr(enc624j600 *chip, const unsigned char * rxptr) {
   chip->rxptr = rxptr;
 
   /* Recieve buffer tail must word aligned and at least 2 bytes behind read
   pointer */
-  unsigned char *tail = rxptr - 2;
+  const unsigned char *tail = rxptr - 2;
   if (tail < chip->rxbuf_start) {
     tail = chip->rxbuf_end - 2;
   }
@@ -265,7 +261,7 @@ void enc624j600_update_rxptr(enc624j600 *chip, unsigned char *rxptr) {
 }
 
 /* Read the number of pending bytes in the receive FIFO */
-unsigned short enc624j600_read_rx_fifo_level(enc624j600 *chip) {
+unsigned short enc624j600_read_rx_fifo_level(const enc624j600 *chip) {
   unsigned short rxstart, rxhead, rxtail, buffersize;
 
   rxstart = ENC624J600_READ_REG(chip->base_address, ERXST);
@@ -287,8 +283,9 @@ unsigned short enc624j600_read_rx_fifo_level(enc624j600 *chip) {
   }
 }
 
-void enc624j600_write_phy_reg(enc624j600 *chip, unsigned char phyreg,
-                              unsigned short value) {
+void enc624j600_write_phy_reg(const enc624j600 *chip,
+                              const unsigned char phyreg,
+                              const unsigned short value) {
   /* Wait for internal MII to become available */
   while (ENC624J600_READ_REG(chip->base_address, MISTAT) & MISTAT_BUSY) {
   }
@@ -297,7 +294,8 @@ void enc624j600_write_phy_reg(enc624j600 *chip, unsigned char phyreg,
   ENC624J600_WRITE_REG(chip->base_address, MIWR, SWAPBYTES(value));
 }
 
-unsigned short enc624j600_read_phy_reg(enc624j600 *chip, unsigned char phyreg) {
+unsigned short enc624j600_read_phy_reg(const enc624j600 *chip,
+                                       const unsigned char phyreg) {
   /* Wait for internal MII to become available */
   while (ENC624J600_READ_REG(chip->base_address, MISTAT) & MISTAT_BUSY) {
   }
@@ -309,18 +307,18 @@ unsigned short enc624j600_read_phy_reg(enc624j600 *chip, unsigned char phyreg) {
   return ENC624J600_READ_REG(chip->base_address, MIRD);
 }
 
-void enc624j600_enable_phy_loopback(enc624j600 *chip) {
+void enc624j600_enable_phy_loopback(const enc624j600 *chip) {
   unsigned short old_phcon1 = enc624j600_read_phy_reg(chip, PHCON1);
   enc624j600_write_phy_reg(chip, PHCON1, old_phcon1 | PHCON1_PLOOPBK);
 }
 
-void enc624j600_disable_phy_loopback(enc624j600 *chip) {
+void enc624j600_disable_phy_loopback(const enc624j600 *chip) {
   unsigned short old_phcon1 = enc624j600_read_phy_reg(chip, PHCON1);
   enc624j600_write_phy_reg(chip, PHCON1, old_phcon1 & ~PHCON1_PLOOPBK);
 }
 
-void enc624j600_memcpy(unsigned char *dest, unsigned char *source,
-                       unsigned short len) {
+void enc624j600_memcpy(unsigned char *dest, const unsigned char *source,
+                       const unsigned short len) {
   /* TODO: get rid of this and just use memcpy once issue #3 is resolved */
   for (int i = 0; i < len; i++) {
     *dest++ = *source++;
@@ -328,9 +326,9 @@ void enc624j600_memcpy(unsigned char *dest, unsigned char *source,
 }
 
 unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest, 
-                                     unsigned short len) {
+                                     const unsigned short len) {
   unsigned short chunk_len;
-  unsigned char * source = chip->rxptr;
+  const unsigned char * source = chip->rxptr;
 
 #if defined(DEBUG)
   /* Don't try to read more data than is actually available. This shouldn't ever

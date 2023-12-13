@@ -4,6 +4,7 @@
 #define ENC624J600_MEM_END ((unsigned short) 0x6000)
 
 #define BIT(n) (1 << (n))
+#define BITS(n) (BIT((n)+1)-1)
 
 /*
 Accessor macros for ENC624J600 registers:
@@ -27,19 +28,19 @@ address map for the 8 bit bus gives byte offsets.
 
 /* Write a 16-bit value to a register*/
 #define ENC624J600_WRITE_REG(base, reg_offset, value) \
-  (*ENC624J600_REG(base, reg_offset) = (value))
+  (*ENC624J600_REG((base), (reg_offset)) = (value))
 
 /* Read a 16-bit value from a register */
 #define ENC624J600_READ_REG(base, reg_offset) \
-  (*ENC624J600_REG(base, reg_offset))
+  (*ENC624J600_REG((base), (reg_offset)))
 
 /* Write an 8-bit value to a register */
 #define ENC624J600_WRITE_REG8(base, reg_offset, value) \
-  (*ENC624J600_REG8(base, reg_offset) = (value))
+  (*ENC624J600_REG8((base), (reg_offset)) = (value))
 
 /* Read an 8-bit value from a register */
 #define ENC624J600_READ_REG8(base, reg_offset) \
-  (*ENC624J600_REG8(base, reg_offset))
+  (*ENC624J600_REG8((base), (reg_offset)))
 
 /*
 The ENC624J600 has special registers that allow individual bits of certain
@@ -57,8 +58,8 @@ Equivalent to (but faster than):
   ENC624J600_WRITE_REG(base, reg_offset, tmp);
 */
 #define ENC624J600_SET_BITS(base, reg_offset, bitfield)                       \
-  ENC624J600_WRITE_REG(base, reg_offset + ENC624J600_SET_BIT_REGISTER_OFFSET, \
-                       bitfield)
+  ENC624J600_WRITE_REG((base), (reg_offset) + ENC624J600_SET_BIT_REGISTER_OFFSET, \
+                       (bitfield))
 
 /*
 Clear bits in a register using the clear-bit register at reg_offset + 0x180
@@ -70,14 +71,15 @@ Equivalent to (but faster than):
 */
 #define ENC624J600_CLEAR_BITS(base, reg_offset, bitfield) \
   ENC624J600_WRITE_REG(                                   \
-      base, reg_offset + ENC624J600_CLEAR_BIT_REGISTER_OFFSET, bitfield)
+      (base), (reg_offset) + ENC624J600_CLEAR_BIT_REGISTER_OFFSET, (bitfield))
 
 /*
 As per best practice when connecting little-endian and big-endian devices (see
-http://www.cpu-ns32k.net/files/AN591.pdf), the ENC624J600 is connected to the
-68k bus with its low and high bytes swapped. This means that 'stream of bytes'
-data (i.e. network packets) is addressed in the right order, but word-length
-data has the wrong byte order.
+http://www.cpu-ns32k.net/files/AN591.pdf for a good explanation, albeit about
+connecting a little-endian processor to big-endian peripherals), the ENC624J600
+is connected to the 68k bus with its low and high bytes swapped. This means that
+'stream of bytes' data (i.e. network packets) is addressed in the right order,
+but word-length data has the wrong byte order.
 
 For bitfields, this is taken care of in the bit definitions below (i.e. bit 15
 in the datasheet is represented as bit 7, bit 0 as bit 8, etc.), but pointers
@@ -87,14 +89,14 @@ This makes register access a bit convoluted but it's much less of a performance
 hit than having to swap the bytes in every network packet!
 
 Some general rules for register access:
-  - Always access bitfield registers as whole words and select bits using the
-    definitions below.
+  - Always access bitfield registers as whole words and select bits and fields
+    using the definitions below.
 
   - Use set-bit (register + 0x100) and clear-bit (register + 0x180) registers
     whenever possible - it's faster than a read-modify-write, and it avoids any
     risk of disturbing other data in the register.
 
-  - Swap bytes when accessing word registers such as pointers.
+  - Swap bytes when accessing whole-word registers such as pointers.
 
   - Swap bytes when reading the next-packet pointer and packet-length fields in
     the receive buffer.
@@ -246,7 +248,13 @@ Some general rules for register access:
 #define PHSTAT3_SPDDPX_SHIFT 10
 #define PHSTAT3_SPDDPX_MASK 0x1c00
 
-/* Bit definitions */
+/*
+Register bit and field definitions. Not that because of the byte-swapped data
+bus, the bit numbers here are are not the same as the datasheet!
+
+Datasheet bit:  15  14  13  12  11  10  9   8   7   6   5   4   3   2   1   0
+Our bit:        7   6   5   4   3   2   1   0   15  14  13  12  11  10  9   8
+*/
 /* ESTAT */
 #define ESTAT_INT BIT(7)
 #define ESTAT_FCIDLE BIT(6)

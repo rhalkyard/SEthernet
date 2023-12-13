@@ -11,9 +11,9 @@ typedef enum enc624j600_link_state enc624j600_link_state;
 struct enc624j600 {
   unsigned char *base_address; /* Base address of chip (also start of transmit
                                   buffer) */
-  unsigned char *rxbuf_start;  /* Pointer to start of receive buffer */
-  unsigned char *rxbuf_end;    /* Pointer to end of receive buffer */
-  unsigned char *rxptr;
+  const unsigned char *rxbuf_start;  /* Pointer to start of receive buffer */
+  const unsigned char *rxbuf_end;    /* Pointer to end of receive buffer */
+  const unsigned char *rxptr;
   enc624j600_link_state link_state;
 };
 typedef struct enc624j600 enc624j600;
@@ -38,7 +38,7 @@ byte-swapping is only required when reading the next-packet pointer and the
 pkt_len_le Receive Status Vector field from the receive buffer. */
 
 /* Reset the chip. Must wait at least 25+256us before accessing chip again*/
-int enc624j600_reset(enc624j600 *chip);
+int enc624j600_reset(const enc624j600 *chip);
 
 /* Synchronise MAC duplex settings with PHY values. Call after link-change
  * event. */
@@ -47,90 +47,96 @@ void enc624j600_duplex_sync(enc624j600 *chip);
 /* Initialize the chip, with the given receive buffer size. Transmit buffer
 begins immediately after receive buffer and continues to end of memory. Receive
 buffer size must be in multiples of 1 word. */
-int enc624j600_init(enc624j600 *chip, unsigned short rxbuf_len);
+int enc624j600_init(enc624j600 *chip, const unsigned short rxbuf_len);
 
 /* Start accepting packets */
 void enc624j600_start(enc624j600 *chip);
-
-void enc624j600_suspend(enc624j600 *chip);
 
 /* Read device-ID and revision registers
     device_id: out-parameter, 1 byte
     revision:  out-parameter, 1 byte
  */
-void enc624j600_read_id(enc624j600 *chip, unsigned char *device_id,
+void enc624j600_read_id(const enc624j600 *chip, unsigned char *device_id,
                         unsigned char *revision);
 
 /* Read ethernet address into addrbuf */
-void enc624j600_read_hwaddr(enc624j600 *chip, unsigned char addrbuf[6]);
+void enc624j600_read_hwaddr(const enc624j600 *chip, unsigned char addrbuf[6]);
 
 /* Set ethernet address */
-void enc624j600_write_hwaddr(enc624j600 *chip, const unsigned char addrbuf[6]);
+void enc624j600_write_hwaddr(const enc624j600 *chip,
+                             const unsigned char addrbuf[6]);
 
 /* Enable promiscuous mode */
-void enc624j600_enable_promiscuous(enc624j600 *chip);
+void enc624j600_enable_promiscuous(const enc624j600 *chip);
 
 /* Disable promiscuous mode */
-void enc624j600_disable_promiscuous(enc624j600 *chip);
+void enc624j600_disable_promiscuous(const enc624j600 *chip);
 
 /* Update the multicast hash table */
-void enc624j600_write_multicast_table(enc624j600 *chip,
+void enc624j600_write_multicast_table(const enc624j600 *chip,
                                       const unsigned short table[4]);
 
 /* Enable or disable interrupts. Bits of irqmask are defined below */
-void enc624j600_enable_irq(enc624j600 *chip, unsigned short irqmask);
-void enc624j600_disable_irq(enc624j600 *chip, unsigned short irqmask);
+void enc624j600_enable_irq(const enc624j600 *chip,
+                           const unsigned short irqmask);
+void enc624j600_disable_irq(const enc624j600 *chip,
+                            const unsigned short irqmask);
 
 /* Read interrupt state. Bits of return value are defined below */
-unsigned short enc624j600_read_irqstate(enc624j600 *chip);
+unsigned short enc624j600_read_irqstate(const enc624j600 *chip);
 
 /* Clear interrupts. Bits of irqmask are defined below */
-void enc624j600_clear_irq(enc624j600 *chip, unsigned short irqmask);
+void enc624j600_clear_irq(const enc624j600 *chip, const unsigned short irqmask);
 
 /* Read count of pending frames in receive buffer */
-unsigned char enc624j600_read_rx_pending_count(enc624j600 *chip);
+unsigned char enc624j600_read_rx_pending_count(const enc624j600 *chip);
 
 /* Decrement pending frame count */
-void enc624j600_decrement_rx_pending_count(enc624j600 *chip);
+void enc624j600_decrement_rx_pending_count(const enc624j600 *chip);
 
 /* Update tail of receive ring buffer. tail is a 'real' pointer into the receive
 buffer (as opposed to an offset relative to the chip base address).
 Automatically aligns to word boundaries */
-void enc624j600_update_rxptr(enc624j600 *chip, unsigned char *rxptr);
+void enc624j600_update_rxptr(enc624j600 *chip, const unsigned char *rxptr);
 
 /* Read the number of pending bytes in the receive FIFO */
-unsigned short enc624j600_read_rx_fifo_level(enc624j600 *chip);
+unsigned short enc624j600_read_rx_fifo_level(const enc624j600 *chip);
 
 /* Convert a chip address into a real pointer */
-unsigned char *enc624j600_addr_to_ptr(enc624j600 *chip, unsigned short addr);
+unsigned char *enc624j600_addr_to_ptr(const enc624j600 *chip,
+                                      const unsigned short addr);
 
 /* Transmit a packet. src must be within the chip transmit buffer */
-void enc624j600_transmit(enc624j600 *chip, const unsigned char *src,
+void enc624j600_transmit(const enc624j600 *chip, const unsigned char *src,
                          unsigned short length);
 
 /* Read and write PHY registers. Use with caution! */
-unsigned short enc624j600_read_phy_reg(enc624j600 *chip, unsigned char phyreg);
-void enc624j600_write_phy_reg(enc624j600 *chip, unsigned char phyreg,
-                              unsigned short value);
+unsigned short enc624j600_read_phy_reg(const enc624j600 *chip,
+                                       const unsigned char phyreg);
+void enc624j600_write_phy_reg(const enc624j600 *chip,
+                              const unsigned char phyreg,
+                              const unsigned short value);
 
 /* Enable/disable internal loopback in the PHY */
-void enc624j600_enable_phy_loopback(enc624j600 * chip);
-void enc624j600_disable_phy_loopback(enc624j600 * chip);
+void enc624j600_enable_phy_loopback(const enc624j600 *chip);
+void enc624j600_disable_phy_loopback(const enc624j600 *chip);
 
 /* Our own memcpy implementation that avoids longword writes */
-void enc624j600_memcpy(unsigned char * dest, unsigned char * source, unsigned short len);
+void enc624j600_memcpy(unsigned char *dest, const unsigned char *source,
+                       const unsigned short len);
 
-unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest, unsigned short len);
+unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char *dest,
+                                     unsigned short len);
 
 /* Exchange the bytes in a word value */
-#define SWAPBYTES(value) (((value & 0xff00) >> 8) | ((value & 0x00ff) << 8))
+#define SWAPBYTES(value) ((((value) & 0xff00) >> 8) | (((value) & 0x00ff) << 8))
 
 /* An integer with bit n set */
 #define BIT(n) (1 << (n))
 
 /* Accessor macro for bits in the Receive Status Vector */
 #define RSV_BIT(rsv, bitnum) \
-  ((rsv).bytes[((bitnum) >> 3)] & (BIT((bitnum)&0x7)))
+  ((rsv).bytes[((bitnum) >> 3)] & (BIT((bitnum) & 0x7)))
 
 /* Flag bits for irq functions */
 

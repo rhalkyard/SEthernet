@@ -14,13 +14,15 @@ extern void * header_start;
 
 /* Find a protocol-handler table entry matching protocol number 'theProtocol'.
 Returns a pointer to the entry. */
-protocolHandlerEntry* findPH(driverGlobalsPtr theGlobals, unsigned short theProtocol) {
-    for (unsigned short i = 0; i < numberOfPhs; i++) {
-        if (theGlobals->protocolHandlers[i].ethertype == theProtocol) {
-            return &theGlobals->protocolHandlers[i];
-        }
+protocolHandlerEntry *findPH(const driverGlobalsPtr theGlobals,
+                             const unsigned short theProtocol) {
+  for (unsigned short i = 0; i < numberOfPhs; i++) {
+    if (theGlobals->protocolHandlers[i].ethertype == theProtocol &&
+        theGlobals->protocolHandlers[i].handler != nil) {
+      return &theGlobals->protocolHandlers[i];
     }
-    return nil;
+  }
+  return nil;
 }
 
 /*
@@ -82,11 +84,6 @@ OSStatus doEAttachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
     thePHSlot->handler = (void *)pb->u.EParms1.ePointer;
     // thePHSlot->readPB = -1; /* not used */
 
-    if (theGlobals->phCount == 0) {
-      enc624j600_start(&theGlobals->chip);
-    }
-    theGlobals->phCount++;
-
     return noErr;
   }
 }
@@ -109,16 +106,6 @@ OSStatus doEDetachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
     // if (thePHSlot->readPB != -1){
     //     /* Cancel pending ERead calls */
     // }
-    theGlobals->phCount--;
-    if (theGlobals->phCount == 0) {
-      enc624j600_suspend(&theGlobals->chip);
-    }
-
-#if defined(DEBUG)
-    strbuf[0] = sprintf(strbuf+1, "Uninstalling handler for protocol %04x", 
-                        pb->u.EParms1.eProtType);
-    DebugStr((unsigned char *)strbuf);
-#endif
 
     return noErr;
   } else

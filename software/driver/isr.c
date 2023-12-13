@@ -37,7 +37,7 @@ On protocol handler entry:
   A1: driver-specific ReadPacket argument (pointer to protocol handler)
   A3: pointer into Receive Header Area, immediately after the header bytes
   A4: pointer to ReadPacket/ReadRest routine
-  D1: number of bytes remaining in packet
+  D1: number of bytes in packet (excluding header and FCS)
 
 The handler calls ReadPacket/ReadRest with the above register definitions, but
 may return with them destroyed.
@@ -50,13 +50,12 @@ C assumes that A0-A1 and D0-D2 will be destroyed, we just need to save A2, A3,
 and D3.
 */
 static void callPH(enc624j600 *chip, void *phProc, Byte *payloadPtr,
-                   void (*readPacketProc)(), unsigned short payloadLen) {
+                   unsigned short payloadLen) {
   asm volatile (
     "   MOVE.L    %[chip], %%a0 \n\t"
     "   MOVE.L    %[phProc], %%a1 \n\t"
     "   MOVE.L    %[payloadPtr], %%a3 \n\t"
     "   MOVE.L    %[readPacketProc], %%a4 \n\t"
-    "   CLR.L     %d1 \n\t" /* Just in case? */
     "   MOVE.W    %[payloadLen], %%d1 \n\t"
     /* Save and restore A5 'manually' as workaround for bug in Retro68's
     modified GCC - see https://github.com/autc04/Retro68/issues/220 */
@@ -67,7 +66,7 @@ static void callPH(enc624j600 *chip, void *phProc, Byte *payloadPtr,
     : [chip] "m" (chip),
       [phProc] "m" (phProc),
       [payloadPtr] "m" (payloadPtr),
-      [readPacketProc] "m" (readPacketProc),
+      [readPacketProc] "m" (ReadPacket),
       [payloadLen] "m" (payloadLen)
     : "a0", "a1", "a2", "a3", "a4", "a5", "d0", "d1", "d2", "d3"
   );
@@ -75,19 +74,10 @@ static void callPH(enc624j600 *chip, void *phProc, Byte *payloadPtr,
 
 /* Handle a packet from the receive FIFO */
 static void handlePacket(driverGlobalsPtr theGlobals) {
-  enc624j600_rsv *rsv;           /* Receive status vector */
-  Byte *destMac;                 /* Destination ethernet address */
-  unsigned short protocol;       /* Protocol number/ethertype */
   unsigned short pktLen;         /* Length of packet */
   unsigned short bytesPending;   /* Number of bytes pending in receive FIFO */
   unsigned short packetsPending; /* Number of packets pending in receive FIFO */
   protocolHandlerEntry *protocolSlot; /* Protocol handler */
-  Byte *rhaPtr = theGlobals->recvHeaderArea; /* Pointer into header buffer */
-  /* Length of packet header (including ENC624J600 data) */
-  const unsigned short headerLen = sizeof(unsigned short) +  /* next-packet pointer */
-                                   sizeof(enc624j600_rsv) +  /* RSV */
-                                   6 * 2 +                   /* dest + src addrs */
-                                   sizeof(unsigned short);   /* ethertype/size */
 
   /* Record some FIFO stats */
   packetsPending = enc624j600_read_rx_pending_count(&theGlobals->chip);
@@ -99,44 +89,16 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
     theGlobals->info.rxPendingBytesHWM = bytesPending;
   }
 
-  /*
-  ENC624J600 receive FIFO entry layout (in ascending address order):
+  /* Copy the packet header (including ENC624J600 data) into memory */
+  enc624j600_read_rxbuf(&theGlobals->chip, (unsigned char *) &theGlobals->rha, 
+    sizeof(theGlobals->rha) - sizeof(theGlobals->rha.workspace));
 
-    2 bytes         pointer to next entry (relative to chip base address)
-    6 bytes         receive status vector
-    6 bytes         destination address
-    6 bytes         source address
-    2 bytes         ethertype
-    ...             layer 3 payload
-  */
-  /* Read the above fields into the Receive Header Area */
-  enc624j600_read_rxbuf(&theGlobals->chip, theGlobals->recvHeaderArea, headerLen);
-
-  /* Next-packet pointer is little-endian and relative to the chip address
-  space. Convert this to a 'real' pointer. */
-  theGlobals->nextPkt = enc624j600_addr_to_ptr(
-      &theGlobals->chip, SWAPBYTES(*(unsigned short *)rhaPtr));
-  rhaPtr += sizeof(unsigned short);
-
-  /* Read packet length */
-  rsv = (enc624j600_rsv *)rhaPtr;
-  rhaPtr += sizeof(enc624j600_rsv);
-  pktLen = SWAPBYTES(rsv->pkt_len_le);
-
-  /* Read destination MAC */
-  destMac = rhaPtr;
-  rhaPtr += 6;
-
-  /* Skip over source MAC */
-  rhaPtr += 6;
-
-  /* Read protocol number/802.2 Type 1 length */
-  protocol = *(unsigned short *)rhaPtr;
-  rhaPtr += sizeof(unsigned short);
+  /* Packet length field in Recieve Status Vector is stored little-endian */
+  pktLen = SWAPBYTES(theGlobals->rha.rsv.pkt_len_le);
 
   /* Check for CRC errors. By default the ENC624J600 drops bad-CRC packets
   silently in hardware, but collect stats in case we disable that filter. */
-  if (RSV_BIT(*rsv, RSV_BIT_CRC_ERR)) {
+  if (RSV_BIT(theGlobals->rha.rsv, RSV_BIT_CRC_ERR)) {
     theGlobals->info.fcsErrors++;
     goto drop;
   }
@@ -156,15 +118,16 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
   }
 
   /* Sanity-check our receive filters */
-  if (RSV_BIT(*rsv, RSV_BIT_UNICAST)) {
+  if (RSV_BIT(theGlobals->rha.rsv, RSV_BIT_UNICAST)) {
     /* Destination is broadcast or unicast to us */
     goto accept;
-  } else if (RSV_BIT(*rsv, RSV_BIT_BROADCAST)) {
+  } else if (RSV_BIT(theGlobals->rha.rsv, RSV_BIT_BROADCAST)) {
     theGlobals->info.broadcastRxFrameCount++;
     goto accept;
-  } else if (RSV_BIT(*rsv, RSV_BIT_MULTICAST) && RSV_BIT(*rsv, RSV_BIT_HASH_MATCH)) {
+  } else if (RSV_BIT(theGlobals->rha.rsv, RSV_BIT_MULTICAST) 
+             && RSV_BIT(theGlobals->rha.rsv, RSV_BIT_HASH_MATCH)) {
     /* Destination hash matches a multicast we're listening to */
-    if (findMulticastEntry(theGlobals, destMac)) {
+    if (findMulticastEntry(theGlobals, theGlobals->rha.dest)) {
       /* Actual destination address matches a multicast we're listening to */
       theGlobals->info.multicastRxFrameCount++;
       goto accept;
@@ -183,10 +146,10 @@ accept:
   /* An ethertype field of < 0x600 indicates an 802.2 Type 1 frame (Ethernet
   Phase II in Apple parlance). We assign this the protocol number 0. The LAP
   manager always registers itself as the handler for this protocol. */
-  if (protocol < 0x0600) {
+  if (theGlobals->rha.protocol < 0x0600) {
     protocolSlot = findPH(theGlobals, phProtocolPhaseII);
   } else {
-    protocolSlot = findPH(theGlobals, protocol);
+    protocolSlot = findPH(theGlobals, theGlobals->rha.protocol);
   }
   /* Search the protocol-handler table for a handler for this ethertype */
   if (protocolSlot == nil) {
@@ -194,15 +157,21 @@ accept:
     goto drop;
   }
 
-  /* Call the protocol handler to read the rest of the packet */
-  callPH(&theGlobals->chip, protocolSlot->handler, rhaPtr, ReadPacket,
+  /*
+  Call the protocol handler to read the rest of the packet.
+
+  pktLen-18 is length of packet minus header (6+6+2 bytes) and trailing checksum
+  (4 bytes)
+  */
+  callPH(&theGlobals->chip, protocolSlot->handler, theGlobals->rha.workspace,
          pktLen-18);
   theGlobals->info.rxFrameCount++;
 
 drop:
   /* finished with packet, discard any remaining data by advancing read pointer
-  and rx buffer tail to the start of the next packet */
-  enc624j600_update_rxptr(&theGlobals->chip, theGlobals->nextPkt);
+  and rx buffer tail to the start of the next packet  */
+  enc624j600_update_rxptr(&theGlobals->chip, enc624j600_addr_to_ptr(
+      &theGlobals->chip, SWAPBYTES(theGlobals->rha.nextPkt_le)));
 
   /* decrement pending-receive counter */
   enc624j600_decrement_rx_pending_count(&theGlobals->chip);

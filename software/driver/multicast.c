@@ -21,7 +21,8 @@ multicastEntry* findMulticastEntry(const driverGlobalsPtr theGlobals,
 
 /* Find a free entry in the multicast table. Returns a pointer to the first free
 entry found, nil if no free entries */
-static multicastEntry* findFreeMulticastEntry(driverGlobalsPtr theGlobals) {
+static multicastEntry* findFreeMulticastEntry(
+    const driverGlobalsPtr theGlobals) {
   for (unsigned short i = 0; i < numberofMulticasts; i++) {
     if (theGlobals->multicasts[i].refCount == 0) {
       return &theGlobals->multicasts[i];
