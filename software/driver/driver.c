@@ -88,7 +88,7 @@ static OSErr doEWrite(driverGlobalsPtr theGlobals, EParamBlkPtr pb) {
   } while (entryLen > 0);
 
   /* Go back and copy our address into the source field */
-  dest = enc624j600_addr_to_ptr(&theGlobals->chip, ENC_TX_BUF_START);
+  dest = enc624j600_addr_to_ptr(&theGlobals->chip, ENC_TX_BUF_START + 6);
 
   enc624j600_memcpy(dest, theGlobals->info.ethernetAddress, 6);
 
