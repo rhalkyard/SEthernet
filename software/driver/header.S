@@ -23,7 +23,7 @@ dCtlEnableMask  = 0x0400        /* Driver responds to Control call */
 /* Offsets to fields in IOParam struct */
 ioTrap          = 6             /* System trap that issued this call */
 ioResult        = 16            /* Result of call */
-csCode          = 22            /* Call function code */
+csCode          = 26            /* Call function code */
 
 killCode        = 1             /* csCode for KillIO */
 noQueueBit      = 9             /* Index for no-queue bit in ioTrap */
