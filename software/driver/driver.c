@@ -38,9 +38,8 @@ returns as soon as the frame has been copied into the transmit buffer and
 transmission has been started. Completion is signaled through a
 transmit-complete or transmit-aborted interrupt.
 
-From my rudimentary understanding of IO on the Classic Mac OS, the Device
-Manager handles the queueing of writes for us and won't issue another ENetWrite
-until the last one has signaled completion.
+The Device Manager handles the queueing of writes for us and won't issue another
+ENetWrite until the last one has signaled completion.
 
 The frame data is given as a Write Data Structure (WDS) - a list of
 address-length pairs like an iovec, we need to read from each one in sequence,

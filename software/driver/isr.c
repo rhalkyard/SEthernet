@@ -45,9 +45,6 @@ may return with them destroyed.
 On protocol handler exit:
   A0-A5: destroyed
   D0-D3: destroyed
-
-C assumes that A0-A1 and D0-D2 will be destroyed, we just need to save A2, A3,
-and D3.
 */
 static void callPH(enc624j600 *chip, void *phProc, Byte *payloadPtr,
                    unsigned short payloadLen) {
@@ -57,18 +54,23 @@ static void callPH(enc624j600 *chip, void *phProc, Byte *payloadPtr,
     "   MOVE.L    %[payloadPtr], %%a3 \n\t"
     "   MOVE.L    %[readPacketProc], %%a4 \n\t"
     "   MOVE.W    %[payloadLen], %%d1 \n\t"
-    /* Save and restore A5 'manually' as workaround for bug in Retro68's
-    modified GCC - see https://github.com/autc04/Retro68/issues/220 */
+    /* Retro68's modified GCC reserves A5 as a 'fixed register' (for
+    compatibility with the Mac OS 'A5 World'), which means that it will not
+    generate code that touches it. Appaerntly this extends to silently ignoring
+    it on asm register-usage lists! Since the protocol handler may return with
+    A5 changed, we have to save and restore it ourselves. See
+    https://github.com/autc04/Retro68/issues/220
+    */
     "   MOVE.L    %%a5, -(%%sp) \n\t"
     "   JSR       (%%a1) \n\t"
     "   MOVE.L    (%%sp)+, %%a5 \n\t"
     : 
-    : [chip] "m" (chip),
-      [phProc] "m" (phProc),
-      [payloadPtr] "m" (payloadPtr),
-      [readPacketProc] "m" (ReadPacket),
-      [payloadLen] "m" (payloadLen)
-    : "a0", "a1", "a2", "a3", "a4", "a5", "d0", "d1", "d2", "d3"
+    : [chip] "g" (chip),
+      [phProc] "g" (phProc),
+      [payloadPtr] "g" (payloadPtr),
+      [readPacketProc] "g" (&ReadPacket),
+      [payloadLen] "g" (payloadLen)
+    : "a0", "a1", "a2", "a3", "a4", "a5" /* ignored! */, "d0", "d1", "d2", "d3"
   );
 }
 
