@@ -157,6 +157,15 @@ accept:
     goto drop;
   }
 
+  if (protocolSlot->handler == nil) {
+#if defined(DEBUG)
+    strbuf[0] = sprintf(strbuf+1, "nil pointer for protocol %04x.", 
+                        protocolSlot->ethertype);
+    DebugStr((unsigned char *)strbuf);
+#endif
+    goto drop;
+  }
+
   /*
   Call the protocol handler to read the rest of the packet.
 
@@ -237,15 +246,12 @@ static void userISR(driverGlobalsPtr theGlobals) {
     enc624j600_clear_irq(&theGlobals->chip, IRQ_TX_ABORT);
   }
 
-  if (irq_status & IRQ_PKT) {
-    /* We have pending packets. Handle them. */
-    do {
-      handlePacket(theGlobals);
-    } while (enc624j600_read_rx_pending_count(&theGlobals->chip));
-
+  /* We have pending packets. Handle them. */
+  while (enc624j600_read_irqstate(&theGlobals->chip) & IRQ_PKT) {
+    handlePacket(theGlobals);
     /* IRQ_PKT flag is not directly clearable - it indicates that the
-    pending-receive count (decremented in the loop above) is nonzero */
-  }
+       pending-receive count (decremented by handlePacket()) is nonzero */
+  };
 
   enc624j600_enable_irq(&theGlobals->chip, IRQ_ENABLE);
 }
@@ -290,6 +296,10 @@ __attribute__((used)) static unsigned long _driverISR(
     handler until a safe time. */
     if (theGlobals->usingVM) {
       if (DeferUserFn(userISR, theGlobals) != noErr) {
+        /* If we can't defer for whatever reason, re-enable interrupts and
+        return "interrupt not handled" status */
+
+        enc624j600_enable_irq(&theGlobals->chip, IRQ_ENABLE);
         return 0;
       }
     } else {
@@ -311,7 +321,6 @@ __attribute__((used)) static unsigned long _driverISR(
 #endif
 
   enc624j600_enable_irq(&theGlobals->chip, IRQ_ENABLE);
-
   return irq_handled;
 }
 
