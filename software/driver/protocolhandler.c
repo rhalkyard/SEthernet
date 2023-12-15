@@ -17,8 +17,7 @@ Returns a pointer to the entry. */
 protocolHandlerEntry *findPH(const driverGlobalsPtr theGlobals,
                              const unsigned short theProtocol) {
   for (unsigned short i = 0; i < numberOfPhs; i++) {
-    if (theGlobals->protocolHandlers[i].ethertype == theProtocol &&
-        theGlobals->protocolHandlers[i].handler != nil) {
+    if (theGlobals->protocolHandlers[i].ethertype == theProtocol) {
       return &theGlobals->protocolHandlers[i];
     }
   }
