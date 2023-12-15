@@ -25,6 +25,26 @@ driverGlobalsPtr isrGlobals;
 shouldn't) call it ourselves */
 extern void ReadPacket();
 
+/* IODone may trash D3 and A2-A3, which are normally assumed to be preserved
+across calls. This is not documented anywhere obvious in Inside Macintosh, and
+the IODone() inline function in the Universal Interfaces Devices.h does NOT save
+any registers beyond the standard register spec. This routine provides a 'safe'
+version that shouldn't cause any nasty register-trashing surprises. */
+static inline void SafeIODone(DCtlPtr dce, OSErr result) {
+  asm volatile(
+    "   MOVE.L   %[dce], %%a1\n\t"
+    "   MOVE.W   %[result], %%d0\n\t"
+    "   MOVE.L   0x08fc, %%a0\n\t"  /* 0x08fc = IODone jump vector (JIODone) */
+    "   JSR      (%%a0)\n\t"
+    :
+    : [dce] "g" (dce),
+      [result] "g" (result)
+    : "d0", "d1", "d2", "a0", "a1", /* Registers that we normally expect to be 
+                                       trashed across calls */
+      "d3", "a2", "a3"              /* Extra registers that IODone may change */
+  );
+}
+
 /*
 Wrapper to call protocol handlers from C.
 
@@ -211,8 +231,8 @@ static void userISR(driverGlobalsPtr theGlobals) {
       }
     }
     theGlobals->info.txFrameCount++;
-    IODone((DCtlPtr)theGlobals->driverDCE, noErr);
     enc624j600_clear_irq(&theGlobals->chip, IRQ_TX);
+    SafeIODone((DCtlPtr)theGlobals->driverDCE, noErr);
   }
 
   if (irq_status & IRQ_TX_ABORT) {
@@ -244,8 +264,8 @@ static void userISR(driverGlobalsPtr theGlobals) {
     DebugStr((unsigned char *)strbuf);
 #endif
 
-    IODone((DCtlPtr)theGlobals->driverDCE, excessCollsns);
     enc624j600_clear_irq(&theGlobals->chip, IRQ_TX_ABORT);
+    SafeIODone((DCtlPtr)theGlobals->driverDCE, excessCollsns);
   }
 
   /* We have pending packets. Handle them. */

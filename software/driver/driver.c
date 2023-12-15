@@ -96,13 +96,7 @@ static OSErr doEWrite(const driverGlobalsPtr theGlobals, const EParamBlkPtr pb) 
                       totalLength);
 
   /* Return >0 to indicate operation in progress */
-  //return 1;
-
-  /* Dirty hack until we can get async transmit working - busy-wait until
-  transmit is complete, then return 0 for synchronous completion. */
-  while (ENC624J600_READ_REG(theGlobals->chip.base_address, ECON1) & ECON1_TXRTS) {}
-
-  return 0;
+  return 1;
 }
 
 /*
@@ -314,10 +308,9 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       DebugStr((unsigned char *) strbuf);
 #endif
       enc624j600_start(&theGlobals->chip);
-      /* Leave transmit interrupts out until we get async transmit working */
       enc624j600_enable_irq(&theGlobals->chip,
                             IRQ_ENABLE | IRQ_LINK | IRQ_PKT | IRQ_RX_ABORT |
-                                IRQ_PCNT_FULL); // | IRQ_TX | IRQ_TX_ABORT);
+                                IRQ_PCNT_FULL | IRQ_TX | IRQ_TX_ABORT);
     }
   } else {
     /* Driver was already open, nothing to do */
