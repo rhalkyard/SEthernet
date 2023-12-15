@@ -114,13 +114,9 @@ ReadBuf:
     BLS         1f                      /* branch if d0 <= d1 */
     MOVE.W      %d1, %d0                /* d0 = MIN(d1, d3) */
 1:
-    MOVEM.L     %a0-%a1/%d0-%d2, -(%sp) /* Preserve registers changed by C */
-    MOVE.W      %d0, -(%sp)             /* D0.W: number of bytes to read */
-    MOVE.L      %a3, -(%sp)             /* A3:   destination address */
-    MOVE.L      %a0, -(%sp)             /* A0:   address of chip struct */
+    MOVEM.L     %a0-%a1/%d1-%d2, -(%sp) /* Preserve registers changed by C */
     JSR         enc624j600_read_rxbuf   /* enc624j600_read_rxbuf(A0, A3, D0.W) */
-    ADD.W       #10, %sp                /* Dispose of args (4+4+2 bytes) */
-    MOVEM.L     (%sp)+, %a0-%a1/%d0-%d2 /* Restore registers */
+    MOVEM.L     (%sp)+, %a0-%a1/%d1-%d2 /* Restore registers */
 
     ADD.W       %d0, %a3                /* Advance destination buffer pointer */
     SUB.W       %d0, %d1                /* Update remaining-byte count */

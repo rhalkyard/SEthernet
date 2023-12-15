@@ -148,6 +148,7 @@ chip up.
 
 If driver is already open, do nothing.
 */
+#pragma parameter __D0 driverOpen(__A0, __A1)
 OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
   driverGlobalsPtr theGlobals;
   Handle eadrResourceHandle;
@@ -326,6 +327,7 @@ Ethernet drivers don't generally get closed, as drivers don't (can't?) implement
 reference counting and software has no way of knowing if other software is using
 it. Still, drivers all seem to implement some kind of token shutdown procedure.
 */
+#pragma parameter __D0 driverClose(__A0, __A1)
 OSErr driverClose(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
   driverGlobalsPtr theGlobals = (driverGlobalsPtr)dce->dCtlStorage;
 
@@ -372,6 +374,7 @@ handles this for us, all we need to do is return a value <=0 when returning
 synchronously (0 for success, <0 for error) or >0 for async operations that will
 be completed by a later IODone call.
 */
+#pragma parameter __D0 driverControl(__A0, __A1)
 OSErr driverControl(EParamBlkPtr pb, AuxDCEPtr dce) {
   driverGlobalsPtr theGlobals = (driverGlobalsPtr)dce->dCtlStorage;
   switch (pb->csCode) {

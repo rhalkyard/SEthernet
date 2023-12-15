@@ -125,6 +125,7 @@ void enc624j600_disable_phy_loopback(const enc624j600 *chip);
 void enc624j600_memcpy(unsigned char *dest, const unsigned char *source,
                        const unsigned short len);
 
+#pragma parameter __D0 enc624j600_read_rxbuf(__A0, __A3, __D0)
 unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char *dest,
                                      unsigned short len);
 

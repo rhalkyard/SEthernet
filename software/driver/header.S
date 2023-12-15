@@ -80,8 +80,11 @@ These wrappers (adapted from IM: Devices listing 1-8) allow the actual
 implementations to be written in C.
 
 The C impls should be declared with:
+#pragma parameter __D0 driverOpen(__A0, __A1)
 OSErr driverOpen(EParamBlkPtr pb, DCtlPtr dce)
+#pragma parameter __D0 driverControl(__A0, __A1)
 OSErr driverControl(EParamBlkPtr pb, DCtlPtr dce)
+#pragma parameter __D0 driverClose(__A0, __A1)
 OSErr driverClose(EParamBlkPtr pb, DCtlPtr dce)
 
 Note that BSR must be used here rather than JSR because our code may not have
@@ -89,18 +92,14 @@ been relocated yet!
 */
 doOpen:
         MOVEM.L %A0-%A1,-(%SP)          /* Save registers */
-        MOVEM.L %A0-%A1,-(%SP)          /* Push args onto stack for C */
         BSR     driverOpen
-        ADDQ    #8, %SP                 /* Dispose of args */
         MOVEM.L (%SP)+,%A0-%A1          /* Restore registers */
         RTS
         MacsbugSymbol doOpen
 
 doControl:
         MOVEM.L %A0-%A1,-(%SP)          /* Save registers */
-        MOVEM.L %A0-%A1,-(%SP)          /* Push args onto stack for C */
         BSR     driverControl
-        ADDQ    #8, %SP                 /* Dispose of args */
         MOVEM.L (%SP)+,%A0-%A1          /* Restore registers */
         /* Any Control call except KillIO may return asynchronously. */
         CMP.W   #killCode, csCode(%A0)
@@ -139,9 +138,7 @@ MyIODone:
 
 doClose:
         MOVEM.L %A0-%A1,-(%SP)          /* Save registers */
-        MOVEM.L %A0-%A1,-(%SP)          /* Push args onto stack for C */
         BSR     driverClose
-        ADDQ    #8, %SP                 /* Dispose of args */
         MOVEM.L (%SP)+,%A0-%A1          /* Restore registers */     
         RTS
         MacsbugSymbol doClose
