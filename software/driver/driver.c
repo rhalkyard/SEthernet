@@ -121,15 +121,6 @@ static void doShutdown(void) {
   /* SEthernet/30: Use the Slot Manager to search for Functional sResources
   that look like SEthernet/30 cards */
 
-  int cardCount = 0;
-  Ptr cardAddresses[16];
-  long result;
-  OSErr err;
-
-  for (int i = 0; i < 16; i++) {
-    cardAddresses[i] = nil;
-  }
-
   SpBlock spb = {.spCategory = catNetwork,
                  .spCType = typeEtherNet,
                  .spDrvrSW = SETHERNET30_DRSW,
@@ -139,18 +130,11 @@ static void doShutdown(void) {
                  .spID = 1,
                  .spExtDev = 0};
 
-  err = SGetTypeSRsrc(&spb);
-  while (err == noErr && cardCount < 15) {
-    result = SFindDevBase(&spb);
-    if (result == noErr) {
-      cardAddresses[cardCount++] = (Ptr)spb.spResult;
+  while (SGetTypeSRsrc(&spb) == noErr) {
+    if (SFindDevBase(&spb) == noErr) {
+      chip.base_address = (unsigned char *) spb.spResult;
+      enc624j600_reset(&chip);
     } 
-    err = SGetTypeSRsrc(&spb);
-  }
-
-  for (int i = 0; i < cardCount; i++) {
-    chip.base_address = (unsigned char *) cardAddresses[i];
-    enc624j600_reset(&chip);
   }
 #elif defined(TARGET_SE)
   /* SEthernet: if we've gotten this far, just YOLO it and assume that the card
