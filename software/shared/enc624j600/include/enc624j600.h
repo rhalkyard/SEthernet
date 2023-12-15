@@ -1,6 +1,8 @@
 #ifndef _ENC624J600_H_
 #define _ENC624J600_H_
 
+#include "enc624j600_registers.h"
+
 enum enc624j600_link_state {
   LINK_DOWN = 0,
   LINK_UP,
@@ -77,22 +79,39 @@ void enc624j600_write_multicast_table(const enc624j600 *chip,
                                       const unsigned short table[4]);
 
 /* Enable or disable interrupts. Bits of irqmask are defined below */
-void enc624j600_enable_irq(const enc624j600 *chip,
-                           const unsigned short irqmask);
-void enc624j600_disable_irq(const enc624j600 *chip,
-                            const unsigned short irqmask);
+static inline void enc624j600_enable_irq(const enc624j600 *chip,
+                           const unsigned short irqmask) {
+  ENC624J600_SET_BITS(chip->base_address, EIE, irqmask);
+}
+
+static inline void enc624j600_disable_irq(const enc624j600 *chip,
+                            const unsigned short irqmask) {
+  ENC624J600_CLEAR_BITS(chip->base_address, EIE, irqmask);
+}
 
 /* Read interrupt state. Bits of return value are defined below */
-unsigned short enc624j600_read_irqstate(const enc624j600 *chip);
+static inline unsigned short enc624j600_read_irqstate(const enc624j600 *chip) {
+  /* CRYPTEN bit of EIR is not an interrupt flag! mask it out */
+  return ENC624J600_READ_REG(chip->base_address, EIR) & (~EIR_CRYPTEN);
+}
 
 /* Clear interrupts. Bits of irqmask are defined below */
-void enc624j600_clear_irq(const enc624j600 *chip, const unsigned short irqmask);
+static inline void enc624j600_clear_irq(const enc624j600 *chip,
+                          const unsigned short irqmask) {
+  /* CRYPTEN bit of EIR is not an interrupt flag! mask it out */
+  ENC624J600_CLEAR_BITS(chip->base_address, EIR, irqmask & (~EIR_CRYPTEN));
+}
 
 /* Read count of pending frames in receive buffer */
-unsigned char enc624j600_read_rx_pending_count(const enc624j600 *chip);
+static inline unsigned char enc624j600_read_rx_pending_count(const enc624j600 *chip) {
+  return (ENC624J600_READ_REG(chip->base_address, ESTAT) &
+         ESTAT_PKTCNT_MASK) >> ESTAT_PKTCNT_SHIFT;
+}
 
 /* Decrement pending frame count */
-void enc624j600_decrement_rx_pending_count(const enc624j600 *chip);
+static inline void enc624j600_decrement_rx_pending_count(const enc624j600 *chip) {
+  ENC624J600_SET_BITS(chip->base_address, ECON1, ECON1_PKTDEC);
+}
 
 /* Update tail of receive ring buffer. tail is a 'real' pointer into the receive
 buffer (as opposed to an offset relative to the chip base address).
@@ -103,8 +122,15 @@ void enc624j600_update_rxptr(enc624j600 *chip, const unsigned char *rxptr);
 unsigned short enc624j600_read_rx_fifo_level(const enc624j600 *chip);
 
 /* Convert a chip address into a real pointer */
-unsigned char *enc624j600_addr_to_ptr(const enc624j600 *chip,
-                                      const unsigned short addr);
+static inline unsigned char *enc624j600_addr_to_ptr(const enc624j600 *chip,
+                                      const unsigned short addr) {
+  return chip->base_address + addr;
+}
+
+static inline unsigned short enc624j600_ptr_to_addr(const enc624j600 *chip,
+                                             const unsigned char *ptr) {
+  return ptr - chip->base_address;
+}
 
 /* Transmit a packet. src must be within the chip transmit buffer */
 void enc624j600_transmit(const enc624j600 *chip, const unsigned char *src,

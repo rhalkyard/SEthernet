@@ -187,46 +187,6 @@ void enc624j600_disable_promiscuous(const enc624j600 *chip) {
   ENC624J600_WRITE_REG(chip->base_address, ERXFCON, RXFCON_DEFAULT);
 }
 
-void enc624j600_enable_irq(const enc624j600 *chip,
-                           const unsigned short irqmask) {
-  ENC624J600_SET_BITS(chip->base_address, EIE, irqmask);
-}
-
-void enc624j600_disable_irq(const enc624j600 *chip,
-                            const unsigned short irqmask) {
-  ENC624J600_CLEAR_BITS(chip->base_address, EIE, irqmask);
-}
-
-unsigned short enc624j600_read_irqstate(const enc624j600 *chip) {
-  /* CRYPTEN bit of EIR is not an interrupt flag! mask it out */
-  return ENC624J600_READ_REG(chip->base_address, EIR) & (~EIR_CRYPTEN);
-}
-
-void enc624j600_clear_irq(const enc624j600 *chip,
-                          const unsigned short irqmask) {
-  /* CRYPTEN bit of EIR is not an interrupt flag! mask it out */
-  ENC624J600_CLEAR_BITS(chip->base_address, EIR, irqmask & (~EIR_CRYPTEN));
-}
-
-unsigned char enc624j600_read_rx_pending_count(const enc624j600 *chip) {
-  return (ENC624J600_READ_REG(chip->base_address, ESTAT) &
-         ESTAT_PKTCNT_MASK) >> ESTAT_PKTCNT_SHIFT;
-}
-
-void enc624j600_decrement_rx_pending_count(const enc624j600 *chip) {
-  ENC624J600_SET_BITS(chip->base_address, ECON1, ECON1_PKTDEC);
-}
-
-unsigned char *enc624j600_addr_to_ptr(const enc624j600 *chip,
-                                      const unsigned short addr) {
-  return chip->base_address + addr;
-}
-
-static unsigned short enc624j600_ptr_to_addr(const enc624j600 *chip,
-                                             const unsigned char *ptr) {
-  return ptr - chip->base_address;
-}
-
 void enc624j600_transmit(const enc624j600 *chip,
                          const unsigned char *start_addr,
                          const unsigned short length) {
@@ -247,7 +207,7 @@ void enc624j600_transmit(const enc624j600 *chip,
   ENC624J600_SET_BITS(chip->base_address, ECON1, ECON1_TXRTS);
 }
 
-void enc624j600_update_rxptr(enc624j600 *chip, const unsigned char * rxptr) {
+inline void enc624j600_update_rxptr(enc624j600 *chip, const unsigned char * rxptr) {
   chip->rxptr = rxptr;
 
   /* Recieve buffer tail must word aligned and at least 2 bytes behind read
