@@ -286,6 +286,12 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       delay with that kind of granularity, so just busy-wait for 1 tick */
       waitTicks(1);
 
+      /* Test the chip's memory just to be *really* sure it's working */
+      if (enc624j600_memtest(&theGlobals->chip) != 0) {
+        error = openErr;
+        goto done;
+      }
+
       /* Initialize the ethernet controller. */
       if (enc624j600_init(&theGlobals->chip, ENC_RX_BUF_START) != 0) {
         error = openErr;

@@ -1,3 +1,4 @@
 add_subdirectory(board_defs)
 add_subdirectory(enc624j600)
+add_subdirectory(memtest)
 add_subdirectory(version)

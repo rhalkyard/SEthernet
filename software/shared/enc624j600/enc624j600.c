@@ -1,5 +1,6 @@
 #include "enc624j600.h"
 #include "enc624j600_registers.h"
+#include "memtest.h"
 
 #include <MacTypes.h>
 #include <string.h>
@@ -384,5 +385,12 @@ short int enc624j600_detect(const enc624j600 * chip) {
     }
   }
 
+  return 0;
+}
+
+short int enc624j600_memtest(const enc624j600 * chip) {
+  if (memTestDevice((unsigned short *) chip->base_address, ENC624J600_MEM_END)) {
+    return -1;
+  }
   return 0;
 }

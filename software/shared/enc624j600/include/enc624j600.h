@@ -158,6 +158,9 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char *dest,
 /* Check to see if an ENC624J600 is present and functioning at baseaddress */
 short int enc624j600_detect(const enc624j600 * chip);
 
+/* Test ENC624J600 memory */
+short int enc624j600_memtest(const enc624j600 * chip);
+
 /* Exchange the bytes in a word value */
 #define SWAPBYTES(value) ((((value) & 0xff00) >> 8) | (((value) & 0x00ff) << 8))
 
