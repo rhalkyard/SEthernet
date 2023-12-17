@@ -40,12 +40,10 @@ add_custom_command(
         OUTPUT SEthernet30.bin
         COMMAND ${REZ} -I ${REZ_INCLUDE_PATH}
                         ${CMAKE_CURRENT_SOURCE_DIR}/SEthernet30.r
-                        --copy ${CMAKE_CURRENT_SOURCE_DIR}/NetworkIcons.rsrc.bin
                         -o SEthernet30.bin
                         -t comd
-                        -c sEth
+                        -c Enet
                         
-        DEPENDS ${SE30_RESOURCE} ${CMAKE_CURRENT_SOURCE_DIR}/SEthernet30.r
-            ${CMAKE_CURRENT_SOURCE_DIR}/NetworkIcons.rsrc.bin)
+        DEPENDS ${SE30_RESOURCE} ${CMAKE_CURRENT_SOURCE_DIR}/SEthernet30.r)
 add_custom_target(SEthernet30 ALL DEPENDS SEthernet30.bin)
 
