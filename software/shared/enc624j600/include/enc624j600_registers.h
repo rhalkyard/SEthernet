@@ -170,9 +170,9 @@ Some general rules for register access:
 #define EUDAWRPT 0x7e90
 
 /* WARNING: 8 bit registers!!!*/
-#define EGPDATA 0x7e81
-#define ERXDATA 0x7e83
-#define EUDADATA 0x7e85
+#define EGPDATA 0x7e80
+#define ERXDATA 0x7e82
+#define EUDADATA 0x7e84
 
 /* PHY registers */
 #define PHCON1  0x00
