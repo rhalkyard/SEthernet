@@ -316,7 +316,7 @@ unsigned long driverISR(driverGlobalsPtr theGlobals) {
     systems, this could cause a double fault if the ISR runs during a page fault
     and the user buffer is not paged in. DeferUserFn will delay calling the
     handler until a safe time. */
-    if (theGlobals->usingVM) {
+    if (theGlobals->flags & vmEnabled) {
       if (DeferUserFn(userISR, theGlobals) != noErr) {
         /* If we can't defer for whatever reason, re-enable interrupts and
         return "interrupt not handled" status */

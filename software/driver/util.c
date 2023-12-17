@@ -3,6 +3,7 @@
 #include <MacTypes.h>
 #include <OSUtils.h>
 #include <Timer.h>
+#include <Traps.h>
 
 #if defined(DEBUG)
 char strbuf[255];
@@ -57,5 +58,25 @@ void copyEthAddrs(Byte *dest, const Byte *source) {
   /* could do this as a long and a word but lets keep things simple for now */
   for (unsigned short i = 0; i < 6; i++) {
     dest[i] = source[i];
+  }
+}
+
+/* Check whether a given trap is available. Adapted from IM: Devices listing
+   8-1 */
+Boolean trapAvailable(const unsigned short trap) {
+  TrapType type;
+  /* First determine whether it is an OS or Toolbox routine */
+  if (trap & 0x800) {
+    type = OSTrap;
+  } else {
+    type = ToolTrap;
+  }
+
+  /* filter cases where older systems mask with 0x1ff rather than 0x3ff */
+  if (type == ToolTrap && (trap & 0x3ff) >= 0x200 &&
+      GetToolboxTrapAddress(0xa86e) == GetToolboxTrapAddress(0xaa6e)) {
+    return false;
+  } else {
+    return NGetTrapAddress(trap, type) != GetToolboxTrapAddress(_Unimplemented);
   }
 }

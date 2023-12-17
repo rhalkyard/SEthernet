@@ -11,6 +11,7 @@
 #include <ROMDefs.h>
 #include <ShutDown.h>
 #include <Slots.h>
+#include <Traps.h>
 
 #include "enc624j600.h"
 #include "enc624j600_registers.h"
@@ -158,6 +159,7 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
   driverGlobalsPtr theGlobals;
   Handle eadrResourceHandle;
   OSErr error;
+  SysEnvRec sysEnv;
 
   error = noErr;
 
@@ -189,12 +191,31 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
     DebugStr((unsigned char *)strbuf);
 #endif
     } else {
+      error = noErr;
+
       /* dCtlStorage is technically a Handle, but since its use is entirely
       user-defined we can just treat it as a pointer */
       dce->dCtlStorage = (Handle)theGlobals;
 
+      if (trapAvailable(_Gestalt)) {
+        theGlobals->flags |= hasGestalt;
+      }
+
+      if (trapAvailable(_SlotManager)) {
+        theGlobals->flags |= hasSlotMgr;
+      }
+
+      SysEnvirons(curSysEnvVers, &sysEnv);
+      if (sysEnv.machineType == envSE) {
+        theGlobals->flags |= macSE;
+      }
+
 #if defined(TARGET_SE30)
-      long gestaltResult;
+      /* SEThernet/30 driver requires the Slot Manager */
+      if (!(theGlobals->flags & hasSlotMgr)) {
+        error = openErr;
+        goto done;
+      }
 
       /* Set up chip base address the clever way. We could manually compute the
       address from the slot number in dCtlSlot, but that means that we have to
@@ -205,32 +226,38 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       appropriate sResources (MinorBaseOS and/or MajorBaseOS) in ROM. */
       theGlobals->chip.base_address = (void *)dce->dCtlDevBase;
 
-      /* Check if running under virtual memory, make ourselves VM-safe if so.
-      See 'Driver Considerations for Virtual Memory' in Technote NW-13 */
-      if ((Gestalt(gestaltVMAttr, &gestaltResult) == noErr) &&
-          (gestaltResult & (1 << gestaltVMPresent))) {
-        theGlobals->usingVM = true;
-        /* Ask the memory manager to not page our data out */
-        HoldMemory(theGlobals, sizeof(driverGlobals));
-        dce->dCtlFlags |= dVMImmuneMask; /* Tell the OS that we're VM-safe */
+      /* It's a ridiculous edge case, but the SE/30 can run System 6.0.3, while
+      the Gestalt Manager was only introduced in 6.0.4. VM wasn't introduced
+      until System 7, so if we don't have the Gestalt Manager, we can assume
+      that we're not running with VM */
+      if (theGlobals->flags & hasGestalt) {
+        long gestaltResult;
+        /* Check if running under virtual memory, make ourselves VM-safe if so.
+        See 'Driver Considerations for Virtual Memory' in Technote NW-13 */
+        if ((Gestalt(gestaltVMAttr, &gestaltResult) == noErr) &&
+            (gestaltResult & (1 << gestaltVMPresent))) {
+          theGlobals->flags |= vmEnabled;
+          /* Ask the memory manager to not page our data out */
+          HoldMemory(theGlobals, sizeof(driverGlobals));
+          dce->dCtlFlags |= dVMImmuneMask; /* Tell the OS that we're VM-safe */
+        }
       }
 #elif defined(TARGET_SE)
-      /*
-      SE: base address is hardcoded. Try writing and reading back a value to
-      probe for hardware. No need to worry about virtual memory here!
-
-      TODO: figure out a more robust test (ID registers etc), and probably check
-      to make sure that we're actually running on an SE.
-      */
-      theGlobals->chip.base_address = (void *) SETHERNET_BASEADDR;
-      volatile unsigned long * test = (unsigned long *) theGlobals->chip.base_address;
-      *test = 0x123455aa;
-      if (*test != 0x123455aa) {
-        DisposePtr((Ptr)theGlobals);
-        dce->dCtlStorage = nil;
-        return openErr;
+      /* Check to make sure we're actually running on a Macintosh SE */
+      if (! (theGlobals->flags & macSE)) {
+        error = openErr;
+        goto done;
       }
+      /* SE: base address is hardcoded. */
+      theGlobals->chip.base_address = (unsigned char *) SETHERNET_BASEADDR;
 #endif
+
+      /* Before we go any further, check to see if the ENC624J600 is actually
+      there */
+      if (enc624j600_detect(&theGlobals->chip) != 0) {
+        error = openErr;
+        goto done;
+      }
 
       /* Save our device control entry - we need this to signal completion of IO
       at interrupt time */
@@ -248,7 +275,10 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       InitPHTable(theGlobals);
 
       /* Reset the chip */
-      enc624j600_reset(&theGlobals->chip);
+      if (enc624j600_reset(&theGlobals->chip) != 0) {
+        error = openErr;
+        goto done;
+      }
 
       /* Wait for the chip to come back after the reset. According to the
       datasheet, we must delay 25us for bus interface and MAC registers to come
@@ -257,7 +287,10 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       waitTicks(1);
 
       /* Initialize the ethernet controller. */
-      enc624j600_init(&theGlobals->chip, ENC_RX_BUF_START);
+      if (enc624j600_init(&theGlobals->chip, ENC_RX_BUF_START) != 0) {
+        error = openErr;
+        goto done;
+      }
 
       /* Install a shutdown procedure to reset the ENC624J600 as mitigation for
       issue #4 (rev0 hardware produces spurious interrupts on warm restart) */
@@ -284,7 +317,10 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       theGlobals->theSInt.sqPrio = 199; /* priority >=200 is reserved for Apple */
       theGlobals->theSInt.sqAddr = isrWrapper;
       theGlobals->theSInt.sqParm = (long)theGlobals;
-      SIntInstall(&theGlobals->theSInt, dce->dCtlSlot);
+      error = SIntInstall(&theGlobals->theSInt, dce->dCtlSlot);
+      if (error != noErr) {
+        goto done;
+      }
 #elif defined(TARGET_SE)
       isrGlobals = theGlobals;
       /* No Slot Manager on the SE, we hook the Level 1 Interrupt vector. Very
@@ -327,6 +363,14 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
     /* Driver was already open, nothing to do */
     error = noErr;
   }
+done:
+  if (error != noErr) {
+    if (dce->dCtlStorage != nil) {
+      DisposePtr((Ptr) dce->dCtlStorage);
+      dce->dCtlStorage = nil;
+    }
+}
+
   return error;
 }
 

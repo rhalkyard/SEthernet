@@ -334,3 +334,55 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest,
 
   return len;
 }
+
+short int enc624j600_detect(const enc624j600 * chip) {
+  const int detect_memlen = 64;
+  unsigned short uda_readptr, uda_readptr_after;
+  unsigned char regdata, ramdata;
+
+  /*
+  The ENC624J600 is somewhat lacking in ways to positively identify the device -
+  Microchip seems to use a number of different MAC OUIs, and while there is a
+  hardware ID and revision register, the datasheet does not indicate what these
+  values should look like!
+
+  Thus, we have to get a bit creative and try to identify the chip by its
+  behavior, while avoiding doing things that might upset other hardware that
+  might be present (i.e. writes). Thankfully, the indirection registers for
+  accessing buffer RAM are perfect for this - we don't use them otherwise, so
+  it's safe for us to mess with them, and the auto-increment behavior that they
+  exhibit means that we can induce identifiable behavior solely through read
+  accesses.
+
+  This test may return a false negative if the chip is 'running' and receiving
+  data and happens to overwrite the memory area that we are testing. However,
+  this is unlikely.
+  */
+  for (int i = 0; i < detect_memlen; i++) {
+    /* Read the User Data read pointer */
+    uda_readptr = ENC624J600_READ_REG(chip->base_address, EUDARDPT);
+    uda_readptr = SWAPBYTES(uda_readptr);
+
+    /* Read a byte of data through the User Data window */
+    regdata = ENC624J600_READ_REG8(chip->base_address, EUDADATA);
+    /* ... and read what should be the same byte of data directly from RAM */
+    ramdata = *(chip->base_address + uda_readptr);
+
+    /* The values read back should be the same */
+    if (regdata != ramdata) {
+      return -1;
+    }
+
+    /* Read the User Data read pointer again; accessing the User Data window
+    register should have caused it to either increment by 1 or wrap around to a
+    smaller value */
+    uda_readptr_after = ENC624J600_READ_REG(chip->base_address, EUDARDPT);
+    uda_readptr_after = SWAPBYTES(uda_readptr_after);
+    if (!(uda_readptr_after == uda_readptr + 1 
+          || uda_readptr_after < uda_readptr)) {
+      return -1;
+    }
+  }
+
+  return 0;
+}
