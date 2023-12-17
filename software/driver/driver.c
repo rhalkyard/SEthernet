@@ -348,6 +348,11 @@ OSErr driverClose(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
 #if defined(TARGET_SE30)
   /* Uninstall our slot interrupt handler */
   SIntRemove(&theGlobals->theSInt, dce->dCtlSlot);
+
+  if (theGlobals->usingVM) {
+    /* Unpin if running with virtual memory */
+    UnholdMemory(theGlobals, sizeof(driverGlobals));
+  }
 #elif defined(TARGET_SE)
   asm volatile (
     /* Mask interrupts while we change out interrupt vectors */
@@ -363,10 +368,6 @@ OSErr driverClose(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
   );
 #endif
 
-  if (theGlobals->usingVM) {
-    /* Unpin if running with virtual memory */
-    UnholdMemory(theGlobals, sizeof(driverGlobals));
-  }
   DisposePtr((Ptr)theGlobals);
   dce->dCtlStorage = nil;
 
