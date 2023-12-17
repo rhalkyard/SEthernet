@@ -13,4 +13,4 @@ extern void (*originalInterruptVector)();
 extern driverGlobalsPtr isrGlobals;
 #endif
 
-void driverISR();
+void isrWrapper(void);

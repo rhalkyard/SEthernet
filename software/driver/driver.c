@@ -14,13 +14,18 @@
 
 #include "enc624j600.h"
 #include "enc624j600_registers.h"
-#include "sethernet30_board_defs.h"
 #include "isr.h"
 #include "multicast.h"
 #include "protocolhandler.h"
 #include "registertools.h"
 #include "util.h"
 #include "version.h"
+
+#if defined(TARGET_SE30)
+#include "sethernet30_board_defs.h"
+#elif defined(TARGET_SE)
+#include "sethernet_board_defs.h"
+#endif
 
 #if defined(DEBUG)
 #include <Debugging.h>
@@ -217,7 +222,7 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       TODO: figure out a more robust test (ID registers etc), and probably check
       to make sure that we're actually running on an SE.
       */
-      theGlobals->chip.base_address = (void *) ENC624J600_BASE;
+      theGlobals->chip.base_address = (void *) SETHERNET_BASEADDR;
       volatile unsigned long * test = (unsigned long *) theGlobals->chip.base_address;
       *test = 0x123455aa;
       if (*test != 0x123455aa) {
@@ -277,27 +282,32 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       /* Install our interrupt handler using the Slot Manager */
       theGlobals->theSInt.sqType = sIQType;
       theGlobals->theSInt.sqPrio = 199; /* priority >=200 is reserved for Apple */
-      theGlobals->theSInt.sqAddr = driverISR;
+      theGlobals->theSInt.sqAddr = isrWrapper;
       theGlobals->theSInt.sqParm = (long)theGlobals;
       SIntInstall(&theGlobals->theSInt, dce->dCtlSlot);
 #elif defined(TARGET_SE)
       isrGlobals = theGlobals;
+      /* No Slot Manager on the SE, we hook the Level 1 Interrupt vector. Very
+      Commodore 64-style. Level 1 is normally used by the VIA and SCSI
+      controller, so we have to coexist with them. */
       asm (
-        /* No Slot Manager on the SE, we hook the Level 1 Interrupt vector. Very
-        Commodore 64-style. Level 1 is normally used by the VIA and SCSI
-        controller, so we have to coexist with them. */
         /* Mask interrupts while we change out interrupt vectors */
-        "MOVE.W  %%sr, -(%%sp) \n\t"
-        "ORI.W   %[srMaskInterrupts], %%sr  \n\t"
+        "   MOVE.W  %%sr, -(%%sp) \n\t"
+        "   ORI.W   %[srMaskInterrupts], %%sr  \n\t"
         /* Save the original vector*/
-        "MOVE.L  0x64, %[originalInterruptVector]  \n\t"
+        "   MOVE.L  %[isrVector], %[originalInterruptVector]  \n\t"
         /* Install our own */
-        "MOVE.L  %[driverISR], 0x64  \n\t"
+        "   MOVE.L  %[isrWrapper], %[isrVector]  \n\t"
         /* Restore interrupts */
-        "MOVE.W  (%%sp)+, %%sr"
+        "   MOVE.W  (%%sp)+, %%sr"
         : [originalInterruptVector] "=m" (originalInterruptVector)
-        : [driverISR] "r" (driverISR),
-          [srMaskInterrupts] "i" (0x700)
+        : [isrWrapper] "i" (isrWrapper),
+          /* status register bits to set priority 7, masking all interrupts */
+          [srMaskInterrupts] "i" (0x700),
+          /* Location of our interrupt vector in the 68000's vector table at the 
+          start of RAM. Interrupt vectors run from 0x64 for Level 1 to 0x7C for
+          Level 7. */
+          [isrVector] "m" (*(Byte *) (0x64 + (SETHERNET_INTERRUPT - 1) * 4))
       );
 #endif
 

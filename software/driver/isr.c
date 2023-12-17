@@ -279,8 +279,8 @@ static void userISR(driverGlobalsPtr theGlobals) {
 }
 
 /* Interrupt handler, wrapped by driverISR below. */
-__attribute__((used)) static unsigned long _driverISR(
-    driverGlobalsPtr theGlobals) {
+#pragma parameter __D0 driverISR(__A1)
+unsigned long driverISR(driverGlobalsPtr theGlobals) {
   unsigned short irq_status;
   unsigned long irq_handled = 0;
 
@@ -344,72 +344,4 @@ __attribute__((used)) static unsigned long _driverISR(
 
   enc624j600_enable_irq(&theGlobals->chip, IRQ_ENABLE);
   return irq_handled;
-}
-
-/*
-Our interrupt service routine - actually just a wrapper that calls the 'real'
-_driverISR() routine above.
-
-On the SE/30, we register our ISR with the Slot Manager, so all we need to do is
-wrap it in some MOVEMs to preserve the right registers.
-
-On the SE, there is no system-provided mechanism to register expansion-hardware
-ISRs, so we hijack the vector for the interrupt level we use (Level 1). Level 1
-is also used by the VIA, so our ISR must query the card's interrupt status, and
-decide whether to service it with _driverISR() or jump to the original Level 1
-vector to service a VIA interrupt.
-*/
-void driverISR(void) {
-#if defined(TARGET_SE30)
-  /*
-  SE/30: register-preservation wrapper for slot interrupt
-
-  On entry:
-    A1: contents of Slot Interrupt Queue entry sqParm field
-
-  On exit:
-    A1: destroyed
-    A0,A2-6: preserved
-    D0: 1 if IRQ was handled, 0 otherwise
-    D1-D7: preserved
-
-  C functions always save A2-A6 and D3-D7, so we just need to save A0, D1, D2.
-  */
-  asm("MOVEM.L %A0/%D1-%D2, -(%SP)\n\t"
-      "MOVE.L %A1, -(%SP)\n\t"
-      "JSR _driverISR\n\t"
-      "ADDQ #4, %SP\n\t"
-      "MOVEM.L (%sp)+, %A0/%D1-%D2");
-#elif defined(TARGET_SE)
-  asm volatile (
-    /* Read the ENC624J600 EIR register to see if we have an interrupt from it */
-    "   MOVE.W  %%d0, -(%%sp) \n\t"
-    "   MOVE.W  (%[estat_reg]), %%d0 \n\t"
-    "   ANDI.W  %[estat_int_mask], %%d0  \n\t"
-    "   BEQ     not_us_%= \n\t"
-
-    /* We have an interrupt waiting: call our ISR */
-    "   MOVEM.L %%a0-%%a1/%%d1-%%d2,  -(%%sp) \n\t"
-    "   LEA     isrGlobals, %%a1 \n\t"
-    "   MOVE.L  %%a1, -(%%sp) \n\t"
-    "   JSR     _driverISR  \n\t"
-    "   ADDQ    #4, %%sp \n\t"
-    "   MOVEM.L (%%sp)+, %%a0-%%a1/%%d1-%%d2\n\t"
-    "   MOVE.W  (%%sp)+, %%d0  \n\t"
-    "   RTE\n"
-
-    /* The interrupt wasn't us: chain through to the original vector */
-    "not_us_%=:\n\t"
-    "   MOVE.W  (%%sp)+, %%d0  \n\t"
-    "   MOVE.L  originalInterruptVector, -(%%sp)  \n\t"
-    "   RTS"  /* push-and-RTS is apparently the quickest way to jump through a
-              vector in memory. Once again, shades of the C64 here */
-    :
-    : [estat_int_mask] "n" (ESTAT_INT),
-      [estat_reg] "a" (ENC624J600_REG(ENC624J600_BASE, ESTAT))
-      /* UGLY HACK: mark non-saved registers as in-use so that any
-      automatically-allocated registers will be saved and restored */
-    : "a0", "a1", "d0", "d1", "d2"
-  );
-#endif
 }
