@@ -22,7 +22,9 @@ On entry:
   D3: maximum number of bytes to read
 
 On exit:
-  A0-A2: preserved
+  A0: preserved
+  A1: changed
+  A2: preserved
   A3: buffer pointer (updated to point to byte following last byte written)
   A4-A5: preserved
   D0: changed (OSErr value)
@@ -96,7 +98,9 @@ On entry:
     D3:     Number of bytes to read
 
 On exit:
-    A0-A2:  Preserved
+    A0:     Preserved
+    A1:     Changed
+    A2:     Preserved
     A3:     Pointer to one byte past last byte written
     A4-A5:  Preserved
     D0:     Number of bytes actually read
@@ -114,9 +118,9 @@ ReadBuf:
     BLS         1f                      /* branch if d0 <= d1 */
     MOVE.W      %d1, %d0                /* d0 = MIN(d1, d3) */
 1:
-    MOVEM.L     %a0-%a1/%d1-%d2, -(%sp) /* Preserve registers changed by C */
+    MOVEM.L     %a0/%d1-%d2, -(%sp)     /* Preserve registers changed by C */
     JSR         enc624j600_read_rxbuf   /* enc624j600_read_rxbuf(A0, A3, D0.W) */
-    MOVEM.L     (%sp)+, %a0-%a1/%d1-%d2 /* Restore registers */
+    MOVEM.L     (%sp)+, %a0/%d1-%d2     /* Restore registers */
 
     ADD.W       %d0, %a3                /* Advance destination buffer pointer */
     SUB.W       %d0, %d1                /* Update remaining-byte count */

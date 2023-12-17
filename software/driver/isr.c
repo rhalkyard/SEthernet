@@ -54,7 +54,7 @@ the time for that?
 
 On protocol handler entry:
   A0: driver-specific ReadPacket argument (pointer to driver globals)
-  A1: driver-specific ReadPacket argument (pointer to protocol handler)
+  A1: driver-specific ReadPacket argument (unused)
   A3: pointer into Receive Header Area, immediately after the header bytes
   A4: pointer to ReadPacket/ReadRest routine
   D1: number of bytes in packet (excluding header and FCS)
