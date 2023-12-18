@@ -7,6 +7,14 @@ add_library(declrom OBJECT declrom.S)
 # with software
 target_link_libraries(declrom board_defs version)
 
+# Generate a 'library' containing the ROM data formatted as a C header, for use
+# by firmware update tools.
+add_library(declrom_header INTERFACE)
+# The header is generated, so we have to tell CMake to find it in our build
+# tree, not the source
+target_include_directories(declrom_header INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/include/)
+
+
 # Build the ROM image
 add_custom_command(
     OUTPUT se30-u2.rom
@@ -19,14 +27,18 @@ add_custom_command(
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gencrc.py 
         --output se30-u2.rom
         --pad 65536
-        se30-u2.rom 
-    # We use the bottom 64K of a 128K ROM, with the top address bit tied to
-    # ground; append zero-padding so that the image size matches the full size
-    # of the ROM.
-    COMMAND truncate
-        -s 128K 
         se30-u2.rom
     DEPENDS $<TARGET_OBJECTS:declrom>
 )
 
-add_custom_target(declrom_image ALL DEPENDS se30-u2.rom)
+# Build a header-ified version of the ROM image
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/se30-u2.h
+    COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/include
+    COMMAND xxd -i se30-u2.rom ${CMAKE_CURRENT_BINARY_DIR}/include/se30-u2.h
+    DEPENDS se30-u2.rom
+)
+
+add_custom_target(declrom_image ALL 
+    DEPENDS se30-u2.rom
+        ${CMAKE_CURRENT_BINARY_DIR}/include/se30-u2.h)
