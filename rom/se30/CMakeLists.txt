@@ -5,7 +5,7 @@ add_library(declrom OBJECT declrom.S)
 
 # Use sethernet30_board_defs.h from shared library to keep hardware IDs in sync
 # with software
-target_link_libraries(declrom board_defs)
+target_link_libraries(declrom board_defs version)
 
 # Build the ROM image
 add_custom_command(

@@ -1,6 +1,7 @@
 #include "ROMDefs.inc"
 #include "declrom_macros.inc"
 #include "sethernet30_board_defs.h"
+#include "version.h"
 
 /* Declaration ROM starts here. The sResource directory should be at the lowest
 address */
@@ -39,7 +40,9 @@ vendor_name:
     .byte 0
 
 vendor_rev:
-    .ascii "Revision 0"
+    .ascii "Revision 0 "
+    .ascii "git:" 
+    .ascii GIT_REV
     .byte 0
 
 vendor_partnum:
@@ -48,6 +51,8 @@ vendor_partnum:
 
 vendor_date:
     .ascii __DATE__ /* C Preprocessor macro, need to make sure this gets preprocessed */
+    .ascii " "
+    .ascii __TIME__
     .byte 0
 
 eth_functional_sResource:
