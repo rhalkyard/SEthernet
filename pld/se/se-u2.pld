@@ -32,11 +32,12 @@ PIN 19          = CS ;          /* Chip select to ENC624J600 */
 /* PIN 20       = vcc ; */
 
 /* Select on a 64k space starting at 0x80 0000 */
-CS              = AS & [A23..16]:'h'80xxxx ;
+select          = AS & [A23..16]:'h'80xxxx ;
+CS              = select;
 
 /* Generate byte-select lines for ENC624J600 */
-B0SEL           = UDS ;         /* ENC624J600 byte 0 (AD7..AD0) = 68k upper byte (D15..D8) */
-B1SEL           = LDS ;         /* ENC624J600 byte 1 (AD15..AD8) = 68k lower byte (D7..D0) */
+B0SEL           = UDS & select ;    /* ENC624J600 byte 0 (AD7..AD0) = 68k upper byte (D15..D8) */
+B1SEL           = LDS & select ;    /* ENC624J600 byte 1 (AD15..AD8) = 68k lower byte (D7..D0) */
 
 /* Drive CPU interrupt line as open-collector */
 IPL0            = ENC_INT ;
