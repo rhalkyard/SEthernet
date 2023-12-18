@@ -89,14 +89,25 @@ Glue Logic: [SEthernet](pld/se) - [SEthernet/30](pld/se30)
 
 ## Required tools
 
-Schematics, board layout and BOM: [KiCad 7](https://www.kicad.org/)
+### Schematics, board layout and BOM
 
-Programmable Logic: [WinCUPL](https://www.microchip.com/en-us/products/fpgas-and-plds/spld-cplds/pld-design-resources)
+[KiCad 7](https://www.kicad.org/)
+
+### Programmable Logic
+
+[WinCUPL](https://www.microchip.com/en-us/products/fpgas-and-plds/spld-cplds/pld-design-resources)
 (see [`pld/README.md`](pld/README.md) for notes on WinCUPL)
 
-Declaration ROM, driver and software:
-[Retro68](https://github.com/autc04/Retro68), [CMake](https://cmake.org/) and
-[Python 3](https://www.python.org)
+### Declaration ROM, driver and software
+
+- [Retro68](https://github.com/autc04/Retro68) built with [Apple Universal
+  Interfaces](https://github.com/autc04/Retro68#apple-universal-interfaces-vs-multiversal-interfaces)
+  (at the time of writing, the default free-software Multiversal Interfaces do
+  not include some necessary headers)
+
+- [CMake](https://cmake.org/)
+
+- [Python 3](https://www.python.org)
 
 ## Errata
 

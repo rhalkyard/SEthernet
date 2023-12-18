@@ -1,3 +1,10 @@
+INCLUDE(CheckIncludeFile)
+CHECK_INCLUDE_FILE("ENET.h" HAVE_ENET_H)
+IF(NOT HAVE_ENET_H)
+    message(FATAL_ERROR "ENET.h not found. Are you sure you built Retro68 with Apple Universal Interfaces?")
+ENDIF()
+
+
 # Build drivers as code resources; PC-relative (no relocation necessary) flat
 # binaries with no startup code
 add_link_options(-Wl,--mac-flat -nostartfiles -e header_start)
