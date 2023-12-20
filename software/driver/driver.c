@@ -4,6 +4,7 @@
 #include <Devices.h>
 #include <ENET.h>
 #include <Errors.h>
+#include <Events.h>
 #include <Gestalt.h>
 #include <MacTypes.h>
 #include <Resources.h>
@@ -160,6 +161,23 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
   Handle eadrResourceHandle;
   OSErr error;
   SysEnvRec sysEnv;
+
+  /* 'panic button' - hold down the E key at boot (or any other time the driver
+  is loaded) to disable the driver (or drop into the debugger in debug builds),
+  just in case we get into a state where the driver is stopping the system from
+  booting. Note that this must be inline code and not a function, since we want
+  to break before relocation */
+  const unsigned char keycode = 0x0e; /* keyboard scan code for E key */
+  unsigned char keys[16];
+  GetKeys((unsigned long *)keys);
+  /* Test bit corresponding to keyboard scan code */
+  if ((keys[keycode>>3] >> (keycode & 0x7)) & 1) {
+#if defined(DEBUG)
+    Debugger();
+#else
+    return -1;
+#endif
+  }
 
   error = noErr;
 
@@ -352,14 +370,7 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
           [isrVector] "m" (*(Byte *) (0x64 + (SETHERNET_INTERRUPT - 1) * 4))
       );
 #endif
-
-#if defined(DEBUG)
       /* Let's go! */
-      strbuf[0] = sprintf(strbuf + 1, "Driver opened. Revision " GIT_REV ". Header at %08x. Globals at %08x.;g",
-                          (unsigned int) &header_start,
-                          (unsigned int) theGlobals);
-      DebugStr((unsigned char *) strbuf);
-#endif
       enc624j600_start(&theGlobals->chip);
       enc624j600_enable_irq(&theGlobals->chip,
                             IRQ_ENABLE | IRQ_LINK | IRQ_PKT | IRQ_RX_ABORT |
