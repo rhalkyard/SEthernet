@@ -198,21 +198,21 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       dce->dCtlStorage = (Handle)theGlobals;
 
       if (trapAvailable(_Gestalt)) {
-        theGlobals->flags |= hasGestalt;
+        theGlobals->hasGestalt = 1;
       }
 
       if (trapAvailable(_SlotManager)) {
-        theGlobals->flags |= hasSlotMgr;
+        theGlobals->hasSlotMgr = 1;
       }
 
       SysEnvirons(curSysEnvVers, &sysEnv);
       if (sysEnv.machineType == envSE) {
-        theGlobals->flags |= macSE;
+        theGlobals->macSE = 1;
       }
 
 #if defined(TARGET_SE30)
       /* SEThernet/30 driver requires the Slot Manager */
-      if (!(theGlobals->flags & hasSlotMgr)) {
+      if (!(theGlobals->hasSlotMgr)) {
         error = openErr;
         goto done;
       }
@@ -230,13 +230,13 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       the Gestalt Manager was only introduced in 6.0.4. VM wasn't introduced
       until System 7, so if we don't have the Gestalt Manager, we can assume
       that we're not running with VM */
-      if (theGlobals->flags & hasGestalt) {
+      if (theGlobals->hasGestalt) {
         long gestaltResult;
         /* Check if running under virtual memory, make ourselves VM-safe if so.
         See 'Driver Considerations for Virtual Memory' in Technote NW-13 */
         if ((Gestalt(gestaltVMAttr, &gestaltResult) == noErr) &&
             (gestaltResult & (1 << gestaltVMPresent))) {
-          theGlobals->flags |= vmEnabled;
+          theGlobals->vmEnabled = 1;
           /* Ask the memory manager to not page our data out */
           HoldMemory(theGlobals, sizeof(driverGlobals));
           dce->dCtlFlags |= dVMImmuneMask; /* Tell the OS that we're VM-safe */
@@ -244,7 +244,7 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       }
 #elif defined(TARGET_SE)
       /* Check to make sure we're actually running on a Macintosh SE */
-      if (! (theGlobals->flags & macSE)) {
+      if (! (theGlobals->macSE)) {
         error = openErr;
         goto done;
       }
@@ -399,7 +399,7 @@ OSErr driverClose(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
   /* Uninstall our slot interrupt handler */
   SIntRemove(&theGlobals->theSInt, dce->dCtlSlot);
 
-  if (theGlobals->usingVM) {
+  if (theGlobals->vmEnabled) {
     /* Unpin if running with virtual memory */
     UnholdMemory(theGlobals, sizeof(driverGlobals));
   }

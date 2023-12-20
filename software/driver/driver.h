@@ -36,13 +36,6 @@ enum {
                             protocol-handler table entry */
 };
 
-enum {
-  hasGestalt  = BIT(0),
-  hasSlotMgr  = BIT(1),
-  vmEnabled   = BIT(2),
-  macSE       = BIT(3)
-};
-
 /* Entry in our list of protocol handlers */
 struct protocolHandlerEntry {
   unsigned short
@@ -86,8 +79,12 @@ typedef struct driverGlobals {
 
   SlotIntQElement theSInt; /* Our slot interrupt queue entry */
   AuxDCEPtr driverDCE;     /* Our device control entry */
-  Boolean usingVM; /* are we running with Virtual Memory enabled? */
-  unsigned short flags;
+  
+  /* Flags */
+  unsigned short hasGestalt : 1;  /* Gestalt Manager is available */
+  unsigned short hasSlotMgr : 1;  /* Slot Manager is available */
+  unsigned short vmEnabled : 1;   /* Virtual Memory is enabled */
+  unsigned short macSE : 1;       /* Running on a Macintosh SE */
 
   protocolHandlerEntry
       protocolHandlers[numberOfPhs];             /* Protocol handler table */
