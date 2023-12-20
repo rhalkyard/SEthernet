@@ -99,6 +99,7 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
   unsigned short pktLen;         /* Length of packet */
   unsigned short bytesPending;   /* Number of bytes pending in receive FIFO */
   unsigned short packetsPending; /* Number of packets pending in receive FIFO */
+  unsigned char * nextPacket;
   protocolHandlerEntry *protocolSlot; /* Protocol handler */
 
   /* Record some FIFO stats */
@@ -112,15 +113,21 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
   }
 
   /* Copy the packet header (including ENC624J600 data) into memory */
-  enc624j600_read_rxbuf(&theGlobals->chip, (unsigned char *) &theGlobals->rha, 
-    sizeof(theGlobals->rha) - sizeof(theGlobals->rha.workspace));
+  enc624j600_read_rxbuf(&theGlobals->chip,
+                        (unsigned char *)&theGlobals->rha.header,
+                        sizeof(theGlobals->rha.header));
 
   /* Packet length field in Recieve Status Vector is stored little-endian */
-  pktLen = SWAPBYTES(theGlobals->rha.rsv.pkt_len_le);
+  pktLen = SWAPBYTES(theGlobals->rha.header.rsv.pkt_len_le);
+
+  /* Next-packet pointer is stored little-endian and relative to chip address
+  space */
+  nextPacket = enc624j600_addr_to_ptr(
+      &theGlobals->chip, SWAPBYTES(theGlobals->rha.header.nextPkt_le));
 
   /* Check for CRC errors. By default the ENC624J600 drops bad-CRC packets
   silently in hardware, but collect stats in case we disable that filter. */
-  if (RSV_BIT(theGlobals->rha.rsv, RSV_BIT_CRC_ERR)) {
+  if (RSV_BIT(theGlobals->rha.header.rsv, RSV_BIT_CRC_ERR)) {
     theGlobals->info.fcsErrors++;
     goto drop;
   }
@@ -140,16 +147,17 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
   }
 
   /* Sanity-check our receive filters */
-  if (RSV_BIT(theGlobals->rha.rsv, RSV_BIT_UNICAST)) {
-    /* Destination is broadcast or unicast to us */
+  if (RSV_BIT(theGlobals->rha.header.rsv, RSV_BIT_UNICAST)) {
+    /* Destination is unicast to us */
     goto accept;
-  } else if (RSV_BIT(theGlobals->rha.rsv, RSV_BIT_BROADCAST)) {
+  } else if (RSV_BIT(theGlobals->rha.header.rsv, RSV_BIT_BROADCAST)) {
+    /* Destination is broadcast */
     theGlobals->info.broadcastRxFrameCount++;
     goto accept;
-  } else if (RSV_BIT(theGlobals->rha.rsv, RSV_BIT_MULTICAST) 
-             && RSV_BIT(theGlobals->rha.rsv, RSV_BIT_HASH_MATCH)) {
+  } else if (RSV_BIT(theGlobals->rha.header.rsv, RSV_BIT_MULTICAST) 
+             && RSV_BIT(theGlobals->rha.header.rsv, RSV_BIT_HASH_MATCH)) {
     /* Destination hash matches a multicast we're listening to */
-    if (findMulticastEntry(theGlobals, theGlobals->rha.dest)) {
+    if (findMulticastEntry(theGlobals, theGlobals->rha.header.dest)) {
       /* Actual destination address matches a multicast we're listening to */
       theGlobals->info.multicastRxFrameCount++;
       goto accept;
@@ -168,10 +176,10 @@ accept:
   /* An ethertype field of < 0x600 indicates an 802.2 Type 1 frame (Ethernet
   Phase II in Apple parlance). We assign this the protocol number 0. The LAP
   manager always registers itself as the handler for this protocol. */
-  if (theGlobals->rha.protocol < 0x0600) {
+  if (theGlobals->rha.header.protocol < 0x0600) {
     protocolSlot = findPH(theGlobals, phProtocolPhaseII);
   } else {
-    protocolSlot = findPH(theGlobals, theGlobals->rha.protocol);
+    protocolSlot = findPH(theGlobals, theGlobals->rha.header.protocol);
   }
   /* Search the protocol-handler table for a handler for this ethertype */
   if (protocolSlot == nil) {
@@ -192,7 +200,7 @@ accept:
   Call the protocol handler to read the rest of the packet.
 
   pktLen-18 is length of packet minus header (6+6+2 bytes) and trailing checksum
-  (4 bytes)
+  (4 bytes).
   */
   callPH(&theGlobals->chip, protocolSlot->handler, theGlobals->rha.workspace,
          pktLen-18);
@@ -201,8 +209,7 @@ accept:
 drop:
   /* finished with packet, discard any remaining data by advancing read pointer
   and rx buffer tail to the start of the next packet  */
-  enc624j600_update_rxptr(&theGlobals->chip, enc624j600_addr_to_ptr(
-      &theGlobals->chip, SWAPBYTES(theGlobals->rha.nextPkt_le)));
+  enc624j600_update_rxptr(&theGlobals->chip, nextPacket);
 
   /* decrement pending-receive counter */
   enc624j600_decrement_rx_pending_count(&theGlobals->chip);
