@@ -8,7 +8,7 @@ address */
 directory:
     OSLstEntry 1, board_sResource
     OSLstEntry 128, eth_functional_sResource
-    OSLstEntry 128, rom_functional_sResource
+    OSLstEntry 129, rom_functional_sResource
     EndLstEntry
 
 board_sResource:
