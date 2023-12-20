@@ -1,2 +1,3 @@
 add_subdirectory(showDrivers)
 add_subdirectory(testMemory)
+add_subdirectory(programROM)
