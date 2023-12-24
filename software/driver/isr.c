@@ -217,6 +217,7 @@ drop:
 
 /* User-memory-accessing section of ISR, called through DeferUserFn on VM
 systems. Enters with IRQs already disabled, must re-enable them on exit. */
+#pragma parameter userISR(__A0)
 static void userISR(driverGlobalsPtr theGlobals) {
   short irq_status = enc624j600_read_irqstate(&theGlobals->chip);
 
