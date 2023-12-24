@@ -262,9 +262,11 @@ unsigned short enc624j600_read_phy_reg(const enc624j600 *chip,
   }
   /* only write low half of MIREGADR, the high half is reserved */
   ENC624J600_WRITE_REG8(chip->base_address, MIREGADR, phyreg);
+  ENC624J600_SET_BITS(chip->base_address, MICMD, MICMD_MIIRD);
   /* Wait for internal MII to finish read operation */
   while (ENC624J600_READ_REG(chip->base_address, MISTAT) & MISTAT_BUSY) {
   }
+  ENC624J600_CLEAR_BITS(chip->base_address, MICMD, MICMD_MIIRD);
   return ENC624J600_READ_REG(chip->base_address, MIRD);
 }
 
