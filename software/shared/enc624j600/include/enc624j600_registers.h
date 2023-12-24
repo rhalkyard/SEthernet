@@ -346,7 +346,7 @@ Our bit:        7   6   5   4   3   2   1   0   15  14  13  12  11  10  9   8
 
 /* MICMD */
 #define MICMD_MIISCAN BIT(9)
-#define MICMD_IIRD BIT(8)
+#define MICMD_MIIRD BIT(8)
 
 /* MIREGADR */
 #define MIREGADR_PHREG_SHIFT 8
