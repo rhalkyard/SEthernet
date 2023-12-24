@@ -346,11 +346,12 @@ short int enc624j600_detect(const enc624j600 * chip) {
   /*
   The ENC624J600 is somewhat lacking in ways to positively identify the device -
   Microchip seems to use a number of different MAC OUIs, and while there is a
-  hardware ID and revision register, the datasheet does not indicate what these
-  values should look like!
+  "Device ID" field in the EIDLED regsiter, it is only 3 bits, which isn't
+  unique enough for my liking - random data has a 1-in-8 chance of being a
+  match!
 
-  Thus, we have to get a bit creative and try to identify the chip by its
-  behavior, while avoiding doing things that might upset other hardware that
+  Thus, to be doubly sure, we get a bit creative and try to identify the chip by
+  its behavior, while avoiding doing things that might upset other hardware that
   might be present (i.e. writes). Thankfully, the indirection registers for
   accessing buffer RAM are perfect for this - we don't use them otherwise, so
   it's safe for us to mess with them, and the auto-increment behavior that they
@@ -360,7 +361,19 @@ short int enc624j600_detect(const enc624j600 * chip) {
   This test may return a false negative if the chip is 'running' and receiving
   data and happens to overwrite the memory area that we are testing. However,
   this is unlikely.
+
+  This test also runs the risk of disturbing other hardware that is 'sensitive'
+  to read accesses (registers that increment or clear on read, read-activated
+  softswitches, etc.) but there isn't really any way around that - we've got to
+  identify the hardware somehow!.
   */
+
+  /* DEVID bits of EIDLED register should be 0b001 */
+  if ((ENC624J600_READ_REG(chip->base_address, EIDLED) & EIDLED_DEVID_MASK) >>
+          EIDLED_DEVID_SHIFT != 1) {
+    return -1;
+  }
+
   for (int i = 0; i < detect_memlen; i++) {
     /* Read the User Data read pointer */
     uda_readptr = ENC624J600_READ_REG(chip->base_address, EUDARDPT);
