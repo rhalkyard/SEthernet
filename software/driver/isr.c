@@ -323,10 +323,7 @@ static void userISR(driverGlobalsPtr theGlobals) {
         SafeIODone((DCtlPtr) theGlobals->driverDCE, theGlobals->ioStatus);
         debug_log(theGlobals, txTaskAlreadyDeferredReturn, theGlobals->ioStatus);
       } else {
-        /* Schedule a deferred task to call IODone*/
-        theGlobals->txCompleteTask.qType = dtQType;
-        theGlobals->txCompleteTask.dtAddr = txComplete;
-        theGlobals->txCompleteTask.dtParam = (long) theGlobals;
+        /* Schedule a deferred task to call IODone */
         theGlobals->dtPending = true;
         DTInstall(&theGlobals->txCompleteTask);
       }

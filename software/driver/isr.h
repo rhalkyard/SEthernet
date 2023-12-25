@@ -14,3 +14,4 @@ extern driverGlobalsPtr isrGlobals;
 #endif
 
 void isrWrapper(void);
+void txComplete(driverGlobalsPtr theGlobals);

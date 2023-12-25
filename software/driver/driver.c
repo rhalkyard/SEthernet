@@ -248,6 +248,10 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
 
       if (trapAvailable(_DTInstall)) {
         theGlobals->hasDeferredTaskMgr = 1;
+        /* Preload deferred task fields to save time at interrupt time */
+        theGlobals->txCompleteTask.qType = dtQType;
+        theGlobals->txCompleteTask.dtAddr = txComplete;
+        theGlobals->txCompleteTask.dtParam = (long) theGlobals;
       }
 
       SysEnvirons(curSysEnvVers, &sysEnv);
