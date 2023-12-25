@@ -423,7 +423,11 @@ Entrypoint for Close call
 
 Ethernet drivers don't generally get closed, as drivers don't (can't?) implement
 reference counting and software has no way of knowing if other software is using
-it. Still, drivers all seem to implement some kind of token shutdown procedure.
+it.
+
+However, Technote DV13 "_PBClose the Barn Door" states that in particular, the
+A/UX boot process DOES close all open drivers, so we ought to implement it, and
+do it properly so that the card is in a sane state for A/UX to take over.
 */
 #pragma parameter __D0 driverClose(__A0, __A1)
 OSErr driverClose(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
@@ -455,6 +459,8 @@ OSErr driverClose(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       [srMaskInterrupts] "i" (0x700)
   );
 #endif
+
+  ShutDwnRemove(doShutdown);
 
   DisposePtr((Ptr)theGlobals);
   dce->dCtlStorage = nil;
