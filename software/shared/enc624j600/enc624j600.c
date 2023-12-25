@@ -324,6 +324,12 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest,
 
   /* Wrap read pointer if we hit the end */
   if (source >= chip->rxbuf_end) {
+#if defined(DEBUG)
+    if (source > chip->rxbuf_end) {
+      /* shouldn't ever happen */
+      DebugStr("\pRead overran end of receive buffer!");
+    }
+#endif
     source = chip->rxbuf_start;
   }
 

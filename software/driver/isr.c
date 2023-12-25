@@ -202,8 +202,10 @@ accept:
   pktLen-18 is length of packet minus header (6+6+2 bytes) and trailing checksum
   (4 bytes).
   */
+  debug_log(theGlobals, rxEvent, pktLen - 4);
   callPH(&theGlobals->chip, protocolSlot->handler, theGlobals->rha.workspace,
          pktLen-18);
+  debug_log(theGlobals, rxDoneEvent, pktLen - 4);
   theGlobals->info.rxFrameCount++;
 
 drop:
@@ -240,7 +242,9 @@ static void userISR(driverGlobalsPtr theGlobals) {
     }
     theGlobals->info.txFrameCount++;
     enc624j600_clear_irq(&theGlobals->chip, IRQ_TX);
+    debug_log(theGlobals, txCallIODoneEvent, noErr);
     SafeIODone((DCtlPtr)theGlobals->driverDCE, noErr);
+    debug_log(theGlobals, txReturnIODoneEvent, 0x5555);
   }
 
   if (irq_status & IRQ_TX_ABORT) {
@@ -273,7 +277,9 @@ static void userISR(driverGlobalsPtr theGlobals) {
 #endif
 
     enc624j600_clear_irq(&theGlobals->chip, IRQ_TX_ABORT);
+    debug_log(theGlobals, txCallIODoneEvent, excessCollsns);
     SafeIODone((DCtlPtr)theGlobals->driverDCE, excessCollsns);
+    debug_log(theGlobals, txReturnIODoneEvent, 0x5555);
   }
 
   /* We have pending packets. Handle them. */

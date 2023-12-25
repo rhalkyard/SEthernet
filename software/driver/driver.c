@@ -59,6 +59,13 @@ static OSErr doEWrite(const driverGlobalsPtr theGlobals, const EParamBlkPtr pb) 
   unsigned long totalLength; /* total length of frame */
   Byte *dest;
 
+#if defined(DEBUG)
+  /* Shouldn't ever happen unless something has gone very wrong */
+  if (ENC624J600_READ_REG(theGlobals->chip.base_address, ECON1) & ECON1_TXRTS) {
+    DebugStr("\pTransmit while already transmitting!");
+  }
+#endif
+
   /* Scan through WDS list entries to compute total length */
   wds = (WDSElement *)pb->u.EParms1.ePointer;
   totalLength = 0;
@@ -98,6 +105,7 @@ static OSErr doEWrite(const driverGlobalsPtr theGlobals, const EParamBlkPtr pb) 
     return excessCollsns;
   }
 
+  debug_log(theGlobals, txEvent, totalLength);
   /* Send it! */
   enc624j600_transmit(&theGlobals->chip, theGlobals->chip.base_address,
                       totalLength);
@@ -214,6 +222,20 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       /* dCtlStorage is technically a Handle, but since its use is entirely
       user-defined we can just treat it as a pointer */
       dce->dCtlStorage = (Handle)theGlobals;
+
+#if defined(DEBUG)
+      /* Define some macros pointing at interesting parts of our globals */
+      strbuf[0] = sprintf(strbuf+1, ";MC driverGlobals '%08x'"
+                          ";MC driverLog '%08x'"
+                          ";MC driverLogHead '%08x'"
+                          ";g", 
+                          (unsigned int) theGlobals,
+                          (unsigned int) &theGlobals->log.entries,
+                          (unsigned int) &theGlobals->log.head);
+      DebugStr((unsigned char *) strbuf);
+      /* Define macro to dump the debug event log */
+      DebugStr("\p;MC dumpLog 'dm driverLog (@driverLogHead + 1) * 4' ;g");
+#endif
 
       if (trapAvailable(_Gestalt)) {
         theGlobals->hasGestalt = 1;
@@ -530,3 +552,28 @@ OSErr driverControl(EParamBlkPtr pb, AuxDCEPtr dce) {
       return controlErr;
   }
 }
+
+#if defined(DEBUG)
+void debug_log(driverGlobals *theGlobals, logEvent eventType,
+               unsigned short eventData) {
+  eventLog *log = &theGlobals->log;
+
+  /* Disable interrupts so that log operations are atomic */
+  unsigned short srSave;
+  asm("MOVE.W  %%sr, %[srSave] \n\t"
+      "ORI.W   %[srMaskInterrupts], %%sr  \n\t"
+      : [srSave] "=dm"(srSave)
+      : [srMaskInterrupts] "i"(0x700));
+
+  log->entries[log->head].eventType = eventType;
+  log->entries[log->head].eventData = eventData;
+
+  log->head = (log->head + 1) % LOG_LEN;
+  /* Make head of log buffer look distinctive so that we can spot it in a dump */
+  log->entries[log->head].eventType = 0xffff;
+  log->entries[log->head].eventData = 0xffff;
+
+  /* Restore processor state */
+  asm volatile("MOVE.W  %[srSave], %%sr \n\t" : : [srSave] "dm"(srSave));
+}
+#endif

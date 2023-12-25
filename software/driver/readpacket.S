@@ -118,6 +118,16 @@ ReadBuf:
     BLS         1f                      /* branch if d0 <= d1 */
     MOVE.W      %d1, %d0                /* d0 = MIN(d1, d3) */
 1:
+#ifdef DEBUG
+    MOVEM.L     %a0/%d0-%d2, -(%sp)     /* Preserve registers changed by C */
+    MOVE.W      %d0, -(%sp)
+    MOVE.W      #0x8020, -(%sp)
+    MOVE.L      %a0, -(%sp)
+    JSR         debug_log               /* debug_log(A0, #0x8020, D0.W) */
+    ADDQ        #8, %sp                 /* Remove args from stack */
+    MOVEM.L     (%sp)+, %a0/%d0-%d2     /* Restore registers */
+#endif
+
     MOVEM.L     %a0/%d1-%d2, -(%sp)     /* Preserve registers changed by C */
     JSR         enc624j600_read_rxbuf   /* enc624j600_read_rxbuf(A0, A3, D0.W) */
     MOVEM.L     (%sp)+, %a0/%d1-%d2     /* Restore registers */

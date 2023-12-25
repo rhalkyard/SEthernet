@@ -79,6 +79,37 @@ struct receiveHeaderArea {
 };
 typedef struct receiveHeaderArea receiveHeaderArea;
 
+#if defined(DEBUG)
+/*
+Logging using MacsBug DebugStr() calls is *really* slow, and the scrollback
+buffer is tiny. Instead, log interesting events in a circular buffer in memory.
+
+Debug builds define the MacsBug macro 'dumpLog' that dumps memory from the start
+of the log buffer to its current head position.
+*/
+
+#define LOG_LEN 2048
+
+typedef enum logEvent {
+  txEvent = 0x8000,
+  txCallIODoneEvent = 0x8001,
+  txReturnIODoneEvent = 0x8002,
+  rxEvent = 0x8010,
+  rxDoneEvent = 0x8011,
+  readRxBufEvent = 0x8020
+} logEvent;
+
+typedef struct logEntry {
+  unsigned short eventType;
+  unsigned short eventData;
+} logEntry;
+
+typedef struct eventLog {
+  unsigned long head;
+  logEntry entries[LOG_LEN];
+} eventLog;
+#endif
+
 /* Global state used by the driver */
 typedef struct driverGlobals {
   enc624j600 chip; /* Ethernet chip state */
@@ -102,4 +133,16 @@ typedef struct driverGlobals {
   Align its start point to avoid awkwardness in accessing its longword counter
   fields. */
   driverInfo info __attribute__((aligned (2)));
+
+#if defined(DEBUG)
+  eventLog log;
+#endif
 } driverGlobals, *driverGlobalsPtr;
+
+
+#if defined(DEBUG)
+void debug_log(driverGlobals* theGlobals, logEvent eventType,
+               unsigned short eventData);
+#else
+#define debug_log(theGlobals, eventType, eventData)
+#endif
