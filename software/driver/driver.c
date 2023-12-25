@@ -327,9 +327,10 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
 
       /* Wait for the chip to come back after the reset. According to the
       datasheet, we must delay 25us for bus interface and MAC registers to come
-      up, plus an additional 256us for the PHY. I'm not aware of any easy way to
-      delay with that kind of granularity, so just busy-wait for 1 tick */
-      waitTicks(1);
+      up, plus an additional 256us for the PHY. However, the link may take some
+      indeterminate amount of time to come back - 1.5 seconds should give us
+      enough time. TODO: be smarter about this */
+      waitTicks(90);
 
       /* Test the chip's memory just to be *really* sure it's working */
       if (enc624j600_memtest(&theGlobals->chip) != 0) {
