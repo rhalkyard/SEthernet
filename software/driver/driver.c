@@ -171,25 +171,6 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
   OSErr error;
   SysEnvRec sysEnv;
 
-  /* 'panic button' - hold down the E key at boot (or any other time the driver
-  is loaded) to disable the driver (or drop into the debugger in debug builds),
-  just in case we get into a state where the driver is stopping the system from
-  booting. Note that this must be inline code and not a function, since we want
-  to break before relocation */
-  const unsigned char keycode = 0x0e; /* keyboard scan code for E key */
-  unsigned char keys[16];
-  GetKeys((unsigned long *)keys);
-  /* Test bit corresponding to keyboard scan code */
-  if ((keys[keycode>>3] >> (keycode & 0x7)) & 1) {
-#if defined(DEBUG)
-    Debugger();
-#else
-    return -1;
-#endif
-  }
-
-  error = noErr;
-
   if (dce->dCtlStorage == nil) {
     /* 
     Unlike classic Mac OS toolchains, Retro68 does NOT generate
@@ -208,6 +189,23 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
     functions.
     */
     RETRO68_RELOCATE();
+
+    /* 'panic button' - hold down the E key at boot (or any other time the driver
+    is loaded) to disable the driver (or drop into the debugger in debug builds),
+    just in case we get into a state where the driver is stopping the system from
+    booting. Note that this must be inline code and not a function, since we want
+    to break before relocation */
+    const unsigned char keycode = 0x0e; /* keyboard scan code for E key */
+    unsigned char keys[16];
+    GetKeys((unsigned long *)keys);
+    /* Test bit corresponding to keyboard scan code */
+    if ((keys[keycode>>3] >> (keycode & 0x7)) & 1) {
+#if defined(DEBUG)
+      Debugger();
+#else
+      return -1;
+#endif
+    }
 
     theGlobals = (driverGlobalsPtr)NewPtrSysClear(sizeof(driverGlobals));
     if (!theGlobals) {
