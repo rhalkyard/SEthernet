@@ -7,6 +7,7 @@
 #include <Events.h>
 #include <Gestalt.h>
 #include <MacTypes.h>
+#include <OSUtils.h>
 #include <Resources.h>
 #include <Retro68Runtime.h>
 #include <ROMDefs.h>
@@ -243,6 +244,10 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
 
       if (trapAvailable(_SlotManager)) {
         theGlobals->hasSlotMgr = 1;
+      }
+
+      if (trapAvailable(_DTInstall)) {
+        theGlobals->hasDeferredTaskMgr = 1;
       }
 
       SysEnvirons(curSysEnvVers, &sysEnv);
