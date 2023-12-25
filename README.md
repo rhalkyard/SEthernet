@@ -50,31 +50,27 @@ declaration ROM is a flash chip, with logic to allow for in-system programming.
 ## Current project status
 
 Very early days yet! Pardon my dust as I get this repo organised, more thorough
-writeups are hopefully forthcoming.
+writeups are hopefully forthcoming. See the [Issue
+Tracker](https://github.com/rhalkyard/SEthernet/issues) for details.
 
-Rev0 boards have been ordered and built. My SE has suffered a hard disk failure
-so I am concentrating bringup efforts on the SE/30 until I can get around to
-replacing that.
+### Hardware
 
-The Rev0 boards contain a number of hardware bugs (see the Errata section for
-details) and while I have worked around them for the purposes of driver
-development, I do not recommend trying to build this revision - the next
-revision may have incompatible changes as part of the fixes for these bugs.
+Hardware Revision 0 is heavily flawed (see issues
+[#1](https://github.com/rhalkyard/SEthernet/issues/1),
+[#2](https://github.com/rhalkyard/SEthernet/issues/2),
+[#3](https://github.com/rhalkyard/SEthernet/issues/3),
+[#4](https://github.com/rhalkyard/SEthernet/issues/4) and
+[#17](https://github.com/rhalkyard/SEthernet/issues/17)), and while these can
+all be worked around with varying degrees of hackiness, I strongly recommend
+against trying to build Revision 0 hardware for yourself. I'm working on a
+substantial redesign that will fix the Rev0 hardware bugs and incorporate a few
+other improvements and lessons learned.
 
-With the workarounds documented in the Errata section, the SEthernet/30 hardware
-works - I have written a test harness that can successfully send and receieve
-packets. The driver is still a work in progress - the code in this repo is
-currently broken in a number of ways, expect a massive commit once I get the
-driver working and tidy up the mess of debugging code and commented-out
-sections.
+### Software
 
-A subsequent revision will likely eliminate the awful through-hole PLCC sockets
-for directly-soldered surface-mount chips. This should make for much better
-routing and potentially free up board real estate for a PDS pass through slot in
-the SE/30 card.
-
-While I would like to produce a small production run of these once the design
-has stabilised, that is likely a ways off at this point.
+The driver is functional to be point of being able to mount network shares and
+transfer files over AppleTalk, and appears to work as it should with MacTCP as
+well. Testing thus far has all been on my SE/30 and IIfx running System 7.1.
 
 ## Project files
 
