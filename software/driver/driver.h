@@ -121,14 +121,10 @@ typedef struct driverGlobals {
 
   SlotIntQElement theSInt;      /* Our slot interrupt queue entry */
   AuxDCEPtr driverDCE;          /* Our device control entry */
-  DeferredTask txCompleteTask;  /* Deferred Task entry used for transmit completions */
-  volatile Boolean dtPending;   /* Do we have a Deferred Task pending? */
-  OSErr ioStatus;               /* Status of last transmit */
   
   /* Flags */
   unsigned short hasGestalt : 1;  /* Gestalt Manager is available */
   unsigned short hasSlotMgr : 1;  /* Slot Manager is available */
-  unsigned short hasDeferredTaskMgr : 1; /* Deferred Task Manager is available */
   unsigned short vmEnabled : 1;   /* Virtual Memory is enabled */
   unsigned short macSE : 1;       /* Running on a Macintosh SE */
 

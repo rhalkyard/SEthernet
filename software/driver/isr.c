@@ -220,20 +220,11 @@ drop:
   enc624j600_decrement_rx_pending_count(&theGlobals->chip);
 }
 
-#pragma parameter txComplete(__A1)
-void txComplete(driverGlobalsPtr theGlobals) {
-  debug_log(theGlobals, txCallIODoneEvent, theGlobals->ioStatus);
-  SafeIODone((DCtlPtr) theGlobals->driverDCE, theGlobals->ioStatus);
-  debug_log(theGlobals, txReturnIODoneEvent, 0x5555);
-  theGlobals->dtPending = false;
-}
-
 /* User-memory-accessing section of ISR, called through DeferUserFn on VM
 systems. Enters with IRQs already disabled, must re-enable them on exit. */
 #pragma parameter userISR(__A0)
 static void userISR(driverGlobalsPtr theGlobals) {
   short irq_status = enc624j600_read_irqstate(&theGlobals->chip);
-  Boolean tx_complete = false;
 
   if (irq_status & IRQ_TX) {
     /* Transmit complete; signal successful completion */
@@ -253,9 +244,15 @@ static void userISR(driverGlobalsPtr theGlobals) {
       }
     }
     theGlobals->info.txFrameCount++;
+    /* Must acknowledge IRQ *before* calling IODone, otherwise we can
+    accidentally acknowledge the IRQ for a transmit started by a completion
+    routine */
     enc624j600_clear_irq(&theGlobals->chip, IRQ_TX);
-    tx_complete = true;
-    theGlobals->ioStatus = noErr;
+
+    /* Call IODone to progress IO queue and call async completion routine */
+    debug_log(theGlobals, txCallIODoneEvent, noErr);
+    SafeIODone((DCtlPtr) theGlobals->driverDCE, noErr);
+    debug_log(theGlobals, txReturnIODoneEvent, 0x5555);
   } else if (irq_status & IRQ_TX_ABORT) {
     /*
     Transmit aborted due to one of:
@@ -285,9 +282,13 @@ static void userISR(driverGlobalsPtr theGlobals) {
     DebugStr((unsigned char *)strbuf);
 #endif
 
+    /* Acknowledge IRQ *before* calling IODone */
     enc624j600_clear_irq(&theGlobals->chip, IRQ_TX_ABORT);
-    tx_complete = true;
-    theGlobals->ioStatus = excessCollsns;
+
+    /* Call IODone to progress IO queue and call async completion routine */
+    debug_log(theGlobals, txCallIODoneEvent, excessCollsns);
+    SafeIODone((DCtlPtr) theGlobals->driverDCE, excessCollsns);
+    debug_log(theGlobals, txReturnIODoneEvent, 0x5555);
   }
 
   /* We have pending packets. Handle them. */
@@ -298,43 +299,6 @@ static void userISR(driverGlobalsPtr theGlobals) {
   };
 
   enc624j600_enable_irq(&theGlobals->chip, IRQ_ENABLE);
-
-  /*
-  Hideous hack to get around occasional deadlock observed when mounting large
-  images with Disk Copy. TL;DR: the Disk Copy driver appears to do blocking IO
-  in completion routines, which Inside Macintosh says you should never do!
-
-  This means that we can sometimes end up in a situation where a completion
-  routine blocks inside our interrupt handler's call to IODone, waiting for a
-  transmit or receive event that will never come, because our interrupt handler
-  runs with interrupts masked out.
-
-  The solution to this is to use the Deferred Task Manager to delay the call to
-  IODone until the end of interrupt processing, so it can run with interrupts
-  enabled.
-  */
-  if (tx_complete) {
-    debug_log(theGlobals, txCompleteEvent, theGlobals->ioStatus);
-    if (theGlobals->hasDeferredTaskMgr) {
-      if (theGlobals->dtPending) {
-        /* Interrupt came in while we still have a deferred task pending. Call
-        IODone directly */
-        debug_log(theGlobals, txTaskAlreadyDeferred, theGlobals->ioStatus);
-        SafeIODone((DCtlPtr) theGlobals->driverDCE, theGlobals->ioStatus);
-        debug_log(theGlobals, txTaskAlreadyDeferredReturn, theGlobals->ioStatus);
-      } else {
-        /* Schedule a deferred task to call IODone */
-        theGlobals->dtPending = true;
-        DTInstall(&theGlobals->txCompleteTask);
-      }
-    } else {
-      /* Deferred Task Manager is not available; call IODone directly and hope
-      for the best */
-      debug_log(theGlobals, txCallIODoneEvent, theGlobals->ioStatus);
-      SafeIODone((DCtlPtr) theGlobals->driverDCE, theGlobals->ioStatus);
-      debug_log(theGlobals, txReturnIODoneEvent, 0x5555);
-    }
-  }
 }
 
 /* Interrupt handler, wrapped by driverISR below. */
