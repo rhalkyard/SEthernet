@@ -40,7 +40,7 @@ byte-swapping is only required when reading the next-packet pointer and the
 pkt_len_le Receive Status Vector field from the receive buffer. */
 
 /* Reset the chip. Must wait at least 25+256us before accessing chip again*/
-int enc624j600_reset(const enc624j600 *chip);
+short enc624j600_reset(const enc624j600 *chip);
 
 /* Synchronise MAC duplex settings with PHY values. Call after link-change
  * event. */
@@ -49,7 +49,7 @@ void enc624j600_duplex_sync(enc624j600 *chip);
 /* Initialize the chip, with the given receive buffer size. Transmit buffer
 begins immediately after receive buffer and continues to end of memory. Receive
 buffer size must be in multiples of 1 word. */
-int enc624j600_init(enc624j600 *chip, const unsigned short rxbuf_len);
+short enc624j600_init(enc624j600 *chip, const unsigned short rxbuf_len);
 
 /* Start accepting packets */
 void enc624j600_start(enc624j600 *chip);
@@ -156,10 +156,10 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char *dest,
                                      unsigned short len);
 
 /* Check to see if an ENC624J600 is present and functioning at baseaddress */
-short int enc624j600_detect(const enc624j600 * chip);
+short enc624j600_detect(const enc624j600 * chip);
 
 /* Test ENC624J600 memory */
-short int enc624j600_memtest(const enc624j600 * chip);
+short enc624j600_memtest(const enc624j600 * chip);
 
 /* Exchange the bytes in a word value */
 #define SWAPBYTES(value) ((((value) & 0xff00) >> 8) | (((value) & 0x00ff) << 8))

@@ -35,7 +35,7 @@ Promiscuous-mode receive configuration:
 #define RXFCON_DEFAULT \
   ERXFCON_CRCEN | ERXFCON_RUNTEN | ERXFCON_UCEN | ERXFCON_BCEN | ERXFCON_HTEN
 
-int enc624j600_reset(const enc624j600 *chip) {
+short enc624j600_reset(const enc624j600 *chip) {
   /* Write and read-back a 'magic' value to user data start pointer to verify
   that chip is present and functioning */
   unsigned short magic = 0x1234;
@@ -53,7 +53,7 @@ int enc624j600_reset(const enc624j600 *chip) {
   return 0;
 }
 
-int enc624j600_init(enc624j600 *chip, const unsigned short txbuf_size) {
+short enc624j600_init(enc624j600 *chip, const unsigned short txbuf_size) {
   unsigned short tmp;
   unsigned short rxbuf_size, rx_tail, flow_hwm, flow_lwm;
   if (txbuf_size & 1) {
@@ -352,8 +352,8 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest,
   return len;
 }
 
-short int enc624j600_detect(const enc624j600 * chip) {
-  const int detect_memlen = 64;
+short enc624j600_detect(const enc624j600 * chip) {
+  const short detect_memlen = 64;
   unsigned short uda_readptr, uda_readptr_after;
   unsigned char regdata, ramdata, device_id;
 
@@ -388,7 +388,7 @@ short int enc624j600_detect(const enc624j600 * chip) {
     return -1;
   }
 
-  for (int i = 0; i < detect_memlen; i++) {
+  for (short i = 0; i < detect_memlen; i++) {
     /* Read the User Data read pointer */
     uda_readptr = ENC624J600_READ_REG(chip->base_address, EUDARDPT);
     uda_readptr = SWAPBYTES(uda_readptr);
@@ -417,7 +417,7 @@ short int enc624j600_detect(const enc624j600 * chip) {
   return 0;
 }
 
-short int enc624j600_memtest(const enc624j600 * chip) {
+short enc624j600_memtest(const enc624j600 * chip) {
   if (memTestDevice((unsigned short *) chip->base_address, ENC624J600_MEM_END)) {
     return -1;
   }
