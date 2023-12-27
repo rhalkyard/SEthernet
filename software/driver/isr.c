@@ -193,6 +193,7 @@ accept:
 
   if (protocolSlot == nil) {
     /* no handler for this protocol, drop it */
+    theGlobals->info.rxUnknownProto++;
     goto drop;
   }
 
@@ -207,6 +208,7 @@ accept:
                         protocolSlot->ethertype);
     DebugStr((unsigned char *)strbuf);
 #endif
+    theGlobals->info.rxUnknownProto++;
     goto drop;
   }
 

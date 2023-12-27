@@ -1,4 +1,5 @@
 #include <MacTypes.h>
+#pragma once
 
 enum {
   ENCReadReg = 0x7000,
@@ -63,5 +64,6 @@ struct driverInfo {
   unsigned long
       rxUnwanted; /* Frames received with an 'unwanted' destination address
                      (likely hash collisions in the multicast table) */
+  unsigned long rxUnknownProto; /* Packets received with an unknown protocol */
 } __attribute__((packed));
 typedef struct driverInfo driverInfo;
