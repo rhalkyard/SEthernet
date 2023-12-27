@@ -56,24 +56,28 @@ struct multicastEntry {
 };
 typedef struct multicastEntry multicastEntry;
 
-/* Packet header as it appears in the ENC624J600's ring buffer */
-struct packetHeader {
-  /* Metadata from ENC624J600 */
-  unsigned short nextPkt_le;  /* pointer to next packet (little-endian, relative 
-                                 to chip address space) */
-  enc624j600_rsv rsv;         /* Receive status vector */
-
-  /* Actual Ethernet header begins here */
+/* Ethernet packet header */
+struct ethernetHeader {
   Byte dest[6];               /* Destination Ethernet address */
   Byte source[6];             /* Source Ethernet address */
   unsigned short protocol;    /* Ethernet protocol/length field */
 };
-typedef struct packetHeader packetHeader;
+typedef struct ethernetHeader ethernetHeader;
+
+/* Packet header as it appears in the ENC624J600's ring buffer */
+struct ringbufEntry {
+  /* Metadata from ENC624J600 */
+  unsigned short nextPkt_le;  /* pointer to next packet (little-endian, relative 
+                                 to chip address space) */
+  enc624j600_rsv rsv;         /* Receive status vector */
+  ethernetHeader pktHeader;   /* Ethernet packet header */
+};
+typedef struct ringbufEntry ringbufEntry;
 
 /* Protocol handlers expect the packet header to be read into a RAM buffer (the
 Receive Header Area) that includes 8 free bytes of workspace for their use */
 struct receiveHeaderArea {
-  packetHeader header;
+  ringbufEntry header;
   /* 8 bytes following the packet header must be provided as workspace for the 
   Protocol Handler */
   Byte workspace[8];          /* Protocol handler workspace */

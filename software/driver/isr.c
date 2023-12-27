@@ -102,7 +102,7 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
   unsigned short pktLen;         /* Length of packet */
   unsigned short bytesPending;   /* Number of bytes pending in receive FIFO */
   unsigned short packetsPending; /* Number of packets pending in receive FIFO */
-  unsigned char * nextPacket;
+  unsigned char * nextPacket;    /* Pointer to next packet in buffer */
   protocolHandlerEntry *protocolSlot; /* Protocol handler */
 
   /* Record some FIFO stats */
@@ -115,18 +115,21 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
     theGlobals->info.rxPendingBytesHWM = bytesPending;
   }
 
-  /* Copy the packet header (including ENC624J600 data) into memory */
+  /* Copy the packet header (including ENC624J600 data) into the Receive Header
+  Area (RHA) - packet handlers expect this */
   enc624j600_read_rxbuf(&theGlobals->chip,
                         (unsigned char *)&theGlobals->rha.header,
-                        sizeof(theGlobals->rha.header));
-
-  /* Packet length field in Recieve Status Vector is stored little-endian */
-  pktLen = SWAPBYTES(theGlobals->rha.header.rsv.pkt_len_le);
+                        sizeof(ringbufEntry));
 
   /* Next-packet pointer is stored little-endian and relative to chip address
   space */
   nextPacket = enc624j600_addr_to_ptr(
       &theGlobals->chip, SWAPBYTES(theGlobals->rha.header.nextPkt_le));
+
+  /* Packet length field in Recieve Status Vector is stored little-endian.
+  Subtract 4 since this length includes the trailing checksum, which we don't
+  care about */
+  pktLen = SWAPBYTES(theGlobals->rha.header.rsv.pkt_len_le) - 4;
 
   /* Check for CRC errors. By default the ENC624J600 drops bad-CRC packets
   silently in hardware, but collect stats in case we disable that filter. */
@@ -137,14 +140,14 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
 
   /* Check for runt frames (typically dropped in hardware, but collect stats in
   case the filter gets disabled) */
-  if (pktLen < 64) {
+  if (pktLen < 60) {
     theGlobals->info.rxRunt++;
     goto drop;
   }
 
   /* Check for too-long frames (typically dropped in hardware, but collect stats
   in case the filter gets disabled) */
-  if (pktLen > 1518) {
+  if (pktLen > 1514) {
     theGlobals->info.rxTooLong++;
     goto drop;
   }
@@ -160,7 +163,7 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
   } else if (RSV_BIT(theGlobals->rha.header.rsv, RSV_BIT_MULTICAST) 
              && RSV_BIT(theGlobals->rha.header.rsv, RSV_BIT_HASH_MATCH)) {
     /* Destination hash matches a multicast we're listening to */
-    if (findMulticastEntry(theGlobals, theGlobals->rha.header.dest)) {
+    if (findMulticastEntry(theGlobals, theGlobals->rha.header.pktHeader.dest)) {
       /* Actual destination address matches a multicast we're listening to */
       theGlobals->info.multicastRxFrameCount++;
       goto accept;
@@ -176,21 +179,28 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
   }
 
 accept:
-  /* An ethertype field of < 0x600 indicates an 802.2 Type 1 frame (Ethernet
-  Phase II in Apple parlance). We assign this the protocol number 0. The LAP
-  manager always registers itself as the handler for this protocol. */
-  if (theGlobals->rha.header.protocol < 0x0600) {
+  /* Find a protocol handler for this packet */
+  if (theGlobals->rha.header.pktHeader.protocol < 0x0600) {
+    /* An ethertype field of < 0x600 indicates an 802.2 Type 1 frame (Ethernet
+    Phase II in Apple parlance). We assign this the protocol number 0. The LAP
+    manager always registers itself as the handler for this protocol. */
     protocolSlot = findPH(theGlobals, phProtocolPhaseII);
   } else {
-    protocolSlot = findPH(theGlobals, theGlobals->rha.header.protocol);
+    /* Otherwise, look up a protocol handler using the ethertype field */
+    protocolSlot = findPH(theGlobals, theGlobals->rha.header.pktHeader.protocol);
   }
-  /* Search the protocol-handler table for a handler for this ethertype */
+
   if (protocolSlot == nil) {
     /* no handler for this protocol, drop it */
     goto drop;
   }
 
   if (protocolSlot->handler == nil) {
+    /* Technically, it is legal to register a protocol handler without a
+    callback, indicating that it will use the ERead call to read packets. As far
+    as I'm aware, this is not done by any software except for some Inside
+    Macintosh code examples, and implementing ERead looks to be tricky, so for
+    now it's not supported */
 #if defined(DEBUG)
     strbuf[0] = sprintf(strbuf+1, "nil pointer for protocol %04x.", 
                         protocolSlot->ethertype);
@@ -199,16 +209,12 @@ accept:
     goto drop;
   }
 
-  /*
-  Call the protocol handler to read the rest of the packet.
-
-  pktLen-18 is length of packet minus header (6+6+2 bytes) and trailing checksum
-  (4 bytes).
-  */
-  debug_log(theGlobals, rxEvent, pktLen - 4);
+  /* Call the protocol handler to read the rest of the packet. We've already
+  read the header into the RHA, so subtract its size from the packet length. */
+  debug_log(theGlobals, rxEvent, pktLen);
   callPH(&theGlobals->chip, protocolSlot->handler, theGlobals->rha.workspace,
-         pktLen-18);
-  debug_log(theGlobals, rxDoneEvent, pktLen - 4);
+         pktLen - sizeof(ethernetHeader));
+  debug_log(theGlobals, rxDoneEvent, pktLen);
   theGlobals->info.rxFrameCount++;
 
 drop:
@@ -220,14 +226,17 @@ drop:
   enc624j600_decrement_rx_pending_count(&theGlobals->chip);
 }
 
-/* User-memory-accessing section of ISR, called through DeferUserFn on VM
-systems. Enters with IRQs already disabled, must re-enable them on exit. */
+/* User-memory-accessing section of ISR, called through DeferUserFn when running
+under Virtual Memory. Enters with IRQs already disabled, must re-enable them on
+exit. */
 #pragma parameter userISR(__A0)
 static void userISR(driverGlobalsPtr theGlobals) {
   short irq_status = enc624j600_read_irqstate(&theGlobals->chip);
 
   if (irq_status & IRQ_TX) {
     /* Transmit complete; signal successful completion */
+
+    /* Record statistics */
     unsigned short txstat =
         ENC624J600_READ_REG(theGlobals->chip.base_address, ETXSTAT);
     unsigned short collisions =
@@ -244,6 +253,7 @@ static void userISR(driverGlobalsPtr theGlobals) {
       }
     }
     theGlobals->info.txFrameCount++;
+
     /* Must acknowledge IRQ *before* calling IODone, otherwise we can
     accidentally acknowledge the IRQ for a transmit started by a completion
     routine */
@@ -261,10 +271,9 @@ static void userISR(driverGlobalsPtr theGlobals) {
       - Medium was busy, transmission deferred for longer than timeout
         (ETXSTAT_EXDEFER set)
       - Transmit aborted in software by clearing ECON1_TXRTS
-
-    Not sure how best to express these so for simplicity let's just call them
-    all timeouts.
     */
+
+   /* Record statistics */
     unsigned short txstat =
         ENC624J600_READ_REG(theGlobals->chip.base_address, ETXSTAT);
     if (txstat & ETXSTAT_EXDEFER) {
@@ -291,7 +300,7 @@ static void userISR(driverGlobalsPtr theGlobals) {
     debug_log(theGlobals, txReturnIODoneEvent, 0x5555);
   }
 
-  /* We have pending packets. Handle them. */
+  /* Handle any pending received packets */
   while (enc624j600_read_irqstate(&theGlobals->chip) & IRQ_PKT) {
     handlePacket(theGlobals);
     /* IRQ_PKT flag is not directly clearable - it indicates that the
@@ -335,10 +344,10 @@ unsigned long driverISR(driverGlobalsPtr theGlobals) {
   }
 
   if (irq_status & (IRQ_TX | IRQ_TX_ABORT | IRQ_PKT)) {
-    /* Transmit and receive handlers touch user memory. On Virtual Memory
-    systems, this could cause a double fault if the ISR runs during a page fault
-    and the user buffer is not paged in. DeferUserFn will delay calling the
-    handler until a safe time. */
+    /* Transmit and receive handlers touch user memory. When running with
+    Virtual Memory enabled, this could cause a double fault (if the ISR runs
+    during a page fault and the user buffer is not paged in). DeferUserFn will
+    delay calling the handler until a safe time. */
     if (theGlobals->vmEnabled) {
       if (DeferUserFn(userISR, theGlobals) != noErr) {
         /* If we can't defer for whatever reason, re-enable interrupts and

@@ -40,7 +40,8 @@ OSStatus doEAttachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
 
   theProtocol = pb->u.EParms1.eProtType;
   if (theProtocol > 0 && theProtocol <= 1500) {
-    /* Not a valid ethertype */
+    /* Not a valid ethertype (note that we reserve the invalid ethertype 0 for
+    handling 802.2 Type 1 packets) */
   #if defined(DEBUG)
     strbuf[0] = sprintf(strbuf+1, "Failed to install handler for protocol %04x. Invalid.", 
                         theProtocol);

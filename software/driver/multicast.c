@@ -78,6 +78,7 @@ OSStatus doEAddMulti(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
     if (multicastSlot == nil) {
       return eMultiErr;
     }
+    /* Mark entry as in use */
     multicastSlot->refCount = 1;
     copyEthAddrs(multicastSlot->address, addressPtr);
     
@@ -105,7 +106,7 @@ OSStatus doEDelMulti(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
   /* Decrement reference count */
   multicastSlot->refCount--;
 
-  /* If no longer in us, update the hash table */
+  /* If no longer in use, update the hash table */
   if (multicastSlot->refCount <= 0) {
     updateMulticastHashTable(theGlobals);
   }
