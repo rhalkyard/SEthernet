@@ -106,16 +106,12 @@ void enc624j600_duplex_sync(enc624j600 *chip) {
   link state change. */
   unsigned short estat = ENC624J600_READ_REG(chip->base_address, ESTAT);
 
-  /* Get link state info. TODO: read link speed from PHY */
+  /* Get link state info. */
   if (estat & ESTAT_PHYLNK) {
-    if (estat & ESTAT_PHYDPX) {
-      chip->link_state = LINK_UP_FULLDPX;
-    } else {
-      chip->link_state = LINK_UP;
-    }
+    chip->link_state = (enc624j600_read_phy_reg(chip, PHSTAT3) 
+                        & PHSTAT3_SPDDPX_MASK) >> PHSTAT3_SPDDPX_SHIFT;
   } else {
-    /* Don't bother if link is down */
-    chip->link_state = LINK_DOWN;
+    chip->link_state = 0;
   }
 
   /* Wait for flow control state machine to be idle before changing duplex mode

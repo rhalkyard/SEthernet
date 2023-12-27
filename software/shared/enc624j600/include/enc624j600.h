@@ -4,11 +4,13 @@
 #include "enc624j600_registers.h"
 
 enum enc624j600_link_state {
-  LINK_DOWN = 0,
-  LINK_UP,
-  LINK_UP_FULLDPX
+  LINK_DOWN = 0x0,
+  LINK_10M = 0x1,
+  LINK_100M = 0x2,
+  LINK_FULLDPX = 0x4,
+  LINK_10M_FULLDPX = 0x5, /* LINK_10M | LINK_FULLDPX */
+  LINK_100M_FULLDPX = 0x6 /* LINK_100M | LINK_FULLDPX */
 };
-typedef enum enc624j600_link_state enc624j600_link_state;
 
 struct enc624j600 {
   unsigned char *base_address; /* Base address of chip (also start of transmit
@@ -16,7 +18,7 @@ struct enc624j600 {
   const unsigned char *rxbuf_start;  /* Pointer to start of receive buffer */
   const unsigned char *rxbuf_end;    /* Pointer to end of receive buffer */
   const unsigned char *rxptr;
-  enc624j600_link_state link_state;
+  unsigned char link_state;
 };
 typedef struct enc624j600 enc624j600;
 
