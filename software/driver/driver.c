@@ -233,7 +233,10 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
                           (unsigned int) &theGlobals->log.head);
       DebugStr((unsigned char *) strbuf);
       /* Define macro to dump the debug event log */
-      DebugStr("\p;MC dumpLog 'dm driverLog (@driverLogHead + 1) * 4' ;g");
+      strbuf[0] = sprintf(strbuf+1,
+          ";MC dumpLog 'dm driverLog (@driverLogHead+1)*%lx';g", 
+          sizeof(theGlobals->log.entries[0]));
+      DebugStr((unsigned char *) strbuf);
 #endif
 
       if (trapAvailable(_Gestalt)) {
@@ -568,7 +571,7 @@ OSErr driverControl(EParamBlkPtr pb, AuxDCEPtr dce) {
 }
 
 #if defined(DEBUG)
-void debug_log(driverGlobals *theGlobals, logEvent eventType,
+void debug_log(driverGlobals *theGlobals, unsigned short eventType,
                unsigned short eventData) {
   eventLog *log = &theGlobals->log;
 
@@ -579,11 +582,13 @@ void debug_log(driverGlobals *theGlobals, logEvent eventType,
       : [srSave] "=dm"(srSave)
       : [srMaskInterrupts] "i"(0x700));
 
+  log->entries[log->head].ticks = TickCount();
   log->entries[log->head].eventType = eventType;
   log->entries[log->head].eventData = eventData;
 
   log->head = (log->head + 1) % LOG_LEN;
   /* Make head of log buffer look distinctive so that we can spot it in a dump */
+  log->entries[log->head].ticks = 0xffffffff;
   log->entries[log->head].eventType = 0xffff;
   log->entries[log->head].eventData = 0xffff;
 

@@ -104,6 +104,7 @@ typedef enum logEvent {
 } logEvent;
 
 typedef struct logEntry {
+  unsigned long ticks;
   unsigned short eventType;
   unsigned short eventData;
 } logEntry;
@@ -149,7 +150,7 @@ typedef struct driverGlobals {
 
 
 #if defined(DEBUG)
-void debug_log(driverGlobals* theGlobals, logEvent eventType,
+void debug_log(driverGlobals* theGlobals, unsigned short eventType,
                unsigned short eventData);
 #else
 #define debug_log(theGlobals, eventType, eventData)
