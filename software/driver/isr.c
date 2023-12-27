@@ -8,6 +8,7 @@
 #include "enc624j600_registers.h"
 #include "multicast.h"
 #include "protocolhandler.h"
+#include "util.h"
 
 #if defined(DEBUG)
 #include <Debugging.h>

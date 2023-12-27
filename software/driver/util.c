@@ -9,58 +9,6 @@
 char strbuf[255];
 #endif
 
-#define CRC_POLYNOMIAL (0x04c11db7)
-
-/* Naive CRC32 implementation, used in calculating the multicast-filter hash
-table. Doesn't need to be fast or fancy since it's only called when we add or
-remove a multicast address */
-unsigned long crc32(const Byte *data, const unsigned short len) {
-  unsigned short i, j;
-  unsigned long byte, crc;
-
-  crc = 0xffffffff;
-  for (i = 0; i < len; i++) {
-    byte = data[i];
-    for (j = 0; j < 8; j++) {
-      if ((byte & 1) ^ (crc >> 31)) {
-        crc <<= 1;
-        crc ^= CRC_POLYNOMIAL;
-      } else
-        crc <<= 1;
-      byte >>= 1;
-    }
-  }
-  return crc;
-}
-
-/* Busy-wait for one Tick (1/60s) */
-void waitTicks(const unsigned short ticks) {
-  unsigned int start, now;
-  start = TickCount();
-  do {
-    now = TickCount();
-  } while (now - start < ticks);
-}
-
-/* Compare two ethernet addresses for equality */
-Boolean ethAddrsEqual(const Byte *addr1, const Byte *addr2) {
-  /* could do this as a long and a word but lets keep things simple for now */
-  for (unsigned short i = 0; i < 6; i++) {
-    if (addr1[i] != addr2[i]) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/* Copy an ethernet address */
-void copyEthAddrs(Byte *dest, const Byte *source) {
-  /* could do this as a long and a word but lets keep things simple for now */
-  for (unsigned short i = 0; i < 6; i++) {
-    dest[i] = source[i];
-  }
-}
-
 /* Check whether a given trap is available. Adapted from IM: Devices listing
    8-1 */
 Boolean trapAvailable(const unsigned short trap) {
@@ -80,3 +28,30 @@ Boolean trapAvailable(const unsigned short trap) {
     return NGetTrapAddress(trap, type) != GetToolboxTrapAddress(_Unimplemented);
   }
 }
+
+#if defined(DEBUG)
+void debug_log(driverGlobals *theGlobals, unsigned short eventType,
+               unsigned short eventData) {
+  eventLog *log = &theGlobals->log;
+
+  /* Disable interrupts so that log operations are atomic */
+  unsigned short srSave;
+  asm("MOVE.W  %%sr, %[srSave] \n\t"
+      "ORI.W   %[srMaskInterrupts], %%sr  \n\t"
+      : [srSave] "=dm"(srSave)
+      : [srMaskInterrupts] "i"(0x700));
+
+  log->entries[log->head].ticks = TickCount();
+  log->entries[log->head].eventType = eventType;
+  log->entries[log->head].eventData = eventData;
+
+  log->head = (log->head + 1) % LOG_LEN;
+  /* Make head of log buffer look distinctive so that we can spot it in a dump */
+  log->entries[log->head].ticks = 0xffffffff;
+  log->entries[log->head].eventType = 0xffff;
+  log->entries[log->head].eventData = 0xffff;
+
+  /* Restore processor state */
+  asm volatile("MOVE.W  %[srSave], %%sr \n\t" : : [srSave] "dm"(srSave));
+}
+#endif

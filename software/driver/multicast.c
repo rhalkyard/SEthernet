@@ -5,6 +5,29 @@
 
 #include <string.h>
 
+/* Naive CRC32 implementation, used in calculating the multicast-filter hash
+table. Doesn't need to be fast or fancy since it's only called when we add or
+remove a multicast address */
+static unsigned long crc32(const Byte *data, const unsigned short len) {
+  const unsigned long polynomial = 0x04c11db7;
+  unsigned short i, j;
+  unsigned long byte, crc;
+
+  crc = 0xffffffff;
+  for (i = 0; i < len; i++) {
+    byte = data[i];
+    for (j = 0; j < 8; j++) {
+      if ((byte & 1) ^ (crc >> 31)) {
+        crc <<= 1;
+        crc ^= polynomial;
+      } else
+        crc <<= 1;
+      byte >>= 1;
+    }
+  }
+  return crc;
+}
+
 /* Look up an address in our table of multicast addresses. Returns a pointer to
 the multicast table entry if found, nil if no match */
 multicastEntry* findMulticastEntry(const driverGlobalsPtr theGlobals,

@@ -327,7 +327,8 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       up, plus an additional 256us for the PHY. However, the link may take some
       indeterminate amount of time to come back - 1.5 seconds should give us
       enough time. TODO: be smarter about this */
-      waitTicks(90);
+      unsigned long finalTicks;
+      Delay(90, &finalTicks);
 
       /* Test the chip's memory just to be *really* sure it's working */
       if (enc624j600_memtest(&theGlobals->chip) != 0) {
@@ -561,30 +562,3 @@ OSErr driverControl(EParamBlkPtr pb, AuxDCEPtr dce) {
       return controlErr;
   }
 }
-
-#if defined(DEBUG)
-void debug_log(driverGlobals *theGlobals, unsigned short eventType,
-               unsigned short eventData) {
-  eventLog *log = &theGlobals->log;
-
-  /* Disable interrupts so that log operations are atomic */
-  unsigned short srSave;
-  asm("MOVE.W  %%sr, %[srSave] \n\t"
-      "ORI.W   %[srMaskInterrupts], %%sr  \n\t"
-      : [srSave] "=dm"(srSave)
-      : [srMaskInterrupts] "i"(0x700));
-
-  log->entries[log->head].ticks = TickCount();
-  log->entries[log->head].eventType = eventType;
-  log->entries[log->head].eventData = eventData;
-
-  log->head = (log->head + 1) % LOG_LEN;
-  /* Make head of log buffer look distinctive so that we can spot it in a dump */
-  log->entries[log->head].ticks = 0xffffffff;
-  log->entries[log->head].eventType = 0xffff;
-  log->entries[log->head].eventData = 0xffff;
-
-  /* Restore processor state */
-  asm volatile("MOVE.W  %[srSave], %%sr \n\t" : : [srSave] "dm"(srSave));
-}
-#endif

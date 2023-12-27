@@ -147,11 +147,3 @@ typedef struct driverGlobals {
   eventLog log;
 #endif
 } driverGlobals, *driverGlobalsPtr;
-
-
-#if defined(DEBUG)
-void debug_log(driverGlobals* theGlobals, unsigned short eventType,
-               unsigned short eventData);
-#else
-#define debug_log(theGlobals, eventType, eventData)
-#endif
