@@ -2,6 +2,8 @@
 
 #include <MacTypes.h>
 
+#include "driver.h"
+
 Boolean trapAvailable(const unsigned short trap);
 
 #if defined(DEBUG)

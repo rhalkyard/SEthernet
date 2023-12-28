@@ -5,6 +5,8 @@
 #include <Timer.h>
 #include <Traps.h>
 
+#include "driver.h"
+
 #if defined(DEBUG)
 char strbuf[255];
 #endif
