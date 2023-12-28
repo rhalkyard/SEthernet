@@ -284,9 +284,20 @@ void enc624j600_disable_phy_loopback(const enc624j600 *chip) {
   enc624j600_write_phy_reg(chip, PHCON1, old_phcon1 & ~PHCON1_PLOOPBK);
 }
 
-void enc624j600_memcpy(unsigned char *dest, const unsigned char *source,
-                       const unsigned short len) {
-  /* TODO: get rid of this and just use memcpy once issue #3 is resolved */
+void enc624j600_memcpy(volatile unsigned char *dest,
+                       const unsigned char *source, const unsigned short len) {
+  /*
+  rev0 hardware has a bug that causes longword and unaligned-word writes to be
+  unreliable (see issue #3). Vanilla memcpy() will try to use MOVE.W and MOVE.L
+  whenever it can, which is normally the right thing to do, but not in our case.
+
+  dest has to be declared volatile because otherwise the optimizer gets too
+  smart and turns this into an inline memcpy() with MOVE.W and MOVE.L which is
+  exactly what we're trying to avoid.
+
+  TODO: get rid of this function altogether and just use memcpy once rev1
+  hardware is done
+  */
   for (unsigned short i = 0; i < len; i++) {
     *dest++ = *source++;
   }
