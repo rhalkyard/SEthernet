@@ -409,6 +409,7 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
 done:
   if (error != noErr) {
     if (dce->dCtlStorage != nil) {
+      ShutDwnRemove(doShutdown);
       DisposePtr((Ptr) dce->dCtlStorage);
       dce->dCtlStorage = nil;
     }
