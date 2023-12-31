@@ -57,12 +57,18 @@ header_start:
 #endif
         .align 2
 
-/* version number as long and as string */
-        .long 0x00000001
+/* version number in 'vers' resource format */
+        .byte VERSION_MAJOR             /* major version in BCD format */
+        .byte VERSION_MINOR             /* minor version in BCD format */
+        .byte VERSION_DEVSTAGE          /* release stage */
+        .byte VERSION_INTERNAL_ID       /* release number for non-final build */
+        .word 0x0000                    /* region */
+        pstring VERSION_SHORT           /* short version */
+        /* Long version string */
 #if defined(TARGET_SE30)
-        pstring "SEthernet/30 Driver v0.0.1 git:", GIT_REV
+        pstring "SEthernet/30 Driver ", VERSION_SHORT, " git:", GIT_REV
 #elif defined(TARGET_SE)
-        pstring "SEthernet Driver v0.0.1 git:", GIT_REV
+        pstring "SEthernet Driver ", VERSION_SHORT, " git:", GIT_REV
 #endif
         .align 2
 
