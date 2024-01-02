@@ -373,6 +373,8 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       }
 #elif defined(TARGET_SE)
       isrGlobals = theGlobals;
+      /* The 68000's interrupt vectors are in low RAM starting at 0x64 */
+      void ** const isrVectors = (void **) 0x64;
       /* No Slot Manager on the SE, we hook the Level 1 Interrupt vector. Very
       Commodore 64-style. Level 1 is normally used by the VIA and SCSI
       controller, so we have to coexist with them. */
@@ -386,14 +388,11 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
         "   MOVE.L  %[isrWrapper], %[isrVector]  \n\t"
         /* Restore interrupts */
         "   MOVE.W  (%%sp)+, %%sr"
-        : [originalInterruptVector] "=m" (originalInterruptVector)
-        : [isrWrapper] "i" (isrWrapper),
+        : [originalInterruptVector] "=g" (originalInterruptVector)
+        : [isrWrapper] "g" (isrWrapper),
           /* status register bits to set priority 7, masking all interrupts */
-          [srMaskInterrupts] "i" (0x700),
-          /* Location of our interrupt vector in the 68000's vector table at the 
-          start of RAM. Interrupt vectors run from 0x64 for Level 1 to 0x7C for
-          Level 7. */
-          [isrVector] "m" (*(Byte *) (0x64 + (SETHERNET_INTERRUPT - 1) * 4))
+          [srMaskInterrupts] "g" (0x700),
+          [isrVector] "g" (isrVectors[SETHERNET_INTERRUPT-1])
       );
 #endif
       /* Let's go! */
@@ -413,7 +412,7 @@ done:
       DisposePtr((Ptr) dce->dCtlStorage);
       dce->dCtlStorage = nil;
     }
-}
+  }
 
   return error;
 }
@@ -455,8 +454,8 @@ OSErr driverClose(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
     /* Restore interrupts */
     "MOVE.W  (%%sp)+, %%sr"
     :
-    : [originalInterruptVector] "m" (originalInterruptVector),
-      [srMaskInterrupts] "i" (0x700)
+    : [originalInterruptVector] "g" (originalInterruptVector),
+      [srMaskInterrupts] "g" (0x700)
   );
 #endif
 

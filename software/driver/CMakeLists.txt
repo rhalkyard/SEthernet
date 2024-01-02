@@ -4,7 +4,6 @@ IF(NOT HAVE_ENET_H)
     message(FATAL_ERROR "ENET.h not found. Are you sure you built Retro68 with Apple Universal Interfaces?")
 ENDIF()
 
-
 # Build drivers as code resources; PC-relative (no relocation necessary) flat
 # binaries with no startup code
 add_link_options(-Wl,--mac-flat -nostartfiles -e header_start)
@@ -20,6 +19,12 @@ target_include_directories(driver_control INTERFACE include/)
 set(SE_RESOURCE SE_driver.resource)
 add_executable(${SE_RESOURCE} ${DRIVER_SOURCES})
 target_compile_options(${SE_RESOURCE} PRIVATE -m68000)
+# Workaround for https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105523 causing a
+# spurious warning (introduced in GCC 12, fixed in GCC 14)
+if(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 12 AND
+   CMAKE_C_COMPILER_VERSION VERSION_LESS 14)
+   target_compile_options(${SE_RESOURCE} PRIVATE --param=min-pagesize=0)
+endif()
 target_compile_definitions(${SE_RESOURCE} PRIVATE TARGET_SE)
 target_link_libraries(${SE_RESOURCE} enc624j600 driver_control board_defs version)
 add_custom_command(
@@ -41,6 +46,12 @@ add_custom_target(SEthernet ALL DEPENDS SEthernet.bin)
 set(SE30_RESOURCE SE30_driver.resource)
 add_executable(${SE30_RESOURCE} ${DRIVER_SOURCES})
 target_compile_options(${SE30_RESOURCE} PRIVATE -m68030)
+# Workaround for https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105523 causing a
+# spurious warning (introduced in GCC 12, fixed in GCC 14)
+if(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 12 AND
+   CMAKE_C_COMPILER_VERSION VERSION_LESS 14)
+   target_compile_options(${SE30_RESOURCE} PRIVATE --param=min-pagesize=0)
+endif()
 target_compile_definitions(${SE30_RESOURCE} PRIVATE TARGET_SE30)
 target_link_libraries(${SE30_RESOURCE} enc624j600 driver_control board_defs version)
 add_custom_command(
@@ -53,4 +64,3 @@ add_custom_command(
                         
         DEPENDS ${SE30_RESOURCE} ${CMAKE_CURRENT_SOURCE_DIR}/SEthernet30.r)
 add_custom_target(SEthernet30 ALL DEPENDS SEthernet30.bin)
-
