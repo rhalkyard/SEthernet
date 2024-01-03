@@ -13,5 +13,6 @@ extern void (*originalInterruptVector)();
 extern driverGlobalsPtr isrGlobals;
 #endif
 
+/* Assembly-language wrapper for our ISRs written in C; implementation in 
+isrwrapper.S */
 void isrWrapper(void);
-void txComplete(driverGlobalsPtr theGlobals);

@@ -14,9 +14,6 @@ directory:
 board_sResource:
     OSLstEntry sRsrcType, board_sResource_rsrctype
     OSLstEntry sRsrcName, board_name
-    /* boardId values were assigned by Apple to hardware developers. I guess
-    these days we just pick a number we like and hope we don't collide with
-    anything. */
     DatLstEntry boardId, SETHERNET30_BOARDID
     OSLstEntry vendorInfo, vendor_info
     EndLstEntry
@@ -40,7 +37,8 @@ vendor_name:
     .byte 0
 
 vendor_rev:
-    .ascii "Revision 0 "
+    .ascii "Revision 0"
+    .ascii " "
     .ascii "git:" 
     .ascii GIT_REV
     .byte 0
@@ -50,7 +48,7 @@ vendor_partnum:
     .byte 0
 
 vendor_date:
-    .ascii __DATE__ /* C Preprocessor macro, need to make sure this gets preprocessed */
+    .ascii __DATE__
     .ascii " "
     .ascii __TIME__
     .byte 0

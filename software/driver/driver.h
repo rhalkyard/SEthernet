@@ -42,7 +42,7 @@ struct protocolHandlerEntry {
   unsigned short
       ethertype; /* Protocol number (ethertype except for those above) */
   void* handler; /* Pointer to protocol handler routine (see IM: Networking
-                   chapter on ethernet protocol handlers)*/
+                    chapter on ethernet protocol handlers) */
 #if 0
   void* readPB;  /* Parameter block for pending ERead operation. */
 #endif
@@ -77,9 +77,7 @@ typedef struct ringbufEntry ringbufEntry;
 /* Protocol handlers expect the packet header to be read into a RAM buffer (the
 Receive Header Area) that includes 8 free bytes of workspace for their use */
 struct receiveHeaderArea {
-  ringbufEntry header;
-  /* 8 bytes following the packet header must be provided as workspace for the 
-  Protocol Handler */
+  ringbufEntry header;        /* Packet metadata and header */
   Byte workspace[8];          /* Protocol handler workspace */
 };
 typedef struct receiveHeaderArea receiveHeaderArea;
@@ -136,7 +134,7 @@ typedef struct driverGlobals {
       protocolHandlers[numberOfPhs];             /* Protocol handler table */
   multicastEntry multicasts[numberofMulticasts]; /* Multicast address table */
 
-  receiveHeaderArea rha;
+  receiveHeaderArea rha;        /* Buffer for receved packet headers */
 
   /* The driverInfo struct is packed (dictated by the Ethernet driver API).
   Align its start point to avoid awkwardness in accessing its longword counter

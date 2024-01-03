@@ -28,20 +28,6 @@ static unsigned long crc32(const Byte *data, const unsigned short len) {
   return crc;
 }
 
-/* Look up an address in our table of multicast addresses. Returns a pointer to
-the multicast table entry if found, nil if no match */
-multicastEntry* findMulticastEntry(const driverGlobalsPtr theGlobals,
-                                   const Byte address[6]) {
-  for (unsigned short i = 0; i < numberofMulticasts; i++) {
-    if (theGlobals->multicasts[i].refCount > 0) {
-      if (ethAddrsEqual(address, theGlobals->multicasts[i].address)) {
-        return &theGlobals->multicasts[i];
-      }
-    }
-  }
-  return nil;
-}
-
 /* Find a free entry in the multicast table. Returns a pointer to the first free
 entry found, nil if no free entries */
 static multicastEntry* findFreeMulticastEntry(
@@ -73,6 +59,20 @@ static void updateMulticastHashTable(const driverGlobalsPtr theGlobals) {
     }
   }
   enc624j600_write_multicast_table(&theGlobals->chip, hashTable);
+}
+
+/* Look up an address in our table of multicast addresses. Returns a pointer to
+the multicast table entry if found, nil if no match */
+multicastEntry* findMulticastEntry(const driverGlobalsPtr theGlobals,
+                                   const Byte address[6]) {
+  for (unsigned short i = 0; i < numberofMulticasts; i++) {
+    if (theGlobals->multicasts[i].refCount > 0) {
+      if (ethAddrsEqual(address, theGlobals->multicasts[i].address)) {
+        return &theGlobals->multicasts[i];
+      }
+    }
+  }
+  return nil;
 }
 
 /*

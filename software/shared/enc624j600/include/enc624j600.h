@@ -3,6 +3,8 @@
 
 #include "enc624j600_registers.h"
 
+/* Link state value is mirrored from the SPDDPX field of the PHSTAT3 register,
+with the addition of a 0 value indicating a down link. */
 enum enc624j600_link_state {
   LINK_DOWN = 0x0,
   LINK_10M = 0x1,
@@ -17,8 +19,9 @@ struct enc624j600 {
                                   buffer) */
   const unsigned char *rxbuf_start;  /* Pointer to start of receive buffer */
   const unsigned char *rxbuf_end;    /* Pointer to end of receive buffer */
-  const unsigned char *rxptr;
-  unsigned char link_state;
+  const unsigned char *rxptr;   /* Receive buffer read pointer */
+  unsigned char link_state;     /* Current link state (updated by calls to 
+                                   enc624j600_duplex_sync) */
 };
 typedef struct enc624j600 enc624j600;
 
@@ -32,7 +35,7 @@ union enc624j600_rsv {
     unsigned char bits_47_40;  /* Bits 47-40 (all zeroes) */
   } __attribute__((packed));
   unsigned char bytes[6]; /* Access as a byte array, for use with RSV_BIT()
-                           macro */
+                          macro */
 };
 typedef union enc624j600_rsv enc624j600_rsv;
 
@@ -48,17 +51,17 @@ short enc624j600_reset(const enc624j600 *chip);
  * event. */
 void enc624j600_duplex_sync(enc624j600 *chip);
 
-/* Initialize the chip, with the given receive buffer size. Transmit buffer
-begins immediately after receive buffer and continues to end of memory. Receive
-buffer size must be in multiples of 1 word. */
-short enc624j600_init(enc624j600 *chip, const unsigned short rxbuf_len);
+/* Initialize the chip, with the given transmit buffer size. The receive buffer
+begins immediately after thee transmit buffer and continues to end of memory.
+Transmit buffer size must be an even number of bytes. */
+short enc624j600_init(enc624j600 *chip, const unsigned short txbuf_size);
 
 /* Start accepting packets */
 void enc624j600_start(enc624j600 *chip);
 
 /* Read device-ID and revision registers
-    device_id: out-parameter, 1 byte
-    revision:  out-parameter, 1 byte
+    device_id: out-parameter, 1 byte, NULL allowed
+    revision:  out-parameter, 1 byte, NULL allowed
  */
 void enc624j600_read_id(const enc624j600 *chip, unsigned char *device_id,
                         unsigned char *revision);
@@ -80,12 +83,13 @@ void enc624j600_disable_promiscuous(const enc624j600 *chip);
 void enc624j600_write_multicast_table(const enc624j600 *chip,
                                       const unsigned short table[4]);
 
-/* Enable or disable interrupts. Bits of irqmask are defined below */
+/* Enable interrupts. Bits of irqmask are defined below */
 static inline void enc624j600_enable_irq(const enc624j600 *chip,
                            const unsigned short irqmask) {
   ENC624J600_SET_BITS(chip->base_address, EIE, irqmask);
 }
 
+/* Disable interrupts. Bits of irqmask are defined below */
 static inline void enc624j600_disable_irq(const enc624j600 *chip,
                             const unsigned short irqmask) {
   ENC624J600_CLEAR_BITS(chip->base_address, EIE, irqmask);
@@ -129,6 +133,7 @@ static inline unsigned char *enc624j600_addr_to_ptr(const enc624j600 *chip,
   return chip->base_address + addr;
 }
 
+/* Convert a pointer into a chip address */
 static inline unsigned short enc624j600_ptr_to_addr(const enc624j600 *chip,
                                              const unsigned char *ptr) {
   return ptr - chip->base_address;
@@ -138,21 +143,26 @@ static inline unsigned short enc624j600_ptr_to_addr(const enc624j600 *chip,
 void enc624j600_transmit(const enc624j600 *chip, const unsigned char *src,
                          unsigned short length);
 
-/* Read and write PHY registers. Use with caution! */
+/* Read PHY register */
 unsigned short enc624j600_read_phy_reg(const enc624j600 *chip,
                                        const unsigned char phyreg);
+
+/* Write PHY register */
 void enc624j600_write_phy_reg(const enc624j600 *chip,
                               const unsigned char phyreg,
                               const unsigned short value);
 
-/* Enable/disable internal loopback in the PHY */
+/* Enable PHY loopback */
 void enc624j600_enable_phy_loopback(const enc624j600 *chip);
+
+/* Disable PHY loopback */
 void enc624j600_disable_phy_loopback(const enc624j600 *chip);
 
 /* Our own memcpy implementation that avoids longword writes */
 void enc624j600_memcpy(volatile unsigned char *dest,
                        const unsigned char *source, const unsigned short len);
 
+/* Read len bytes from the receive FIFO into dest */
 #pragma parameter __D0 enc624j600_read_rxbuf(__A0, __A3, __D0)
 unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char *dest,
                                      unsigned short len);

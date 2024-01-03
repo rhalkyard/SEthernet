@@ -34,8 +34,6 @@
 #include <Debugging.h>
 #include <stdio.h>
 extern char strbuf[255];
-extern void ReadPacket();
-extern void * header_start;
 #endif
 
 /*
@@ -190,11 +188,10 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
     */
     RETRO68_RELOCATE();
 
-    /* 'panic button' - hold down the E key at boot (or any other time the driver
-    is loaded) to disable the driver (or drop into the debugger in debug builds),
-    just in case we get into a state where the driver is stopping the system from
-    booting. Note that this must be inline code and not a function, since we want
-    to break before relocation */
+    /* 'panic button' - hold down the E key at boot (or any other time the
+    driver is loaded) to disable the driver (or drop into the debugger in debug
+    builds), just in case we get into a state where the driver is stopping the
+    system from booting. */
     const unsigned char keycode = 0x0e; /* keyboard scan code for E key */
     unsigned char keys[16];
     GetKeys((unsigned long *)keys);
@@ -211,9 +208,9 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
     if (!theGlobals) {
       error = MemError();
 #if defined(DEBUG)
-    strbuf[0] = sprintf(strbuf+1, "Couldn't allocate %lu bytes for globals!", 
-                        sizeof(driverGlobals));
-    DebugStr((unsigned char *)strbuf);
+      strbuf[0] = sprintf(strbuf+1, "Couldn't allocate %lu bytes for globals!",
+                          sizeof(driverGlobals));
+      DebugStr((unsigned char *)strbuf);
 #endif
     } else {
       error = noErr;
@@ -247,9 +244,13 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
         theGlobals->hasSlotMgr = 1;
       }
 
-      SysEnvirons(curSysEnvVers, &sysEnv);
-      if (sysEnv.machineType == envSE) {
-        theGlobals->macSE = 1;
+      error = SysEnvirons(curSysEnvVers, &sysEnv);
+      if (error == noErr) {
+        if (sysEnv.machineType == envSE) {
+          theGlobals->macSE = 1;
+        }
+      } else {
+        goto done;
       }
 
 #if defined(TARGET_SE30)
@@ -278,10 +279,13 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
         See 'Driver Considerations for Virtual Memory' in Technote NW-13 */
         if ((Gestalt(gestaltVMAttr, &gestaltResult) == noErr) &&
             (gestaltResult & (1 << gestaltVMPresent))) {
-          theGlobals->vmEnabled = 1;
           /* Ask the memory manager to not page our data out */
-          HoldMemory(theGlobals, sizeof(driverGlobals));
-          dce->dCtlFlags |= dVMImmuneMask; /* Tell the OS that we're VM-safe */
+          error = HoldMemory(theGlobals, sizeof(driverGlobals));
+          if (error == noErr) {
+            /* Only claim to be VM-safe if HoldMemory call succeeded */
+            theGlobals->vmEnabled = 1;
+            dce->dCtlFlags |= dVMImmuneMask; /* Tell the OS that we're VM-safe */
+          }          
         }
       }
 #elif defined(TARGET_SE)
@@ -322,13 +326,24 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
         goto done;
       }
 
-      /* Wait for the chip to come back after the reset. According to the
+      /*
+      Wait for the link to come back after the reset. According to the
       datasheet, we must delay 25us for bus interface and MAC registers to come
-      up, plus an additional 256us for the PHY. However, the link may take some
-      indeterminate amount of time to come back - 1.5 seconds should give us
-      enough time. TODO: be smarter about this */
-      unsigned long finalTicks;
-      Delay(90, &finalTicks);
+      up, plus an additional 256us for the PHY. However, the actual link may
+      take some indeterminate amount of time to come back, and if we don't wait
+      for it, the process that opened the driver may start blindly sending
+      packets on a down link, ignoring errors (AppleTalk does this as part of
+      its address-assignment process at startup, which could potentially lead to
+      multiple nodes taking the same address).
+
+      Empirically, 1.5 seconds seems to be enough time to bring up a link on the
+      various cheap and not-so-cheap switches I have lying around. Bit of a
+      shame to add such a big delay to the boot process, but we can't change
+      AppleTalk's behavior, so this is how it's gotta be.
+      */
+      unsigned long finalTicks; /* unused, but Delay doesn't null-check its
+                                   out-params */
+      Delay(90, &finalTicks);   /* 90 ticks @ 60Hz = 1.5 seconds */
 
       /* Test the chip's memory just to be *really* sure it's working */
       if (enc624j600_memtest(&theGlobals->chip) != 0) {
@@ -353,7 +368,8 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       globals. */
       eadrResourceHandle = GetResource(EAddrRType, dce->dCtlSlot);
       if (eadrResourceHandle) {
-        copyEthAddrs(theGlobals->info.ethernetAddress, (Byte *)*eadrResourceHandle);
+        copyEthAddrs(theGlobals->info.ethernetAddress,
+                     (Byte *)*eadrResourceHandle);
         enc624j600_write_hwaddr(&theGlobals->chip, (Byte *)*eadrResourceHandle);
         ReleaseResource(eadrResourceHandle);
       } else {
@@ -379,14 +395,15 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       Commodore 64-style. Level 1 is normally used by the VIA and SCSI
       controller, so we have to coexist with them. */
       asm (
-        /* Mask interrupts while we change out interrupt vectors */
+        /* Save current status register */
         "   MOVE.W  %%sr, -(%%sp) \n\t"
+        /* Mask interrupts while we change out interrupt vectors */
         "   ORI.W   %[srMaskInterrupts], %%sr  \n\t"
-        /* Save the original vector*/
+        /* Save the original vector */
         "   MOVE.L  %[isrVector], %[originalInterruptVector]  \n\t"
         /* Install our own */
         "   MOVE.L  %[isrWrapper], %[isrVector]  \n\t"
-        /* Restore interrupts */
+        /* Restore status register */
         "   MOVE.W  (%%sp)+, %%sr"
         : [originalInterruptVector] "=g" (originalInterruptVector)
         : [isrWrapper] "g" (isrWrapper),
@@ -407,6 +424,7 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
   }
 done:
   if (error != noErr) {
+    /* Tidy up if open failed */
     if (dce->dCtlStorage != nil) {
       ShutDwnRemove(doShutdown);
       DisposePtr((Ptr) dce->dCtlStorage);
@@ -458,7 +476,7 @@ OSErr driverClose(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       [srMaskInterrupts] "g" (0x700)
   );
 #endif
-
+  /* Uninstall our shutdown procedure */
   ShutDwnRemove(doShutdown);
 
   DisposePtr((Ptr)theGlobals);

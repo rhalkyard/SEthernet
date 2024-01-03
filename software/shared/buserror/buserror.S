@@ -35,8 +35,11 @@ buserror_probe:
     MOVE.B  (%a0), %d0  /* Try reading a byte from the address */ 
 
     /* If the address in A0 is not valid, the MOVE.B above will cause a Bus
-    Error and jump directly to busErrReturn, skipping the AND below */
-
+    Error and jump directly to busErrReturn, skipping the instructions below.
+    The NOPs are there to ensure that the AND will not enter the pipeline until
+    after the read-attempt might fault */
+    NOP
+    NOP
     AND.L   #0xff, %d0  /* If we get here, we didn't take a Bus Error. Mask off
                            everything but the byte we read, so we return a
                            positive value */

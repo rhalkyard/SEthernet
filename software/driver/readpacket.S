@@ -128,8 +128,12 @@ ReadBuf:
     MOVEM.L     (%sp)+, %a0/%d0-%d2     /* Restore registers */
 #endif
 
-    MOVEM.L     %a0/%d1-%d2, -(%sp)     /* Preserve registers changed by C */
-    JSR         enc624j600_read_rxbuf   /* enc624j600_read_rxbuf(A0, A3, D0.W) */
+    /* Note that we don't preserve A1 here - it's reserved for our use, but we 
+    don't use it for anything, so no need to waste cycles saving and restoring
+    it. Similarly we don't save D0 because we can just use the return value from
+    enc624j600_read_rxbuf. */
+    MOVEM.L     %a0/%d1-%d2, -(%sp)     /* Preserve registers changed by C. */
+    JSR         enc624j600_read_rxbuf   /* D0.W = enc624j600_read_rxbuf(A0, A3, D0.W) */
     MOVEM.L     (%sp)+, %a0/%d1-%d2     /* Restore registers */
 
     ADD.W       %d0, %a3                /* Advance destination buffer pointer */

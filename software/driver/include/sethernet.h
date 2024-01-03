@@ -1,20 +1,23 @@
 #include <MacTypes.h>
 #pragma once
 
+/* Non-standard Control csCodes used by our driver */
 enum {
-  ENCReadReg = 0x7000,
-  ENCWriteReg = 0x7001,
-  ENCReadPhy = 0x7002,
-  ENCWritePhy = 0x7003,
-  ENCEnableLoopback = 0x7004,
-  ENCDisableLoopback = 0x7005
+  ENCReadReg = 0x7000,  /* Read register, csParam is encRegister* */
+  ENCWriteReg = 0x7001, /* Write register, csParam is encRegister* */
+  ENCReadPhy = 0x7002,  /* Read PHY register, csParam is encRegister* */
+  ENCWritePhy = 0x7003, /* Write PHY register, csParam is encRegister* */
+
+  ENCEnableLoopback = 0x7004, /* Set PHY to loopback mode, csParam unused */
+  ENCDisableLoopback = 0x7005 /* Take PHY out of loopback, csParam unused */
 };
 
-struct ENCRegister {
+/* Register address-value pair used for register-access Control calls */
+struct encRegister {
   unsigned short reg;
   unsigned short value;
 };
-typedef struct ENCRegister ENCRegister;
+typedef struct encRegister encRegister;
 
 /*
 Information returned by EGetInfo

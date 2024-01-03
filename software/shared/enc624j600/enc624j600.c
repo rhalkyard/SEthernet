@@ -35,6 +35,7 @@ Promiscuous-mode receive configuration:
 #define RXFCON_DEFAULT \
   ERXFCON_CRCEN | ERXFCON_RUNTEN | ERXFCON_UCEN | ERXFCON_BCEN | ERXFCON_HTEN
 
+/* Reset chip */
 short enc624j600_reset(const enc624j600 *chip) {
   /* Write and read-back a 'magic' value to user data start pointer to verify
   that chip is present and functioning */
@@ -53,10 +54,11 @@ short enc624j600_reset(const enc624j600 *chip) {
   return 0;
 }
 
+/* Initialize chip */
 short enc624j600_init(enc624j600 *chip, const unsigned short txbuf_size) {
   unsigned short tmp;
   unsigned short rxbuf_size, rx_tail, flow_hwm, flow_lwm;
-  if (txbuf_size & 1) {
+  if (txbuf_size % 2) {
     /* Buffer boundary must be word-aligned */
     return -1;
   }
@@ -65,15 +67,23 @@ short enc624j600_init(enc624j600 *chip, const unsigned short txbuf_size) {
   ENC624J600_WRITE_REG(chip->base_address, ERXST, SWAPBYTES(txbuf_size));
   rx_tail = ENC624J600_MEM_END - 2;
   ENC624J600_WRITE_REG(chip->base_address, ERXTAIL, SWAPBYTES(rx_tail));
+
   /* Set up local pointers */
   chip->rxbuf_start = enc624j600_addr_to_ptr(chip, txbuf_size);
-  chip->rxptr = chip->rxbuf_start;
+  chip->rxptr = chip->rxbuf_start; /* Start receive FIFO read pointer at
+                                      beginning of buffer */
   chip->rxbuf_end = enc624j600_addr_to_ptr(chip, ENC624J600_MEM_END);
 
-  /* Set up flow control parameters. We only enable flow control for full-duplex
+  /*
+  Set up flow control parameters. We only enable flow control for full-duplex
   links, since  half-duplex flow control operates by jamming the medium, which
   is an extremely antisocial thing to do on shared-media links (such as if
-  connected to a hub rather than a switch). */
+  connected to a hub rather than a switch).
+
+  The high- and low-water-mark parameters (assert flow control at 3/4 full,
+  deassert at 1/2 full) are completely made up based on gut instinct. Should
+  probably tune them at some point.
+  */
   rxbuf_size = ENC624J600_MEM_END - txbuf_size;
   /* High water mark: Assert flow control when recieve buffer is 3/4 full (in
   units of 96 bytes) */
@@ -100,10 +110,10 @@ short enc624j600_init(enc624j600 *chip, const unsigned short txbuf_size) {
   return 0;
 }
 
+/* Read autonegotiated full/half-duplex status from PHY, set MAC duplex and
+back-to-back interpacket gap as appropriate. Call on initial startup and after
+link state change. */
 void enc624j600_duplex_sync(enc624j600 *chip) {
-  /* Read autonegotiated full/half-duplex status from PHY, set MAC duplex and
-  back-to-back interpacket gap as appropriate. Call on initial startup and after
-  link state change. */
   unsigned short estat = ENC624J600_READ_REG(chip->base_address, ESTAT);
 
   /* Get link state info. */
@@ -137,6 +147,7 @@ void enc624j600_duplex_sync(enc624j600 *chip) {
   }
 }
 
+/* Enable packet reception */
 void enc624j600_start(enc624j600 *chip) {
   /* Sync MAC duplex configuration with autonegotiated values from PHY */
   enc624j600_duplex_sync(chip);
@@ -147,6 +158,7 @@ void enc624j600_start(enc624j600 *chip) {
   ENC624J600_SET_BITS(chip->base_address, ECON1, ECON1_RXEN);
 }
 
+/* Read device ID and silicon revision from chip */
 void enc624j600_read_id(const enc624j600 *chip, unsigned char *device_id,
                         unsigned char *revision) {
   unsigned short result = ENC624J600_READ_REG(chip->base_address, EIDLED);
@@ -159,6 +171,7 @@ void enc624j600_read_id(const enc624j600 *chip, unsigned char *device_id,
   }
 }
 
+/* Read ethernet hardware address from chip */
 void enc624j600_read_hwaddr(const enc624j600 *chip, unsigned char addrbuf[6]) {
   unsigned short *words = (unsigned short *)addrbuf;
 
@@ -167,6 +180,7 @@ void enc624j600_read_hwaddr(const enc624j600 *chip, unsigned char addrbuf[6]) {
   words[2] = ENC624J600_READ_REG(chip->base_address, MAADR3);
 }
 
+/* write ethernet hardware address to chip */
 void enc624j600_write_hwaddr(const enc624j600 *chip,
                              const unsigned char addrbuf[6]) {
   unsigned short *words = (unsigned short *)addrbuf;
@@ -176,6 +190,7 @@ void enc624j600_write_hwaddr(const enc624j600 *chip,
   ENC624J600_WRITE_REG(chip->base_address, MAADR3, words[2]);
 }
 
+/* Write multicast hash table to chip */
 void enc624j600_write_multicast_table(const enc624j600 *chip,
                                       const unsigned short table[4]) {
   ENC624J600_WRITE_REG(chip->base_address, EHT1, SWAPBYTES(table[0]));
@@ -184,14 +199,18 @@ void enc624j600_write_multicast_table(const enc624j600 *chip,
   ENC624J600_WRITE_REG(chip->base_address, EHT4, SWAPBYTES(table[3]));
 }
 
+/* Enable promiscuous-mode reception */
 void enc624j600_enable_promiscuous(const enc624j600 *chip) {
   ENC624J600_WRITE_REG(chip->base_address, ERXFCON, RXFCON_PROMISCUOUS);
 }
 
+/* Disable promiscuous-mode reception, return to normal operation */
 void enc624j600_disable_promiscuous(const enc624j600 *chip) {
   ENC624J600_WRITE_REG(chip->base_address, ERXFCON, RXFCON_DEFAULT);
 }
 
+/* Begin transmitting data from the transmit buffer. start_addr must point to
+within chip memory */
 void enc624j600_transmit(const enc624j600 *chip,
                          const unsigned char *start_addr,
                          const unsigned short length) {
@@ -211,10 +230,11 @@ void enc624j600_transmit(const enc624j600 *chip,
   ENC624J600_SET_BITS(chip->base_address, ECON1, ECON1_TXRTS);
 }
 
+/* Update the receive FIFO read pointer and ring-buffer tail */
 inline void enc624j600_update_rxptr(enc624j600 *chip,
                                     const unsigned char *rxptr) {
   unsigned short addr;
-  /* Recieve buffer tail must word aligned and at least 2 bytes behind read
+  /* Recieve buffer tail must be word aligned and at least 2 bytes behind read
   pointer */
   const unsigned char *tail = rxptr - 2;
   chip->rxptr = rxptr;
@@ -248,6 +268,7 @@ unsigned short enc624j600_read_rx_fifo_level(const enc624j600 *chip) {
   }
 }
 
+/* Write a value to a PHY register */
 void enc624j600_write_phy_reg(const enc624j600 *chip,
                               const unsigned char phyreg,
                               const unsigned short value) {
@@ -259,13 +280,14 @@ void enc624j600_write_phy_reg(const enc624j600 *chip,
   ENC624J600_WRITE_REG(chip->base_address, MIWR, SWAPBYTES(value));
 }
 
+/* Read a value from a PHY register */
 unsigned short enc624j600_read_phy_reg(const enc624j600 *chip,
                                        const unsigned char phyreg) {
   /* Wait for internal MII to become available */
   while (ENC624J600_READ_REG(chip->base_address, MISTAT) & MISTAT_BUSY) {
   }
   /* Datasheet says that MIREGADR must be written with bits 12..8 = 00001 */
-  ENC624J600_WRITE_REG(chip->base_address, MIREGADR, SWAPBYTES(phyreg | 0x0100));
+  ENC624J600_WRITE_REG(chip->base_address, MIREGADR, SWAPBYTES(0x0100 | phyreg));
   ENC624J600_SET_BITS(chip->base_address, MICMD, MICMD_MIIRD);
   /* Wait for internal MII to finish read operation */
   while (ENC624J600_READ_REG(chip->base_address, MISTAT) & MISTAT_BUSY) {
@@ -274,35 +296,42 @@ unsigned short enc624j600_read_phy_reg(const enc624j600 *chip,
   return ENC624J600_READ_REG(chip->base_address, MIRD);
 }
 
+/* Enable PHY loopback */
 void enc624j600_enable_phy_loopback(const enc624j600 *chip) {
   unsigned short old_phcon1 = enc624j600_read_phy_reg(chip, PHCON1);
   enc624j600_write_phy_reg(chip, PHCON1, old_phcon1 | PHCON1_PLOOPBK);
 }
 
+/* Disable PHY loopback */
 void enc624j600_disable_phy_loopback(const enc624j600 *chip) {
   unsigned short old_phcon1 = enc624j600_read_phy_reg(chip, PHCON1);
   enc624j600_write_phy_reg(chip, PHCON1, old_phcon1 & ~PHCON1_PLOOPBK);
 }
 
+/*
+Copy data byte-by-byte
+
+rev0 hardware has a bug that causes longword and unaligned-word writes to be
+unreliable (see issue #3). Vanilla memcpy() will try to use MOVE.W and MOVE.L
+whenever it can, which is normally the right thing to do, but not in our case.
+Any code that writes to chip memory should do so using this function rather than
+memcpy or direct access through pointers.
+
+dest has to be declared volatile because otherwise the optimizer gets too smart
+and turns this into an inline memcpy(), which is exactly what we're trying to
+avoid.
+
+TODO: get rid of this function altogether and just use memcpy once rev1 hardware
+is done
+*/
 void enc624j600_memcpy(volatile unsigned char *dest,
                        const unsigned char *source, const unsigned short len) {
-  /*
-  rev0 hardware has a bug that causes longword and unaligned-word writes to be
-  unreliable (see issue #3). Vanilla memcpy() will try to use MOVE.W and MOVE.L
-  whenever it can, which is normally the right thing to do, but not in our case.
-
-  dest has to be declared volatile because otherwise the optimizer gets too
-  smart and turns this into an inline memcpy() with MOVE.W and MOVE.L which is
-  exactly what we're trying to avoid.
-
-  TODO: get rid of this function altogether and just use memcpy once rev1
-  hardware is done
-  */
   for (unsigned short i = 0; i < len; i++) {
     *dest++ = *source++;
   }
 }
 
+/* Read data from receive FIFO, and advance buffer pointers */
 #pragma parameter __D0 enc624j600_read_rxbuf(__A0, __A3, __D0)
 unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest, 
                                      const unsigned short len) {
@@ -325,14 +354,16 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest,
   }
 #endif
 
-  /* Do first read, going as far as the end of the buffer */
-  if (source + len > chip->rxbuf_end) {
-    chunk_len = chip->rxbuf_end - source;
-    remainder = len - chunk_len;
+  if (source + len <= chip->rxbuf_end) {
+    /* Read will not wrap around */
+    chunk_len = len;  /* Get everything in the first read */
+    remainder = 0;    /* No need for a second read */
   } else {
-    chunk_len = len;
-    remainder = 0;
+    /* Read will cause wraparound. */
+    chunk_len = chip->rxbuf_end - source; /* First read up to end of buffer */
+    remainder = len - chunk_len;          /* Second read gets the rest */
   }
+
   memcpy(dest, source, chunk_len);
   dest += chunk_len;
   source += chunk_len;
@@ -348,17 +379,19 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest,
     source = chip->rxbuf_start;
   }
 
-  /* Do another read if the first read didn't get everything */
+  /* Do a second read to handle the wraparound case */
   if (remainder) {
     memcpy(dest, source, remainder);
     source += remainder;
   }
 
+  /* Update buffer read pointer and receive FIFO tail */
   enc624j600_update_rxptr(chip, source);
 
   return len;
 }
 
+/* Probe for an ENC624J600 as non-invasively as possible */
 short enc624j600_detect(const enc624j600 * chip) {
   const short detect_memlen = 64;
   unsigned short uda_readptr, uda_readptr_after;
@@ -424,6 +457,9 @@ short enc624j600_detect(const enc624j600 * chip) {
   return 0;
 }
 
+/* Test chip memory. Should only be called on a freshly-reset, quiescent chip.
+Calling this on a 'running' chip will likely cause the test to fail and screw up
+any data transmitted or received. */
 short enc624j600_memtest(const enc624j600 * chip) {
   if (memTestDevice((unsigned short *) chip->base_address, ENC624J600_MEM_END)) {
     return -1;

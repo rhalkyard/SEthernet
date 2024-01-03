@@ -57,9 +57,9 @@ Equivalent to (but faster than):
   tmp |= bitfield
   ENC624J600_WRITE_REG(base, reg_offset, tmp);
 */
-#define ENC624J600_SET_BITS(base, reg_offset, bitfield)                       \
-  ENC624J600_WRITE_REG((base), (reg_offset) + ENC624J600_SET_BIT_REGISTER_OFFSET, \
-                       (bitfield))
+#define ENC624J600_SET_BITS(base, reg_offset, bitfield) \
+  ENC624J600_WRITE_REG(                                 \
+      (base), (reg_offset) + ENC624J600_SET_BIT_REGISTER_OFFSET, (bitfield))
 
 /*
 Clear bits in a register using the clear-bit register at reg_offset + 0x180
@@ -169,7 +169,7 @@ Some general rules for register access:
 #define EUDARDPT 0x7e8e
 #define EUDAWRPT 0x7e90
 
-/* WARNING: 8 bit registers!!!*/
+/* WARNING: 8 bit registers!!! */
 #define EGPDATA 0x7e80
 #define ERXDATA 0x7e82
 #define EUDADATA 0x7e84
@@ -183,70 +183,6 @@ Some general rules for register access:
 #define PHCON2 0x11
 #define PHSTAT2 0x1b
 #define PHSTAT3 0x1f
-
-/* PHCON1 */
-#define PHCON1_PRST BIT(7)
-#define PHCON1_PLOOPBK BIT(6)
-#define PHCON1_SPD100 BIT(5)
-#define PHCON1_ANEN BIT(4)
-#define PHCON1_PSLEEP BIT(3)
-#define PHCON1_RENEG BIT(1)
-#define PHCON1_PFULDPX BIT(0)
-
-/* PHSTAT1 */
-#define PHSTAT1_FULL100 BIT(6)
-#define PHSTAT1_HALF100 BIT(5)
-#define PHSTAT1_FULL10 BIT(4)
-#define PHSTAT1_HALF10 BIT(3)
-#define PHSTAT1_ANDONE BIT(13)
-#define PHSTAT1_LRFAULT BIT(12)
-#define PHSTAT1_ANABLE BIT(11)
-#define PHSTAT1_LLSTAT BIT(10)
-#define PHSTAT1_EXTREGS BIT(8)
-
-/* PHANA */
-#define PHANA_ADNP BIT(7)
-#define PHANA_ADFAULT BIT(5)
-#define PHANA_ADPAUS1 BIT(3)
-#define PHANA_ADPAUS0 BIT(2)
-#define PHANA_AD100FD BIT(0)
-#define PHANA_AD100 BIT(15)
-#define PHANA_AD10FD BIT(14)
-#define PHANA_AD10 BIT(13)
-#define PHANA_ADIEEE_SHIFT 8
-#define PHANA_ADIEEE_MASK 0xff00
-
-/* PHANLPA */
-#define PHANLPA_LPNP BIT(7)
-#define PHANLPA_LPACK BIT(6)
-#define PHANLPA_LPFAULT BIT(5)
-#define PHANLPA_LPPAUS1 BIT(3)
-#define PHANLPA_LPPAUS0 BIT(2)
-#define PHANLPA_LP100T4 BIT(1)
-#define PHANLPA_LP100FD BIT(0)
-#define PHANLPA_LP100 BIT(15)
-#define PHANLPA_LP10FD BIT(14)
-#define PHANLPA_LP10 BIT(13)
-#define PHANLPA_LPIEEE_SHIFT 8
-#define PHANLPA_LPIEEE_MASK 0xff00
-
-/* PHANE */
-#define PHANE_PDFLT BIT(12)
-#define PHANE_LPARCD BIT(9)
-#define PHANE_LPANABL BIT(8)
-
-/* PHCON2 */
-#define PHCON2_EDPWRDN BIT(5)
-#define PHCON2_EDTHRES BIT(3)
-#define PHCON2_FRCLNK BIT(10)
-#define PHCON2_EDSTAT BIT(9)
-
-/* PHSTAT2 */
-#define PHSTAT2_PLRITY BIT(12)
-
-/* PHSTAT3 */
-#define PHSTAT3_SPDDPX_SHIFT 10
-#define PHSTAT3_SPDDPX_MASK 0x1c00
 
 /*
 Register bit and field definitions. Not that because of the byte-swapped data
@@ -401,5 +337,70 @@ Our bit:        7   6   5   4   3   2   1   0   15  14  13  12  11  10  9   8
 #define EIDLED_DEVID_MASK 0xe000
 #define EIDLED_REVID_SHIFT 8
 #define EIDLED_REVID_MASK 0x1f00
+
+/* PHY register bit definitions */
+/* PHCON1 */
+#define PHCON1_PRST BIT(7)
+#define PHCON1_PLOOPBK BIT(6)
+#define PHCON1_SPD100 BIT(5)
+#define PHCON1_ANEN BIT(4)
+#define PHCON1_PSLEEP BIT(3)
+#define PHCON1_RENEG BIT(1)
+#define PHCON1_PFULDPX BIT(0)
+
+/* PHSTAT1 */
+#define PHSTAT1_FULL100 BIT(6)
+#define PHSTAT1_HALF100 BIT(5)
+#define PHSTAT1_FULL10 BIT(4)
+#define PHSTAT1_HALF10 BIT(3)
+#define PHSTAT1_ANDONE BIT(13)
+#define PHSTAT1_LRFAULT BIT(12)
+#define PHSTAT1_ANABLE BIT(11)
+#define PHSTAT1_LLSTAT BIT(10)
+#define PHSTAT1_EXTREGS BIT(8)
+
+/* PHANA */
+#define PHANA_ADNP BIT(7)
+#define PHANA_ADFAULT BIT(5)
+#define PHANA_ADPAUS1 BIT(3)
+#define PHANA_ADPAUS0 BIT(2)
+#define PHANA_AD100FD BIT(0)
+#define PHANA_AD100 BIT(15)
+#define PHANA_AD10FD BIT(14)
+#define PHANA_AD10 BIT(13)
+#define PHANA_ADIEEE_SHIFT 8
+#define PHANA_ADIEEE_MASK 0xff00
+
+/* PHANLPA */
+#define PHANLPA_LPNP BIT(7)
+#define PHANLPA_LPACK BIT(6)
+#define PHANLPA_LPFAULT BIT(5)
+#define PHANLPA_LPPAUS1 BIT(3)
+#define PHANLPA_LPPAUS0 BIT(2)
+#define PHANLPA_LP100T4 BIT(1)
+#define PHANLPA_LP100FD BIT(0)
+#define PHANLPA_LP100 BIT(15)
+#define PHANLPA_LP10FD BIT(14)
+#define PHANLPA_LP10 BIT(13)
+#define PHANLPA_LPIEEE_SHIFT 8
+#define PHANLPA_LPIEEE_MASK 0xff00
+
+/* PHANE */
+#define PHANE_PDFLT BIT(12)
+#define PHANE_LPARCD BIT(9)
+#define PHANE_LPANABL BIT(8)
+
+/* PHCON2 */
+#define PHCON2_EDPWRDN BIT(5)
+#define PHCON2_EDTHRES BIT(3)
+#define PHCON2_FRCLNK BIT(10)
+#define PHCON2_EDSTAT BIT(9)
+
+/* PHSTAT2 */
+#define PHSTAT2_PLRITY BIT(12)
+
+/* PHSTAT3 */
+#define PHSTAT3_SPDDPX_SHIFT 10
+#define PHSTAT3_SPDDPX_MASK 0x1c00
 
 #endif /* ENC624J600_REGISTERS_H */

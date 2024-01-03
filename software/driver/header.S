@@ -38,7 +38,9 @@ anything put here shows up right at the start of the binary, which is exactly
 what we want for a code-resource header */
 .section .rsrcheader
 header_start:
-        .short dNeedLockMask + dCtlEnableMask /* drvrFlags - lock driver in memory, we respond to Control calls */
+        .short dNeedLockMask + dCtlEnableMask /* drvrFlags - lock driver in 
+                                                 memory, we respond to Control 
+                                                 calls */
         .short 0 /* drvrDelay - ticks between poll intervals. We don't poll. */
         .short 0 /* drvrEMask - event mask for DAs */
         .short 0 /* drvrMenu - menu resource ID for DAs */
@@ -115,15 +117,16 @@ doControl:
 
 IOReturn:
         MOVE.W  ioTrap(%A0), %D1
-        BTST    #noQueueBit, %D1        /* Was IO operation queued or immediate? */
+        BTST    #noQueueBit, %D1    /* Was IO operation queued or immediate? */
         BEQ     Queued
 
         /* Immediate calls return directly through RTS */
         TST.W   %D0                 /* test asynchronous return result */
         BLE     ImmedRTS            /* result must be <= 0 */
-        CLR.W   %D0                 /* "in progress" result (> 0) not passed back */
+        CLR.W   %D0                 /* in-progress result (> 0) returned as 0 */
 ImmedRTS:
-        MOVE.W  %D0,ioResult(%A0)   /* for immediate calls you must explicitly place the result in the ioResult field */
+        MOVE.W  %D0,ioResult(%A0)   /* for immediate calls you must explicitly 
+                                       place the result in the ioResult field */
         RTS
         MacsbugSymbol IOReturn
 
@@ -131,7 +134,7 @@ Queued:
         /* Queued calls must call IODone on completion */
         TST.W   %D0                 /* test asynchronous return result */
         BLE     MyIODone            /* I/O is complete if result <= 0 */
-        CLR.W   %D0                 /* "in progress" result (> 0) not passed back */
+        CLR.W   %D0                 /* in-progress result (> 0) returned as 0 */
         RTS
         MacsbugSymbol QueuedIOReturn
 

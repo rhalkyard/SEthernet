@@ -25,8 +25,8 @@ void (*originalInterruptVector)();
 driverGlobalsPtr isrGlobals;
 #endif
 
-/* ReadPacket callback function that we pass to protocol handlers. We don't (and
-shouldn't) call it ourselves */
+/* ReadPacket callback function that we pass to protocol handlers, defined in
+readpacket.S. We don't (and shouldn't) call it directly. */
 extern void ReadPacket();
 
 /* IODone may trash D3 and A2-A3, which are normally assumed to be preserved
@@ -64,11 +64,11 @@ On protocol handler entry:
   D1: number of bytes in packet (excluding header and FCS)
 
 The handler calls ReadPacket/ReadRest with the above register definitions, but
-may return with them destroyed.
+may change any of them after calling ReadRest.
 
 On protocol handler exit:
-  A0-A5: destroyed
-  D0-D3: destroyed
+  A0-A5: changed
+  D0-D3: changed
 */
 static void callPH(enc624j600 *chip, void *phProc, Byte *payloadPtr,
                    unsigned short payloadLen) {
@@ -221,8 +221,8 @@ accept:
   theGlobals->info.rxFrameCount++;
 
 drop:
-  /* finished with packet, discard any remaining data by advancing read pointer
-  and rx buffer tail to the start of the next packet  */
+  /* finished with packet, discard any remaining data by advancing the FIFO read
+  pointer (and buffer tail) to the start of the next packet */
   enc624j600_update_rxptr(&theGlobals->chip, nextPacket);
 
   /* decrement pending-receive counter */
@@ -257,9 +257,9 @@ static void userISR(driverGlobalsPtr theGlobals) {
     }
     theGlobals->info.txFrameCount++;
 
-    /* Must acknowledge IRQ *before* calling IODone, otherwise we can
-    accidentally acknowledge the IRQ for a transmit started by a completion
-    routine */
+    /* Must acknowledge the transmit interrupt *before* calling IODone,
+    otherwise we can accidentally acknowledge the interrupt for a transmit
+    started by a completion routine */
     enc624j600_clear_irq(&theGlobals->chip, IRQ_TX);
 
     /* Call IODone to progress IO queue and call async completion routine */
@@ -294,7 +294,7 @@ static void userISR(driverGlobalsPtr theGlobals) {
     DebugStr((unsigned char *)strbuf);
 #endif
 
-    /* Acknowledge IRQ *before* calling IODone */
+    /* Acknowledge interrupt *before* calling IODone */
     enc624j600_clear_irq(&theGlobals->chip, IRQ_TX_ABORT);
 
     /* Call IODone to progress IO queue and call async completion routine */
@@ -307,7 +307,7 @@ static void userISR(driverGlobalsPtr theGlobals) {
   while (enc624j600_read_irqstate(&theGlobals->chip) & IRQ_PKT) {
     handlePacket(theGlobals);
     /* IRQ_PKT flag is not directly clearable - it indicates that the
-       pending-receive count (decremented by handlePacket()) is nonzero */
+    pending-receive count (decremented by handlePacket()) is nonzero */
   };
 
   enc624j600_enable_irq(&theGlobals->chip, IRQ_ENABLE);
@@ -332,9 +332,12 @@ unsigned long driverISR(driverGlobalsPtr theGlobals) {
   }
 
   if (irq_status & (IRQ_RX_ABORT | IRQ_PCNT_FULL)) {
-    /* Packet dropped due to full receive FIFO or packet-counter saturation.
-    Unlike the DP8390 we don't need to do anything to recover from this state
-    except process some pending packets (below) */
+    /* A received packet was dropped due to a full receive FIFO or
+    packet-counter saturation. Unlike the DP8390 we don't need to do anything to
+    recover from this state except process some pending packets. The IRQ_PKT
+    interrupt handler (in the userISR() function called below) will do exactly
+    that, so all we really need to do here is acknowledge the interrupt and
+    increment our receive-error counter. */
     theGlobals->info.internalRxErrors++;
 
 #if defined(DEBUG)
@@ -353,21 +356,24 @@ unsigned long driverISR(driverGlobalsPtr theGlobals) {
     delay calling the handler until a safe time. */
     if (theGlobals->vmEnabled) {
       if (DeferUserFn(userISR, theGlobals) != noErr) {
-        /* If we can't defer for whatever reason, re-enable interrupts and
-        return "interrupt not handled" status */
-
+        /* If we can't defer for whatever reason (usually because other ISRs
+        have filled the deferral queue), re-enable interrupts and return
+        "interrupt not handled" status. When the ISR fires again (immediately,
+        because the ENC624J600 is still asserting an IRQ), we can try again. */
         enc624j600_enable_irq(&theGlobals->chip, IRQ_ENABLE);
         return 0;
+      } else {
+        /* Successfully deferred our call to userISR. Return 'interrupt handled'
+        status. Since userISR may not actually run until after we return, we
+        leave the ENC624J600's interrupts disabled, and let userISR re-enable
+        them when it completes. */
+        return 1;
       }
     } else {
       /* No VM, just call the handler directly. */
       userISR(theGlobals);
+      irq_handled = 1;
     }
-
-    /* Note that in this case we return immediately without re-enabling IRQs;
-    userISR may run AFTER we return if it gets deferred, so we leave re-enabling
-    IRQs to it */
-    return 1;
   }
 
 #if defined(DEBUG)

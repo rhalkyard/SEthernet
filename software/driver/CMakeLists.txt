@@ -8,7 +8,17 @@ ENDIF()
 # binaries with no startup code
 add_link_options(-Wl,--mac-flat -nostartfiles -e header_start)
 
-set(DRIVER_SOURCES header.S driver.c isrwrapper.S isr.c readpacket.S multicast.c protocolhandler.c registertools.c util.c)
+set(DRIVER_SOURCES 
+    driver.c
+    header.S
+    isr.c
+    isrwrapper.S
+    multicast.c
+    protocolhandler.c
+    readpacket.S
+    registertools.c
+    util.c
+    )
 
 add_library(driver_control INTERFACE)
 target_include_directories(driver_control INTERFACE include/)

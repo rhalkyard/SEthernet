@@ -8,7 +8,7 @@
 #include <MacTypes.h>
 
 OSErr doENCReadReg(const driverGlobalsPtr theGlobals, CntrlParamPtr pb) {
-    ENCRegister * r = (ENCRegister *) pb->csParam;
+    encRegister * r = (encRegister *) pb->csParam;
     r->value = ENC624J600_READ_REG(&theGlobals->chip, r->reg);
     r->value = SWAPBYTES(r->value);
 
@@ -16,14 +16,14 @@ OSErr doENCReadReg(const driverGlobalsPtr theGlobals, CntrlParamPtr pb) {
 }
 
 OSErr doENCWriteReg(const driverGlobalsPtr theGlobals, const CntrlParamPtr pb) {
-    ENCRegister * r = (ENCRegister *) pb->csParam;
+    encRegister * r = (encRegister *) pb->csParam;
     ENC624J600_WRITE_REG(&theGlobals->chip, r->reg, SWAPBYTES(r->value));
 
     return noErr;
 }
 
 OSErr doENCReadPhy(const driverGlobalsPtr theGlobals, CntrlParamPtr pb) {
-    ENCRegister * r = (ENCRegister *) pb->csParam;
+    encRegister * r = (encRegister *) pb->csParam;
     r->value = enc624j600_read_phy_reg(&theGlobals->chip, r->reg);
     r->value = SWAPBYTES(r->value);
 
@@ -31,7 +31,7 @@ OSErr doENCReadPhy(const driverGlobalsPtr theGlobals, CntrlParamPtr pb) {
 }
 
 OSErr doENCWritePhy(const driverGlobalsPtr theGlobals, const CntrlParamPtr pb) {
-    ENCRegister * r = (ENCRegister *) pb->csParam;
+    encRegister * r = (encRegister *) pb->csParam;
     ENC624J600_WRITE_REG(&theGlobals->chip, r->reg, SWAPBYTES(r->value));
     enc624j600_write_phy_reg(&theGlobals->chip, r->reg, SWAPBYTES(r->value));
 
