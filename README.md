@@ -68,9 +68,12 @@ other improvements and lessons learned.
 
 ### Software
 
-The driver is functional to be point of being able to mount network shares and
-transfer files over AppleTalk, and appears to work as it should with MacTCP as
-well. Testing thus far has all been on my SE/30 and IIfx running System 7.1.
+The core driver is functional and stable enough for everyday use. Real-world is
+marginally better than a comparable vintage card, but there is likely room to
+improve.
+
+Support for promiscuous mode, and the `ERead` call are not yet implemented.
+Testing has been done on my SE/30 under Systems 6.0.8, 7.1, and 7.5.5.
 
 ## Project files
 
@@ -104,6 +107,14 @@ Glue Logic: [SEthernet](pld/se) - [SEthernet/30](pld/se30)
 - [CMake](https://cmake.org/)
 
 - [Python 3](https://www.python.org)
+
+### Installer
+
+- [hfsutils](https://www.mars.org/home/rob/proj/hfs/)
+
+- [Python 3](https://www.python.org)
+
+- [Mini vMac](https://www.gryphel.com/c/minivmac/index.html)
 
 ## Errata
 

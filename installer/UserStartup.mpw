@@ -1,0 +1,8 @@
+# Set directory to where we put our sources
+Directory 'Build Environment:Sources'
+
+# Run the build script
+Build.mpw
+
+# Exit without saving any changes
+Quit -n
