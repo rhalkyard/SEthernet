@@ -61,6 +61,7 @@ SOURCE_FILES=(
     "code.r" 
     "comments.r" 
     "filespecs.r" 
+    "identifiers.r"
     "misc.r" 
     "packages.r" 
     "rules.r" 

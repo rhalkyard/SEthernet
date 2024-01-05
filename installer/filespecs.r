@@ -1,6 +1,7 @@
 #include "InstallerTypes.r"
+#include "identifiers.r"
 
-resource 'infs' (9000) {
+resource 'infs' (fsNetworkResources) {
 	'rsrc',
 	'RSED',
 	0xA9B73140,
@@ -9,7 +10,7 @@ resource 'infs' (9000) {
 	"SEthernet Installer:AppleTalk Files:Network Resources"
 };
 
-resource 'infs' (9001) {
+resource 'infs' (fsTgtSystem) {
 	'zsys',
 	'MACS',
 	0x0,
@@ -18,7 +19,7 @@ resource 'infs' (9001) {
 	"special-macs:System"
 };
 
-resource 'infs' (9010) {
+resource 'infs' (fsTgtEnabler201) {
 	'gbly',
 	'MACS',
 	0x0,
@@ -27,7 +28,7 @@ resource 'infs' (9010) {
 	"special-macs:System Enabler 201"
 };
 
-resource 'infs' (9008) {
+resource 'infs' (fsAppleTalk) {
 	'ZSYS',
 	'MACS',
 	0xA9B73140,
@@ -36,7 +37,7 @@ resource 'infs' (9008) {
 	"SEthernet Installer:AppleTalk Files:AppleTalk"
 };
 
-resource 'infs' (9009) {
+resource 'infs' (fsResponder) {
 	'INIT',
 	'wma.',
 	0xA9B73140,
@@ -45,7 +46,7 @@ resource 'infs' (9009) {
 	"SEthernet Installer:AppleTalk Files:Responder"
 };
 
-resource 'infs' (9002) {
+resource 'infs' (fsTgtAppleTalk) {
 	'ZSYS',
 	'MACS',
 	0x0,
@@ -54,7 +55,7 @@ resource 'infs' (9002) {
 	"special-macs:AppleTalk"
 };
 
-resource 'infs' (9003) {
+resource 'infs' (fsTgtResponder) {
 	'INIT',
 	'wma.',
 	0x0,
@@ -63,7 +64,7 @@ resource 'infs' (9003) {
 	"special-macs:Responder"
 };
 
-resource 'infs' (9004) {
+resource 'infs' (fsTgtADSP) {
 	'INIT',
 	'MACS',
 	0x0,
@@ -72,7 +73,7 @@ resource 'infs' (9004) {
 	"special-macs:ADSP"
 };
 
-resource 'infs' (9005) {
+resource 'infs' (fsTgtADSPExtension) {
 	'INIT',
 	'MACS',
 	0x0,
@@ -81,7 +82,7 @@ resource 'infs' (9005) {
 	"special-extn:ADSP"
 };
 
-resource 'infs' (9006) {
+resource 'infs' (fsTgtAppleTalkExtension) {
 	'ZSYS',
 	'MACS',
 	0x0,
@@ -90,7 +91,7 @@ resource 'infs' (9006) {
 	"special-extn:AppleTalk"
 };
 
-resource 'infs' (9101) {
+resource 'infs' (fsNetwork) {
 	'cdev',
 	'atdv',
 	0xA9B73140,
@@ -99,7 +100,7 @@ resource 'infs' (9101) {
 	"SEthernet Installer:AppleTalk Files:Network"
 };
 
-resource 'infs' (9102) {
+resource 'infs' (fsTgtNetworkControl) {
 	'cdev',
 	'atdv',
 	0x0,
@@ -108,7 +109,7 @@ resource 'infs' (9102) {
 	"special-ctrl:Network"
 };
 
-resource 'infs' (9113) {
+resource 'infs' (fsEtherTalkPhase2) {
 	'adev',
 	'et20',
 	0xA9B73140,
@@ -117,7 +118,7 @@ resource 'infs' (9113) {
 	"SEthernet Installer:AppleTalk Files:EtherTalk Phase 2"
 };
 
-resource 'infs' (9114) {
+resource 'infs' (fsTgtEtherTalkPhase2Extension) {
 	'adev',
 	'et20',
 	0x0,
@@ -126,7 +127,7 @@ resource 'infs' (9114) {
 	"special-extn:EtherTalk Phase 2"
 };
 
-resource 'infs' (9115) {
+resource 'infs' (fsTgtEtherTalk) {
 	'adev',
 	'etlk',
 	0x0,
@@ -135,7 +136,7 @@ resource 'infs' (9115) {
 	"special-macs:EtherTalk"
 };
 
-resource 'infs' (9116) {
+resource 'infs' (fsTgtEtherTalk20) {
 	'adev',
 	'et20',
 	0x0,
@@ -144,7 +145,7 @@ resource 'infs' (9116) {
 	"special-macs:EtherTalk2.0"
 };
 
-resource 'infs' (9117) {
+resource 'infs' (fsTgtEtherTalk21) {
 	'adev',
 	'et20',
 	0x0,
@@ -153,7 +154,7 @@ resource 'infs' (9117) {
 	"special-macs:EtherTalk2.1"
 };
 
-resource 'infs' (9118) {
+resource 'infs' (fsTgtEtherTalkExtension) {
 	'adev',
 	'etlk',
 	0x0,
@@ -162,7 +163,7 @@ resource 'infs' (9118) {
 	"special-extn:EtherTalk"
 };
 
-resource 'infs' (9119) {
+resource 'infs' (fsTgtEtherTalk20Extension) {
 	'adev',
 	'et20',
 	0x0,
@@ -171,7 +172,7 @@ resource 'infs' (9119) {
 	"special-extn:EtherTalk2.0"
 };
 
-resource 'infs' (9120) {
+resource 'infs' (fsTgtEtherTalk21Extension) {
 	'adev',
 	'et20',
 	0x0,
@@ -181,7 +182,7 @@ resource 'infs' (9120) {
 };
 
 #if 0
-resource 'infs' (13000) {
+resource 'infs' (fsSEthernetResources) {
 	'rsrc',
 	'RSED',
 	0,
@@ -191,7 +192,7 @@ resource 'infs' (13000) {
 };
 #endif
 
-resource 'infs' (13002) {
+resource 'infs' (fsSEthernet30) {
 	'comd',
 	'Enet',
 	0,
@@ -200,7 +201,7 @@ resource 'infs' (13002) {
 	"SEthernet Installer:SEthernet Files:SEthernet/30"
 };
 
-resource 'infs' (13003) {
+resource 'infs' (fsTgtSEthernet30) {
 	'comd',
 	'Enet',
 	0,
@@ -209,7 +210,7 @@ resource 'infs' (13003) {
 	"special-extn:SEthernet/30"
 };
 
-resource 'infs' (13004) {
+resource 'infs' (fsTgtSEthernet30Old) {
 	'comd',
 	'Enet',
 	0,

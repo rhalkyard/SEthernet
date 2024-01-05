@@ -1,7 +1,8 @@
 #include "InstallerTypes.r"
 #include "Types.r"
+#include "identifiers.r"
 
-resource 'icmt' (14016) {
+resource 'icmt' (cmAppleTalkSystem6) {
 	0xA9B68880,
 	0x16B5,
 	9000,
@@ -9,7 +10,7 @@ resource 'icmt' (14016) {
 	"hase 2 version 58.1.3. "
 };
 
-resource 'icmt' (14017) {
+resource 'icmt' (cmAppleTalkSystem7) {
 	0xA9B68880,
 	0x16B5,
 	9000,
@@ -17,7 +18,7 @@ resource 'icmt' (14017) {
 };
 
 #if 0
-resource 'icmt' (14000) {
+resource 'icmt' (cmEtherTalkNB) {
 	0xA9B68880,
 	0x25D,
 	9110,
@@ -27,7 +28,7 @@ resource 'icmt' (14000) {
 };
 #endif
 
-resource 'icmt' (13000) {
+resource 'icmt' (cmSEthernet30) {
 	3787161286,
 	0x00012001,
 	9110,

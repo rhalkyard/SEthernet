@@ -1,14 +1,20 @@
 #include "InstallerTypes.r"
+#include "identifiers.r"
 
-/* Detection rule for EtherTalk NB */
+/*
+Detection rule for EtherTalk NB 
+
+Check Slot Manager for board ID 8
+Check if 'enet' resource 8 needs updating (version 6.0.5)
+*/
 #if 0
-resource 'inrl' (9550) {
+resource 'inrl' (rlEtherTalkNB) {
 	format0 {
 		{
 			checkAnyAssertion {
 				{
-					9542,
-					9543
+					asSystem6_0_4,
+					asSystem7
 				}
 			},
 			checkUserFunction {
@@ -23,19 +29,19 @@ resource 'inrl' (9550) {
 			},
 			addAssertion {
 				{
-					9503,
-					9550,
-					9514
+					asInstallingAppleTalk,
+					asEtherTalkNB,
+					asInstallENETDriver
 				}
 			},
 			addAssertion {
 				{
-					9520
+					asInstallNetworkControl
 				}
 			},
 			addPackages {
 				{
-					9202
+					pkEtherTalkNB
 				}
 			}
 		}
@@ -43,65 +49,47 @@ resource 'inrl' (9550) {
 };
 #endif
 
-resource 'inrl' (9531) {
+resource 'inrl' (rlInstallingNetworkControl) {
 	format0 {
 		{
 			checkAllAssertions {
 				{
-					9520
+					asInstallNetworkControl
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (9528) {
+resource 'inrl' (rlInstallingENETDriver) {
 	format0 {
 		{
 			checkAnyAssertion {
 				{
-					9542,
-					9543
+					asSystem6_0_4,
+					asSystem7
 				}
 			},
 			checkAllAssertions {
 				{
-					9514
+					asInstallENETDriver
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (9529) {
+resource 'inrl' (rlNetworkControl3_2) {
 	format0 {
 		{
 			checkAnyAssertion {
 				{
-					9542,
-					9543
-				}
-			},
-			checkAllAssertions {
-				{
-					9515
-				}
-			}
-		}
-	}
-};
-
-resource 'inrl' (9527) {
-	format0 {
-		{
-			checkAnyAssertion {
-				{
-					9542,
-					9543
+					asSystem6_0_4,
+					asSystem7
 				}
 			},
 			checkFileVersion {
-				9102,
+				fsTgtNetworkControl,
 				0x3,
 				0x2,
 				release,
@@ -111,17 +99,17 @@ resource 'inrl' (9527) {
 	}
 };
 
-resource 'inrl' (9524) {
+resource 'inrl' (rlEtherTalkPhase2_2_5_6) {
 	format0 {
 		{
 			checkAnyAssertion {
 				{
-					9542,
-					9543
+					asSystem6_0_4,
+					asSystem7
 				}
 			},
 			checkFileVersion {
-				9114,
+				fsTgtEtherTalkPhase2Extension,
 				0x2,
 				0x56,
 				release,
@@ -136,17 +124,17 @@ resource 'inrl' (9535) {
 		{
 			checkAnyAssertion {
 				{
-					9542,
-					9543
+					asSystem6_0_4,
+					asSystem7
 				}
 			},
 			checkFileRsrcForkExists {
-				9102
+				fsTgtNetworkControl
 			},
 			addAssertion {
 				{
-					9520,
-					9503,
+					asInstallNetworkControl,
+					asInstallingAppleTalk,
 					9535
 				}
 			}
@@ -159,8 +147,8 @@ resource 'inrl' (9536) {
 		{
 			checkAnyAssertion {
 				{
-					9542,
-					9543
+					asSystem6_0_4,
+					asSystem7
 				}
 			},
 			checkAnyAssertion {
@@ -179,8 +167,8 @@ resource 'inrl' (9537) {
 		{
 			checkAnyAssertion {
 				{
-					9542,
-					9543
+					asSystem6_0_4,
+					asSystem7
 				}
 			},
 			checkAllAssertions {
@@ -197,41 +185,41 @@ resource 'inrl' (9537) {
 	}
 };
 
-resource 'inrl' (9532) {
+resource 'inrl' (rlHasEtherTalkPhase2) {
 	format0 {
 		{
 			checkAnyAssertion {
 				{
-					9542,
-					9543
+					asSystem6_0_4,
+					asSystem7
 				}
 			},
 			checkFileRsrcForkExists {
-				9114
+				fsTgtEtherTalkPhase2Extension
 			},
 			addAssertion {
 				{
-					9514,
+					asInstallENETDriver,
 					9507,
-					9503
+					asInstallingAppleTalk
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (9504) {
+resource 'inrl' (rlInstallENETDriver) {
 	format0 {
 		{
 			checkAnyAssertion {
 				{
-					9542,
-					9543
+					asSystem6_0_4,
+					asSystem7
 				}
 			},
 			checkAllAssertions {
 				{
-					9514
+					asInstallENETDriver
 				}
 			},
 			checkUserFunction {
@@ -241,19 +229,19 @@ resource 'inrl' (9504) {
 			},
 			addPackages {
 				{
-					9111
+					pkENETDriver
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (9511) {
+resource 'inrl' (rlCHKA6_58130000) {
 	format0 {
 		{
 			checkAllAssertions {
 				{
-					9542
+					asSystem6_0_4
 				}
 			},
 			checkUserFunction {
@@ -263,20 +251,20 @@ resource 'inrl' (9511) {
 			},
 			addAssertion {
 				{
-					9511,
-					9503
+					asInstallAppleTalkSystem6,
+					asInstallingAppleTalk
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (9512) {
+resource 'inrl' (rlCHKD0_3A130000) {
 	format0 {
 		{
 			checkAllAssertions {
 				{
-					9543
+					asSystem7
 				}
 			},
 			checkUserFunction {
@@ -286,38 +274,38 @@ resource 'inrl' (9512) {
 			},
 			addAssertion {
 				{
-					9512,
-					9503
+					asInstallAppleTalkSystem7,
+					asInstallingAppleTalk
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (9503) {
+resource 'inrl' (rlInstallingAppleTalk) {
 	format0 {
 		{
 			checkAllAssertions {
 				{
-					9503
+					asInstallingAppleTalk
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (9521) {
+resource 'inrl' (rlCCRD1_2) {
 	format0 {
 		{
 			checkAnyAssertion {
 				{
-					9542,
-					9543
+					asSystem6_0_4,
+					asSystem7
 				}
 			},
 			checkAllAssertions {
 				{
-					9514
+					asInstallENETDriver
 				}
 			},
 			checkUserFunction {
@@ -329,13 +317,13 @@ resource 'inrl' (9521) {
 	}
 };
 
-resource 'inrl' (9522) {
+resource 'inrl' (rlCCRD1_0) {
 	format0 {
 		{
 			checkAnyAssertion {
 				{
-					9542,
-					9543
+					asSystem6_0_4,
+					asSystem7
 				}
 			},
 			checkUserFunction {
@@ -346,26 +334,26 @@ resource 'inrl' (9522) {
 			addAssertion {
 				{
 					9507,
-					9503,
-					9514
+					asInstallingAppleTalk,
+					asInstallENETDriver
 				}
 			},
 			addPackages {
 				{
-					9519
+					pkENETDriverUpdate
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (9523) {
+resource 'inrl' (rlCCRD1_1) {
 	format0 {
 		{
 			checkAnyAssertion {
 				{
-					9542,
-					9543
+					asSystem6_0_4,
+					asSystem7
 				}
 			},
 			checkUserFunction {
@@ -375,84 +363,84 @@ resource 'inrl' (9523) {
 			},
 			addAssertion {
 				{
-					9503,
+					asInstallingAppleTalk,
 					9507,
-					9514
+					asInstallENETDriver
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (12000) {
+resource 'inrl' (rlInstallEtherTalk) {
 	format0 {
 		{
 			checkAllAssertions {
 				{
-					9514
+					asInstallENETDriver
 				}
 			},
 			addPackages {
 				{
-					9110
+					pkEtherTalkPhase2
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (12003) {
+resource 'inrl' (rlInstallAppleTalk6) {
 	format0 {
 		{
 			checkAllAssertions {
 				{
-					9511
+					asInstallAppleTalkSystem6
 				}
 			},
 			addPackages {
 				{
-					14016
+					pkAppleTalkSystem6Custom
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (12004) {
+resource 'inrl' (rlInstallAppleTalk7) {
 	format0 {
 		{
 			checkAllAssertions {
 				{
-					9512
+					asInstallAppleTalkSystem7
 				}
 			},
 			addPackages {
 				{
-					14017
+					pkAppleTalkSystem7Custom
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (12008) {
+resource 'inrl' (rlInstallNetworkControlPanel) {
 	format0 {
 		{
 			checkAllAssertions {
 				{
-					9520
+					asInstallNetworkControl
 				}
 			},
 			addPackages {
 				{
-					9100
+					pkNetworkControl
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (11000) {
+resource 'inrl' (rlBaseDescription) {
 	format0 {
 		{
 			addUserDescription {
@@ -462,7 +450,7 @@ resource 'inrl' (11000) {
 	}
 };
 
-resource 'inrl' (11001) {
+resource 'inrl' (rlNoSystemError) {
 	format0 {
 		{
 			reportVolError {
@@ -474,13 +462,13 @@ resource 'inrl' (11001) {
 	}
 };
 
-resource 'inrl' (11002) {
+resource 'inrl' (rlLaterAppleTalkError) {
 	format0 {
 		{
 			checkAnyAssertion {
 				{
-					9543,
-					9542
+					asSystem7,
+					asSystem6_0_4
 				}
 			},
 			reportVolError {
@@ -492,12 +480,12 @@ resource 'inrl' (11002) {
 	}
 };
 
-resource 'inrl' (11003) {
+resource 'inrl' (rlOldSystemError) {
 	format0 {
 		{
 			checkAllAssertions {
 				{
-					9541
+					asHasSystem
 				}
 			},
 			reportVolError {
@@ -509,7 +497,7 @@ resource 'inrl' (11003) {
 	}
 };
 
-resource 'inrl' (11004) {
+resource 'inrl' (rlEtherTalkUpdateDescription) {
 	format0 {
 		{
 			checkAllAssertions {
@@ -524,7 +512,7 @@ resource 'inrl' (11004) {
 	}
 };
 
-resource 'inrl' (11006) {
+resource 'inrl' (rlNetworkControlPanelDescription) {
 	format0 {
 		{
 			checkAllAssertions {
@@ -539,13 +527,13 @@ resource 'inrl' (11006) {
 	}
 };
 
-resource 'inrl' (11007) {
+resource 'inrl' (rlAppleTalkDescription) {
 	format0 {
 		{
 			checkAnyAssertion {
 				{
-					9511,
-					9512
+					asInstallAppleTalkSystem6,
+					asInstallAppleTalkSystem7
 				}
 			},
 			addUserDescription {
@@ -556,12 +544,12 @@ resource 'inrl' (11007) {
 };
 
 #if 0
-resource 'inrl' (11008) {
+resource 'inrl' (rlEtherTalkNBDescription) {
 	format0 {
 		{
 			checkAllAssertions {
 				{
-					9550
+					asEtherTalkNB
 				}
 			},
 			addUserDescription {
@@ -572,78 +560,12 @@ resource 'inrl' (11008) {
 };
 #endif
 
-resource 'inrl' (9169) {
-	format0 {
-		{
-			addAssertion {
-				{
-					9189
-				}
-			}
-		}
-	}
-};
-
-resource 'inrl' (9177) {
-	format0 {
-		{
-			checkAllAssertions {
-				{
-					9179
-				}
-			}
-		}
-	}
-};
-
-resource 'inrl' (9170) {
-	format0 {
-		{
-			addAssertion {
-				{
-					9191
-				}
-			}
-		}
-	}
-};
-
-resource 'inrl' (9171) {
-	format0 {
-		{
-			addAssertion {
-				{
-					9192
-				}
-			}
-		}
-	}
-};
-
-resource 'inrl' (9176) {
-	format0 {
-		{
-			checkAllAssertions {
-				{
-					9180,
-					9181,
-					9182
-				}
-			},
-			addAssertion {
-				{
-					9183
-				}
-			}
-		}
-	}
-};
-
-resource 'inrl' (9541) {
+/* Set assertion asHasSystem if System file exists and has a 'vers' resource */ 
+resource 'inrl' (rlHasSystem) {
 	format0 {
 		{
 			checkFileVersion {
-				9001,
+				fsTgtSystem,
 				0x0,
 				0x0,
 				0x0,
@@ -651,18 +573,19 @@ resource 'inrl' (9541) {
 			},
 			addAssertion {
 				{
-					9541
+					asHasSystem
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (9542) {
+/* Set assertion asSystem6 if System version >= 6.0.4 */
+resource 'inrl' (rlSystem6_0_4) {
 	format0 {
 		{
 			checkFileVersion {
-				9001,
+				fsTgtSystem,
 				0x6,
 				0x4,
 				release,
@@ -670,18 +593,19 @@ resource 'inrl' (9542) {
 			},
 			addAssertion {
 				{
-					9542
+					asSystem6_0_4
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (9543) {
+/* Set assertion asSystem7 if System version >= 7.0.0 */
+resource 'inrl' (rlSystem7) {
 	format0 {
 		{
 			checkFileVersion {
-				9001,
+				fsTgtSystem,
 				0x7,
 				0x0,
 				release,
@@ -689,7 +613,7 @@ resource 'inrl' (9543) {
 			},
 			addAssertion {
 				{
-					9543
+					asSystem7
 				}
 			}
 		}
@@ -701,58 +625,41 @@ resource 'infr' (0) {
 		{
 			pickFirst,
 			{
-				9169
+				// A/UX rule 9177,
+				rlHasSystem,		/* does the target volume have a valid System file? */
+				rlNoSystemError
 			},
 			pickFirst,
-			{
-				9177,
-				9541,
-				11001
-			},
-			pickFirst,
-			{
-				9177,
-				9543,
-				9542,
-				11003
-			},
-			pickFirst,
-			{
-				9170
-			},
-			pickFirst,
-			{
-				9171
+			{	/* If System older than 6.0.4, block installlation */
+				// A/UX rule 9177,
+				rlSystem7,			/* Does the target volume have System 7 or newer? */
+				rlSystem6_0_4,		/* Does the target volume have System 6.0.4 or newer */
+				rlOldSystemError
 			},
 			pickAll,
 			{
-				9176,
+				// A/UX rule 9176,
 #if 0
-				9550,
+				rlEtherTalkNB,	/* Detect and add packages for EtherTalk NB */
 #endif
-				9504,
-				13001
+				rlSEthernet30,	/* Detect and add packages for SEthernet/30 */
+				rlInstallENETDriver	/* Detect existing .ENET driver and install update if needed */
 			},
 			pickFirst,
 			{
-				9177,
-				9529
+				// A/UX rule 9177,
+				rlCCRD1_2,
+				rlCCRD1_0,
+				rlCCRD1_1,
+				rlInstallingENETDriver,
+				rlEtherTalkPhase2_2_5_6,
+				rlHasEtherTalkPhase2
 			},
 			pickFirst,
 			{
-				9177,
-				9521,
-				9522,
-				9523,
-				9528,
-				9524,
-				9532
-			},
-			pickFirst,
-			{
-				9177,
-				9531,
-				9527,
+				// A/UX rule 9177,
+				rlInstallingNetworkControl,
+				rlNetworkControl3_2,
 				9535
 			},
 			pickFirst,
@@ -762,42 +669,42 @@ resource 'infr' (0) {
 			},
 			pickFirst,
 			{
-				9177,
-				9511,
-				9512,
-				9503,
-				11002
+				// A/UX rule 9177,
+				rlCHKA6_58130000,
+				rlCHKD0_3A130000,
+				rlInstallingAppleTalk,
+				rlLaterAppleTalkError
 			},
 			pickAll,
-			{
-				11000,
-				11007,
+			{	/* Build install description */
+				rlBaseDescription,
+				rlAppleTalkDescription,
 #if 0
-				11008,
+				rlEtherTalkNBDescription,
 #endif
-				11004,
-				11006,
-				13002
+				rlEtherTalkUpdateDescription,
+				rlNetworkControlPanelDescription,
+				rlSEthernet30Description
 			},
 			pickAll,
-			{
-				12000,
-				12003,
-				12004,
-				12008
+			{	/* Install requested support packages */
+				rlInstallEtherTalk,
+				rlInstallAppleTalk6,
+				rlInstallAppleTalk7,
+				rlInstallNetworkControlPanel
 			}
 		}
 	}
 };
 
 /* Detection rule for SEthernet/30 */
-resource 'inrl' (13001) {
+resource 'inrl' (rlSEthernet30) {
 	format0 {
 		{
 			checkAnyAssertion {
 				{
-					9542,
-					9543
+					asSystem6_0_4,
+					asSystem7
 				}
 			},
 			checkUserFunction {
@@ -807,19 +714,19 @@ resource 'inrl' (13001) {
 			},
 			addAssertion {
 				{
-					9503,
-					13001,
-					9514
+					asInstallingAppleTalk,
+					asSEthernet30,
+					asInstallENETDriver
 				}
 			},
 			addAssertion {
 				{
-					9520
+					asInstallNetworkControl
 				}
 			},
 			addPackages {
 				{
-					13001
+					pkSEthernet30
 				}
 			}
 		}
@@ -831,7 +738,7 @@ resource 'inrl' (13002) {
 		{
 			checkAllAssertions {
 				{
-					13001
+					asSEthernet30
 				}
 			},
 			addUserDescription {

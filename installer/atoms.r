@@ -1,6 +1,7 @@
 #include "InstallerTypes.r"
+#include "identifiers.r"
 
-resource 'infa' (9002) {
+resource 'infa' (faAppleTalk) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -10,14 +11,14 @@ resource 'infa' (9002) {
 		copyIfNewOrUpdate,
 		rsrcFork,
 		dataFork,
-		9002,
-		9008,
-		61440,
+		fsTgtAppleTalk,
+		fsAppleTalk,
+		0,
 		""
 	}
 };
 
-resource 'infa' (9003) {
+resource 'infa' (faResponder) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -27,14 +28,14 @@ resource 'infa' (9003) {
 		copyIfNewOrUpdate,
 		rsrcFork,
 		dataFork,
-		9003,
-		9009,
+		fsTgtResponder,
+		fsResponder,
 		7680,
 		"Responder"
 	}
 };
 
-resource 'infa' (9004) {
+resource 'infa' (faDeleteADSP) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -44,14 +45,14 @@ resource 'infa' (9004) {
 		copyIfNewOrUpdate,
 		rsrcFork,
 		dataFork,
-		9004,
+		fsTgtADSP,
 		0,
 		0,
 		""
 	}
 };
 
-resource 'infa' (9005) {
+resource 'infa' (faDeleteADSPExtension) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -61,14 +62,14 @@ resource 'infa' (9005) {
 		copyIfNewOrUpdate,
 		rsrcFork,
 		dataFork,
-		9005,
+		fsTgtADSPExtension,
 		0,
 		0,
 		""
 	}
 };
 
-resource 'infa' (9006) {
+resource 'infa' (faDeleteAppleTalkExtension) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -78,14 +79,14 @@ resource 'infa' (9006) {
 		copyIfNewOrUpdate,
 		rsrcFork,
 		dataFork,
-		9006,
+		fsTgtAppleTalkExtension,
 		0,
 		0,
 		""
 	}
 };
 
-resource 'infa' (9007) {
+resource 'infa' (faDeleteAppleTalk) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -95,14 +96,14 @@ resource 'infa' (9007) {
 		copyIfNewOrUpdate,
 		rsrcFork,
 		dataFork,
-		9002,
+		fsTgtAppleTalk,
 		0,
 		0,
 		""
 	}
 };
 
-resource 'infa' (9102) {
+resource 'infa' (faNetworkControl) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -112,14 +113,14 @@ resource 'infa' (9102) {
 		copyIfNewOrUpdate,
 		rsrcFork,
 		dataFork,
-		9102,
-		9101,
+		fsTgtNetworkControl,
+		fsNetwork,
 		43008,
 		""
 	}
 };
 
-resource 'infa' (9114) {
+resource 'infa' (faEtherTalkPhase2Extension) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -129,14 +130,14 @@ resource 'infa' (9114) {
 		copyIfNewOrUpdate,
 		rsrcFork,
 		dataFork,
-		9114,
-		9113,
+		fsTgtEtherTalkPhase2Extension,
+		fsEtherTalkPhase2,
 		15360,
 		""
 	}
 };
 
-resource 'infa' (9115) {
+resource 'infa' (faDeleteEtherTalk) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -146,14 +147,14 @@ resource 'infa' (9115) {
 		copyIfNewOrUpdate,
 		rsrcFork,
 		dataFork,
-		9115,
+		fsTgtEtherTalk,
 		0,
 		0,
 		""
 	}
 };
 
-resource 'infa' (9116) {
+resource 'infa' (faDeleteEtherTalk20) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -163,14 +164,14 @@ resource 'infa' (9116) {
 		copyIfNewOrUpdate,
 		rsrcFork,
 		dataFork,
-		9116,
+		fsTgtEtherTalk20,
 		0,
 		0,
 		"EtherTalk2.0 File"
 	}
 };
 
-resource 'infa' (9117) {
+resource 'infa' (faDeleteEtherTalk21) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -180,14 +181,14 @@ resource 'infa' (9117) {
 		copyIfNewOrUpdate,
 		rsrcFork,
 		dataFork,
-		9117,
+		fsTgtEtherTalk21,
 		0,
 		0,
 		"EtherTalk2.1 File"
 	}
 };
 
-resource 'infa' (9118) {
+resource 'infa' (faDeleteEtherTalkExtension) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -197,14 +198,14 @@ resource 'infa' (9118) {
 		copyIfNewOrUpdate,
 		rsrcFork,
 		dataFork,
-		9118,
+		fsTgtEtherTalkExtension,
 		0,
 		0,
 		""
 	}
 };
 
-resource 'infa' (9119) {
+resource 'infa' (faDeleteEtherTalk20Extension) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -214,14 +215,14 @@ resource 'infa' (9119) {
 		copyIfNewOrUpdate,
 		rsrcFork,
 		dataFork,
-		9119,
+		fsTgtEtherTalk20Extension,
 		0,
 		0,
 		"EtherTalk2.0 File"
 	}
 };
 
-resource 'infa' (9120) {
+resource 'infa' (faDeleteEtherTalk21Extension) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -231,14 +232,14 @@ resource 'infa' (9120) {
 		copyIfNewOrUpdate,
 		rsrcFork,
 		dataFork,
-		9120,
+		fsTgtEtherTalk21Extension,
 		0,
 		0,
 		"EtherTalk2.1 File"
 	}
 };
 
-resource 'inaa' (9001) {
+resource 'inaa' (aaCheckSystem6) {
 	format0 {
 		actBefore,
 		actOnRemove,
@@ -250,7 +251,7 @@ resource 'inaa' (9001) {
 	}
 };
 
-resource 'inaa' (9000) {
+resource 'inaa' (aaCheckSystem7) {
 	format0 {
 		actBefore,
 		dontActOnRemove,
@@ -262,7 +263,7 @@ resource 'inaa' (9000) {
 	}
 };
 
-resource 'inaa' (9002) {
+resource 'inaa' (aaFROV6) {
 	format0 {
 		actAfter,
 		dontActOnRemove,
@@ -274,7 +275,7 @@ resource 'inaa' (9002) {
 	}
 };
 
-resource 'inaa' (9003) {
+resource 'inaa' (aaFROV7) {
 	format0 {
 		actAfter,
 		dontActOnRemove,
@@ -286,7 +287,7 @@ resource 'inaa' (9003) {
 	}
 };
 
-resource 'inaa' (9004) {
+resource 'inaa' (aaFFMP7) {
 	format0 {
 		actAfter,
 		dontActOnRemove,
@@ -298,7 +299,7 @@ resource 'inaa' (9004) {
 	}
 };
 
-resource 'inaa' (9005) {
+resource 'inaa' (aaSGBL7) {
 	format0 {
 		actAfter,
 		dontActOnRemove,
@@ -310,7 +311,7 @@ resource 'inaa' (9005) {
 	}
 };
 
-resource 'inaa' (9112) {
+resource 'inaa' (aaTestENETDRVR) {
 	format0 {
 		actBefore,
 		dontActOnRemove,
@@ -324,7 +325,7 @@ resource 'inaa' (9112) {
 
 /* EtherTalk NB driver - check for exiting 'enet' resource */
 #if 0
-resource 'inaa' (9202) {
+resource 'inaa' (aaTestEnetNB) {
 	format0 {
 		actBefore,
 		dontActOnRemove,
@@ -337,7 +338,7 @@ resource 'inaa' (9202) {
 };
 #endif
 
-resource 'inaa' (9540) {
+resource 'inaa' (aaUPDE0) {
 	format0 {
 		actBefore,
 		dontActOnRemove,
@@ -349,7 +350,7 @@ resource 'inaa' (9540) {
 	}
 };
 
-resource 'inra' (9000) {
+resource 'inra' (raSystem_INIT18) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -361,8 +362,8 @@ resource 'inra' (9000) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'INIT',
 		18,
 		18,
@@ -372,7 +373,7 @@ resource 'inra' (9000) {
 	}
 };
 
-resource 'inra' (9001) {
+resource 'inra' (raSystem_iopc128) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -384,8 +385,8 @@ resource 'inra' (9001) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'iopc',
 		128,
 		128,
@@ -395,7 +396,7 @@ resource 'inra' (9001) {
 	}
 };
 
-resource 'inra' (9005) {
+resource 'inra' (raSystem_ltlk2) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -407,8 +408,8 @@ resource 'inra' (9005) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'ltlk',
 		2,
 		2,
@@ -418,7 +419,7 @@ resource 'inra' (9005) {
 	}
 };
 
-resource 'inra' (9006) {
+resource 'inra' (raSystem_ltlk3) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -430,8 +431,8 @@ resource 'inra' (9006) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'ltlk',
 		3,
 		3,
@@ -441,7 +442,7 @@ resource 'inra' (9006) {
 	}
 };
 
-resource 'inra' (9031) {
+resource 'inra' (raSystem_ltlk4) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -453,8 +454,8 @@ resource 'inra' (9031) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'ltlk',
 		4,
 		4,
@@ -464,7 +465,7 @@ resource 'inra' (9031) {
 	}
 };
 
-resource 'inra' (9032) {
+resource 'inra' (raSystem_ltlk5) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -476,8 +477,8 @@ resource 'inra' (9032) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'ltlk',
 		5,
 		5,
@@ -487,7 +488,7 @@ resource 'inra' (9032) {
 	}
 };
 
-resource 'inra' (9008) {
+resource 'inra' (raSystem_atlk3) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -499,8 +500,8 @@ resource 'inra' (9008) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'atlk',
 		3,
 		3,
@@ -510,7 +511,7 @@ resource 'inra' (9008) {
 	}
 };
 
-resource 'inra' (9002) {
+resource 'inra' (raSystem_iopc127) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -522,8 +523,8 @@ resource 'inra' (9002) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'iopc',
 		127,
 		127,
@@ -533,7 +534,7 @@ resource 'inra' (9002) {
 	}
 };
 
-resource 'inra' (9003) {
+resource 'inra' (raSystem_ltlk0) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -545,8 +546,8 @@ resource 'inra' (9003) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'ltlk',
 		0,
 		0,
@@ -556,7 +557,7 @@ resource 'inra' (9003) {
 	}
 };
 
-resource 'inra' (9004) {
+resource 'inra' (raSystem_ltlk1) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -568,8 +569,8 @@ resource 'inra' (9004) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'ltlk',
 		1,
 		1,
@@ -579,7 +580,7 @@ resource 'inra' (9004) {
 	}
 };
 
-resource 'inra' (9007) {
+resource 'inra' (raSystem_atlk1) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -591,8 +592,8 @@ resource 'inra' (9007) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'atlk',
 		1,
 		1,
@@ -602,7 +603,7 @@ resource 'inra' (9007) {
 	}
 };
 
-resource 'inra' (9009) {
+resource 'inra' (raSystem_DRVR9_MPP) {
 	format0 {
 		dontDeleteWhenRemoving,
 		dontDeleteWhenInstalling,
@@ -614,8 +615,8 @@ resource 'inra' (9009) {
 		srcNeedExist,
 		byID,
 		nameMustMatch,
-		9001,
-		9008,
+		fsTgtSystem,
+		fsAppleTalk,
 		'DRVR',
 		9,
 		9,
@@ -625,7 +626,7 @@ resource 'inra' (9009) {
 	}
 };
 
-resource 'inra' (9010) {
+resource 'inra' (raSystem_DRVR10_ATP) {
 	format0 {
 		dontDeleteWhenRemoving,
 		dontDeleteWhenInstalling,
@@ -637,8 +638,8 @@ resource 'inra' (9010) {
 		srcNeedExist,
 		byID,
 		nameMustMatch,
-		9001,
-		9008,
+		fsTgtSystem,
+		fsAppleTalk,
 		'DRVR',
 		10,
 		10,
@@ -648,7 +649,7 @@ resource 'inra' (9010) {
 	}
 };
 
-resource 'inra' (9011) {
+resource 'inra' (raSystem_DRVR40_XPP) {
 	format0 {
 		dontDeleteWhenRemoving,
 		dontDeleteWhenInstalling,
@@ -660,8 +661,8 @@ resource 'inra' (9011) {
 		srcNeedExist,
 		byID,
 		nameMustMatch,
-		9001,
-		9008,
+		fsTgtSystem,
+		fsAppleTalk,
 		'DRVR',
 		40,
 		40,
@@ -671,7 +672,7 @@ resource 'inra' (9011) {
 	}
 };
 
-resource 'inra' (9017) {
+resource 'inra' (raSystem_lmgr0) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -683,8 +684,8 @@ resource 'inra' (9017) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9008,
+		fsTgtSystem,
+		fsAppleTalk,
 		'lmgr',
 		0,
 		0,
@@ -694,7 +695,7 @@ resource 'inra' (9017) {
 	}
 };
 
-resource 'inra' (9012) {
+resource 'inra' (raSystem_DRVR126_DSP) {
 	format0 {
 		dontDeleteWhenRemoving,
 		dontDeleteWhenInstalling,
@@ -706,8 +707,8 @@ resource 'inra' (9012) {
 		srcNeedExist,
 		byID,
 		nameMustMatch,
-		9001,
-		9008,
+		fsTgtSystem,
+		fsAppleTalk,
 		'DRVR',
 		126,
 		126,
@@ -717,7 +718,7 @@ resource 'inra' (9012) {
 	}
 };
 
-resource 'inra' (9013) {
+resource 'inra' (raSystem_drvr9) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -729,8 +730,8 @@ resource 'inra' (9013) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9008,
+		fsTgtSystem,
+		fsAppleTalk,
 		'drvr',
 		9,
 		9,
@@ -740,7 +741,7 @@ resource 'inra' (9013) {
 	}
 };
 
-resource 'inra' (9014) {
+resource 'inra' (raSystem_AINI30) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -752,8 +753,8 @@ resource 'inra' (9014) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9008,
+		fsTgtSystem,
+		fsAppleTalk,
 		'AINI',
 		30,
 		30,
@@ -763,7 +764,7 @@ resource 'inra' (9014) {
 	}
 };
 
-resource 'inra' (9015) {
+resource 'inra' (raSystem_AINI30000) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -775,8 +776,8 @@ resource 'inra' (9015) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'AINI',
 		30000,
 		30000,
@@ -786,7 +787,7 @@ resource 'inra' (9015) {
 	}
 };
 
-resource 'inra' (9016) {
+resource 'inra' (raSystem_AINI32000) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -798,8 +799,8 @@ resource 'inra' (9016) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'AINI',
 		32000,
 		32000,
@@ -809,7 +810,7 @@ resource 'inra' (9016) {
 	}
 };
 
-resource 'inra' (9026) {
+resource 'inra' (raDeleteSystem_AINI20) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -821,7 +822,7 @@ resource 'inra' (9026) {
 		srcNeedNotExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
+		fsTgtSystem,
 		0,
 		'AINI',
 		20,
@@ -832,7 +833,7 @@ resource 'inra' (9026) {
 	}
 };
 
-resource 'inra' (9018) {
+resource 'inra' (raDeleteSystem_DRVR40_XPP) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -844,7 +845,7 @@ resource 'inra' (9018) {
 		srcNeedNotExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
+		fsTgtSystem,
 		0,
 		'DRVR',
 		40,
@@ -855,7 +856,7 @@ resource 'inra' (9018) {
 	}
 };
 
-resource 'inra' (9019) {
+resource 'inra' (raDeleteSystem_DITL_4030) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -867,7 +868,7 @@ resource 'inra' (9019) {
 		srcNeedNotExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
+		fsTgtSystem,
 		0,
 		'DITL',
 		-4030,
@@ -878,7 +879,7 @@ resource 'inra' (9019) {
 	}
 };
 
-resource 'inra' (9020) {
+resource 'inra' (raDeleteSystem_DITL_4031) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -890,7 +891,7 @@ resource 'inra' (9020) {
 		srcNeedNotExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
+		fsTgtSystem,
 		0,
 		'DITL',
 		-4031,
@@ -901,7 +902,7 @@ resource 'inra' (9020) {
 	}
 };
 
-resource 'inra' (9021) {
+resource 'inra' (raDeleteSystem_DITL_4032) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -913,7 +914,7 @@ resource 'inra' (9021) {
 		srcNeedNotExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
+		fsTgtSystem,
 		0,
 		'DITL',
 		-4032,
@@ -924,7 +925,7 @@ resource 'inra' (9021) {
 	}
 };
 
-resource 'inra' (9022) {
+resource 'inra' (raDeleteSystem_ALRT_4030) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -936,7 +937,7 @@ resource 'inra' (9022) {
 		srcNeedNotExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
+		fsTgtSystem,
 		0,
 		'ALRT',
 		-4030,
@@ -947,7 +948,7 @@ resource 'inra' (9022) {
 	}
 };
 
-resource 'inra' (9023) {
+resource 'inra' (raDeleteSystem_ALRT_4031) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -959,7 +960,7 @@ resource 'inra' (9023) {
 		srcNeedNotExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
+		fsTgtSystem,
 		0,
 		'ALRT',
 		-4031,
@@ -970,7 +971,7 @@ resource 'inra' (9023) {
 	}
 };
 
-resource 'inra' (9024) {
+resource 'inra' (raDeleteSystem_ALRT_4032) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -982,7 +983,7 @@ resource 'inra' (9024) {
 		srcNeedNotExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
+		fsTgtSystem,
 		0,
 		'ALRT',
 		-4032,
@@ -993,7 +994,7 @@ resource 'inra' (9024) {
 	}
 };
 
-resource 'inra' (9025) {
+resource 'inra' (raDeleteSystem_STR__4032) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -1005,7 +1006,7 @@ resource 'inra' (9025) {
 		srcNeedNotExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
+		fsTgtSystem,
 		0,
 		'STR#',
 		-4032,
@@ -1016,7 +1017,7 @@ resource 'inra' (9025) {
 	}
 };
 
-resource 'inra' (9027) {
+resource 'inra' (raSystem_STR__16408) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -1028,8 +1029,8 @@ resource 'inra' (9027) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'STR#',
 		-16408,
 		-16408,
@@ -1039,7 +1040,7 @@ resource 'inra' (9027) {
 	}
 };
 
-resource 'inra' (9028) {
+resource 'inra' (raSystem_STR__16504) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -1051,8 +1052,8 @@ resource 'inra' (9028) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'STR#',
 		-16504,
 		-16504,
@@ -1062,7 +1063,7 @@ resource 'inra' (9028) {
 	}
 };
 
-resource 'inra' (9029) {
+resource 'inra' (raSystem_STR__16503) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -1074,8 +1075,8 @@ resource 'inra' (9029) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'STR#',
 		-16503,
 		-16503,
@@ -1085,7 +1086,7 @@ resource 'inra' (9029) {
 	}
 };
 
-resource 'inra' (9030) {
+resource 'inra' (raEnabler201_lefT0) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -1097,8 +1098,8 @@ resource 'inra' (9030) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9010,
-		9000,
+		fsTgtEnabler201,
+		fsNetworkResources,
 		'lefT',
 		0,
 		0,
@@ -1108,7 +1109,7 @@ resource 'inra' (9030) {
 	}
 };
 
-resource 'inra' (9112) {
+resource 'inra' (raSystem_DRVR127_ENET) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -1120,8 +1121,8 @@ resource 'inra' (9112) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'DRVR',
 		127,
 		127,
@@ -1133,7 +1134,7 @@ resource 'inra' (9112) {
 
 /* EtherTalk NB driver - install 'enet' resource */
 #if 0
-resource 'inra' (9202) {
+resource 'inra' (raSystem_enet8) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -1145,8 +1146,8 @@ resource 'inra' (9202) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
-		9000,
+		fsTgtSystem,
+		fsNetworkResources,
 		'enet',
 		8,
 		8,
@@ -1159,7 +1160,7 @@ resource 'inra' (9202) {
 
 /* Check for existing SEthernet/30 'enet' resource in System file */
 #if 0
-resource 'inaa' (13001) {
+resource 'inaa' (aaTestSEthernet30) {
 	format0 {
 		actBefore,
 		dontActOnRemove,
@@ -1174,7 +1175,7 @@ resource 'inaa' (13001) {
 
 /* Install SEthernet/30 driver as 'enet' resource in System file */
 #if 0
-resource 'inra' (13001) {
+resource 'inra' (raSystem_enet9635) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -1186,7 +1187,7 @@ resource 'inra' (13001) {
 		srcNeedExist,
 		byID,
 		nameNeedNotMatch,
-		9001,
+		fsTgtSystem,
 		13000,
 		'enet',
 		9635,
@@ -1199,7 +1200,7 @@ resource 'inra' (13001) {
 #endif
 
 /* Install SEthernet/30 driver as extension */
-resource 'infa' (13002) {
+resource 'infa' (faSEthernet30) {
 	format0 {
 		deleteWhenRemoving,
 		deleteWhenInstalling,
@@ -1209,15 +1210,14 @@ resource 'infa' (13002) {
 		copyIfNewOrUpdate,
 		rsrcFork,
 		dataFork,
-		13003,
-		13002,
+		fsTgtSEthernet30,
+		fsSEthernet30,
 		0,
 		""
 	}
 };
 
-/* Install SEthernet/30 driver as extension */
-resource 'infa' (13004) {
+resource 'infa' (faDeleteOldSEthernet30) {
 	format0 {
 		dontDeleteWhenRemoving,
 		deleteWhenInstalling,
@@ -1227,7 +1227,7 @@ resource 'infa' (13004) {
 		copyIfNewOrUpdate,
 		rsrcFork,
 		dataFork,
-		13004,
+		fsTgtSEthernet30Old,
 		0,
 		0,
 		""
