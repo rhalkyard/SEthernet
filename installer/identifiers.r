@@ -120,7 +120,7 @@
 /* Rules */
 #define rlInstallENETDriver 9504
 #define rlEtherTalkPhase2_2_5_6 9524
-#define rlNetworkControl3_2 9527
+#define rlNetworkControl3_0_2 9527
 #define rlHasSystem 9541
 #define rlSystem6_0_4 9542
 #define rlSystem7 9543
@@ -144,10 +144,13 @@
 #define rlCCRD1_1 9523
 #define rlInstallingENETDriver 9528
 #define rlHasEtherTalkPhase2 9532
-#define rlInstallingNetworkControl 9531
+#define rlNetworkControlRequested 9531
 #define rlCHKA6_58130000 9511
 #define rlCHKD0_3A130000 9512
-#define rlInstallingAppleTalk 9503
+#define rlInstallAppleTalk 9503
+#define rlInstallingEtherTalk 9536
+#define rlHasNetworkControl 9535
+#define rlUpdateNetworkControl 9537
 
 /* Assertions */
 #define asInstallAppleTalkSystem6 9511
@@ -159,4 +162,7 @@
 #define asSystem7 9543
 #define asEtherTalkNB 9550
 #define asSEthernet30 13001
-#define asInstallingAppleTalk 9503
+#define asInstallAppleTalk 9503
+#define asInstallEtherTalk 9507
+#define asInstallingNetworkControl 9510
+#define asHasNetworkControl 9535

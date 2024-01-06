@@ -190,8 +190,8 @@ resource 'inpk' (pkEtherTalkPhase2) {
 	}
 };
 
-/* EtherTalk NB driver package */
 #if 0
+/* EtherTalk NB driver package */
 resource 'inpk' (pkEtherTalkNB) {
 	format0 {
 		doesntShowOnCustom,
@@ -222,8 +222,8 @@ resource 'inpk' (pkENETDriverUpdate) {
 	}
 };
 
-/* EtherTalk NB Custom Install entry */
 #if 0
+/* EtherTalk NB Custom Install entry */
 resource 'inpk' (pkEtherTalkNBCustom) {
 	format0 {
 		showsOnCustom,

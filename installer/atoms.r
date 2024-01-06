@@ -323,8 +323,8 @@ resource 'inaa' (aaTestENETDRVR) {
 	}
 };
 
-/* EtherTalk NB driver - check for exiting 'enet' resource */
 #if 0
+/* EtherTalk NB driver - check for existing 'enet' resource */
 resource 'inaa' (aaTestEnetNB) {
 	format0 {
 		actBefore,
@@ -1132,8 +1132,8 @@ resource 'inra' (raSystem_DRVR127_ENET) {
 	}
 };
 
-/* EtherTalk NB driver - install 'enet' resource */
 #if 0
+/* EtherTalk NB driver - install 'enet' resource */
 resource 'inra' (raSystem_enet8) {
 	format0 {
 		deleteWhenRemoving,
@@ -1158,8 +1158,8 @@ resource 'inra' (raSystem_enet8) {
 };
 #endif
 
+#if 0 /* Disabled since we are using the extension instead */
 /* Check for existing SEthernet/30 'enet' resource in System file */
-#if 0
 resource 'inaa' (aaTestSEthernet30) {
 	format0 {
 		actBefore,
@@ -1171,10 +1171,8 @@ resource 'inaa' (aaTestSEthernet30) {
 		"Preparing to install…"
 	}
 };
-#endif
 
 /* Install SEthernet/30 driver as 'enet' resource in System file */
-#if 0
 resource 'inra' (raSystem_enet9635) {
 	format0 {
 		deleteWhenRemoving,

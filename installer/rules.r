@@ -1,13 +1,13 @@
 #include "InstallerTypes.r"
 #include "identifiers.r"
 
+#if 0
 /*
 Detection rule for EtherTalk NB 
 
 Check Slot Manager for board ID 8
 Check if 'enet' resource 8 needs updating (version 6.0.5)
 */
-#if 0
 resource 'inrl' (rlEtherTalkNB) {
 	format0 {
 		{
@@ -29,7 +29,7 @@ resource 'inrl' (rlEtherTalkNB) {
 			},
 			addAssertion {
 				{
-					asInstallingAppleTalk,
+					asInstallAppleTalk,
 					asEtherTalkNB,
 					asInstallENETDriver
 				}
@@ -49,7 +49,8 @@ resource 'inrl' (rlEtherTalkNB) {
 };
 #endif
 
-resource 'inrl' (rlInstallingNetworkControl) {
+/* Rule fires if Network control panel install has been requested */
+resource 'inrl' (rlNetworkControlRequested) {
 	format0 {
 		{
 			checkAllAssertions {
@@ -61,6 +62,7 @@ resource 'inrl' (rlInstallingNetworkControl) {
 	}
 };
 
+/* Rule fires if System is >= 6.0.4 or 7 and ethernet driver install has been requested */
 resource 'inrl' (rlInstallingENETDriver) {
 	format0 {
 		{
@@ -79,7 +81,8 @@ resource 'inrl' (rlInstallingENETDriver) {
 	}
 };
 
-resource 'inrl' (rlNetworkControl3_2) {
+/* Rule fires if Network control panel version at least 3.0.2 */
+resource 'inrl' (rlNetworkControl3_0_2) {
 	format0 {
 		{
 			checkAnyAssertion {
@@ -99,6 +102,7 @@ resource 'inrl' (rlNetworkControl3_2) {
 	}
 };
 
+/* Rule fires if EtherTalk Phase 2 extension verison is at least 2.5.6 */
 resource 'inrl' (rlEtherTalkPhase2_2_5_6) {
 	format0 {
 		{
@@ -119,7 +123,8 @@ resource 'inrl' (rlEtherTalkPhase2_2_5_6) {
 	}
 };
 
-resource 'inrl' (9535) {
+/* Rule fires if System version is >= 6.0.4 or 7 and Network control panel exists */
+resource 'inrl' (rlHasNetworkControl) {
 	format0 {
 		{
 			checkAnyAssertion {
@@ -134,15 +139,16 @@ resource 'inrl' (9535) {
 			addAssertion {
 				{
 					asInstallNetworkControl,
-					asInstallingAppleTalk,
-					9535
+					asInstallAppleTalk,
+					asHasNetworkControl
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (9536) {
+/* Rule fires if System is >= 6.0.4 or 7 and EtherTalk install has been requested */
+resource 'inrl' (rlInstallingEtherTalk) {
 	format0 {
 		{
 			checkAnyAssertion {
@@ -153,16 +159,14 @@ resource 'inrl' (9536) {
 			},
 			checkAnyAssertion {
 				{
-					9508,
-					9507,
-					9509
+					asInstallEtherTalk,
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (9537) {
+resource 'inrl' (rlUpdateNetworkControl) {
 	format0 {
 		{
 			checkAnyAssertion {
@@ -173,18 +177,19 @@ resource 'inrl' (9537) {
 			},
 			checkAllAssertions {
 				{
-					9535
+					asHasNetworkControl
 				}
 			},
 			addAssertion {
 				{
-					9510
+					asInstallingNetworkControl
 				}
 			}
 		}
 	}
 };
 
+/* Rule fires if System is >= 6.0.4 or 7 and EtherTalk Phase 2 extension exists */
 resource 'inrl' (rlHasEtherTalkPhase2) {
 	format0 {
 		{
@@ -200,14 +205,16 @@ resource 'inrl' (rlHasEtherTalkPhase2) {
 			addAssertion {
 				{
 					asInstallENETDriver,
-					9507,
-					asInstallingAppleTalk
+					asInstallEtherTalk,
+					asInstallAppleTalk
 				}
 			}
 		}
 	}
 };
 
+/* Rule fires if System is >= 6.0.4 or 7, ethernet driver install has been
+requested, and current .ENET driver version is < 127.0.2 */
 resource 'inrl' (rlInstallENETDriver) {
 	format0 {
 		{
@@ -236,6 +243,8 @@ resource 'inrl' (rlInstallENETDriver) {
 	}
 };
 
+/* Rule fires if System is >= 6.0.4 and AppleTalk version < 58.1.3 (System 6
+only??) */
 resource 'inrl' (rlCHKA6_58130000) {
 	format0 {
 		{
@@ -252,13 +261,14 @@ resource 'inrl' (rlCHKA6_58130000) {
 			addAssertion {
 				{
 					asInstallAppleTalkSystem6,
-					asInstallingAppleTalk
+					asInstallAppleTalk
 				}
 			}
 		}
 	}
 };
 
+/* Rule fires if System is >= 7 and AppleTalk version is < 58.1.3 */
 resource 'inrl' (rlCHKD0_3A130000) {
 	format0 {
 		{
@@ -275,25 +285,27 @@ resource 'inrl' (rlCHKD0_3A130000) {
 			addAssertion {
 				{
 					asInstallAppleTalkSystem7,
-					asInstallingAppleTalk
+					asInstallAppleTalk
 				}
 			}
 		}
 	}
 };
 
-resource 'inrl' (rlInstallingAppleTalk) {
+/* Rule fires if AppleTalk install has been requested */
+resource 'inrl' (rlInstallAppleTalk) {
 	format0 {
 		{
 			checkAllAssertions {
 				{
-					asInstallingAppleTalk
+					asInstallAppleTalk
 				}
 			}
 		}
 	}
 };
 
+/* Calls CCRD 1 with RefCon 2 if .ENET driver is being installed */
 resource 'inrl' (rlCCRD1_2) {
 	format0 {
 		{
@@ -317,6 +329,8 @@ resource 'inrl' (rlCCRD1_2) {
 	}
 };
 
+/* Rule installs EtherTalk, AppleTalk and .ENET driver, and triggers .ENET
+driver update action if CCRD 1 with RefCon 0 returns true */
 resource 'inrl' (rlCCRD1_0) {
 	format0 {
 		{
@@ -333,8 +347,8 @@ resource 'inrl' (rlCCRD1_0) {
 			},
 			addAssertion {
 				{
-					9507,
-					asInstallingAppleTalk,
+					asInstallEtherTalk,
+					asInstallAppleTalk,
 					asInstallENETDriver
 				}
 			},
@@ -347,6 +361,8 @@ resource 'inrl' (rlCCRD1_0) {
 	}
 };
 
+/* Rule triggers update of EtherTalk, AppleTalk and .ENET driver if CCRD 1 with
+RefCon 1 returns true */
 resource 'inrl' (rlCCRD1_1) {
 	format0 {
 		{
@@ -363,8 +379,8 @@ resource 'inrl' (rlCCRD1_1) {
 			},
 			addAssertion {
 				{
-					asInstallingAppleTalk,
-					9507,
+					asInstallEtherTalk,
+					asInstallAppleTalk,
 					asInstallENETDriver
 				}
 			}
@@ -372,6 +388,8 @@ resource 'inrl' (rlCCRD1_1) {
 	}
 };
 
+/* Rule fires when .ENET driver install has been requested, triggers install of
+EtherTalk Phase 2 */
 resource 'inrl' (rlInstallEtherTalk) {
 	format0 {
 		{
@@ -389,6 +407,8 @@ resource 'inrl' (rlInstallEtherTalk) {
 	}
 };
 
+/* Rule fires when AppleTalk install has been requested for System 6, triggers
+install of AppleTalk package */
 resource 'inrl' (rlInstallAppleTalk6) {
 	format0 {
 		{
@@ -406,6 +426,8 @@ resource 'inrl' (rlInstallAppleTalk6) {
 	}
 };
 
+/* Rule fires when AppleTalk install has been requested for System 7, triggers
+install of AppleTalk package */
 resource 'inrl' (rlInstallAppleTalk7) {
 	format0 {
 		{
@@ -423,6 +445,8 @@ resource 'inrl' (rlInstallAppleTalk7) {
 	}
 };
 
+/* Rule fires when Network control panel install has been requested, triggers
+install of Network control panel */
 resource 'inrl' (rlInstallNetworkControlPanel) {
 	format0 {
 		{
@@ -502,7 +526,7 @@ resource 'inrl' (rlEtherTalkUpdateDescription) {
 		{
 			checkAllAssertions {
 				{
-					9507
+					asInstallEtherTalk
 				}
 			},
 			addUserDescription {
@@ -517,7 +541,7 @@ resource 'inrl' (rlNetworkControlPanelDescription) {
 		{
 			checkAllAssertions {
 				{
-					9510
+					asInstallingNetworkControl
 				}
 			},
 			addUserDescription {
@@ -560,7 +584,8 @@ resource 'inrl' (rlEtherTalkNBDescription) {
 };
 #endif
 
-/* Set assertion asHasSystem if System file exists and has a 'vers' resource */ 
+/* Rule fires if System file exists and has a 'vers' resource, sets assertion
+asHasSystem */ 
 resource 'inrl' (rlHasSystem) {
 	format0 {
 		{
@@ -580,7 +605,7 @@ resource 'inrl' (rlHasSystem) {
 	}
 };
 
-/* Set assertion asSystem6 if System version >= 6.0.4 */
+/* Rule fires if System version >= 6.0.4, sets assertion asSystem6_0_4 */
 resource 'inrl' (rlSystem6_0_4) {
 	format0 {
 		{
@@ -600,7 +625,7 @@ resource 'inrl' (rlSystem6_0_4) {
 	}
 };
 
-/* Set assertion asSystem7 if System version >= 7.0.0 */
+/* Rule fires if System version >= 7.0.0, sets assertion asSystem7 */
 resource 'inrl' (rlSystem7) {
 	format0 {
 		{
@@ -615,83 +640,6 @@ resource 'inrl' (rlSystem7) {
 				{
 					asSystem7
 				}
-			}
-		}
-	}
-};
-
-resource 'infr' (0) {
-	format0 {
-		{
-			pickFirst,
-			{
-				// A/UX rule 9177,
-				rlHasSystem,		/* does the target volume have a valid System file? */
-				rlNoSystemError
-			},
-			pickFirst,
-			{	/* If System older than 6.0.4, block installlation */
-				// A/UX rule 9177,
-				rlSystem7,			/* Does the target volume have System 7 or newer? */
-				rlSystem6_0_4,		/* Does the target volume have System 6.0.4 or newer */
-				rlOldSystemError
-			},
-			pickAll,
-			{
-				// A/UX rule 9176,
-#if 0
-				rlEtherTalkNB,	/* Detect and add packages for EtherTalk NB */
-#endif
-				rlSEthernet30,	/* Detect and add packages for SEthernet/30 */
-				rlInstallENETDriver	/* Detect existing .ENET driver and install update if needed */
-			},
-			pickFirst,
-			{
-				// A/UX rule 9177,
-				rlCCRD1_2,
-				rlCCRD1_0,
-				rlCCRD1_1,
-				rlInstallingENETDriver,
-				rlEtherTalkPhase2_2_5_6,
-				rlHasEtherTalkPhase2
-			},
-			pickFirst,
-			{
-				// A/UX rule 9177,
-				rlInstallingNetworkControl,
-				rlNetworkControl3_2,
-				9535
-			},
-			pickFirst,
-			{
-				9536,
-				9537
-			},
-			pickFirst,
-			{
-				// A/UX rule 9177,
-				rlCHKA6_58130000,
-				rlCHKD0_3A130000,
-				rlInstallingAppleTalk,
-				rlLaterAppleTalkError
-			},
-			pickAll,
-			{	/* Build install description */
-				rlBaseDescription,
-				rlAppleTalkDescription,
-#if 0
-				rlEtherTalkNBDescription,
-#endif
-				rlEtherTalkUpdateDescription,
-				rlNetworkControlPanelDescription,
-				rlSEthernet30Description
-			},
-			pickAll,
-			{	/* Install requested support packages */
-				rlInstallEtherTalk,
-				rlInstallAppleTalk6,
-				rlInstallAppleTalk7,
-				rlInstallNetworkControlPanel
 			}
 		}
 	}
@@ -714,7 +662,7 @@ resource 'inrl' (rlSEthernet30) {
 			},
 			addAssertion {
 				{
-					asInstallingAppleTalk,
+					asInstallAppleTalk,
 					asSEthernet30,
 					asInstallENETDriver
 				}
@@ -743,6 +691,95 @@ resource 'inrl' (13002) {
 			},
 			addUserDescription {
 				"\n• EtherTalk for SEthernet/30 Card"
+			}
+		}
+	}
+};
+
+/* Main rule framework that drives processing of rules. Rules are evaluated in
+sequence - 'pickFirst' clauses are only evaluated until a rule 'fires', 
+'pickAll' clauses cause all rules within to be evaluated. */
+resource 'infr' (0) {
+	format0 {
+		{
+			pickFirst,
+			{   /* Check that target volume has a valid System file, fall 
+				   through to disallow install if not present */
+				rlHasSystem,
+				rlNoSystemError
+			},
+			pickFirst,
+			{   /* Check that System on target volume is within our supported
+				   range, also sets assertions for system versions */
+				rlSystem7,		/* Check for System 7 or newer */
+				rlSystem6_0_4,	/* Check for System 6.0.4 or newer */
+				rlOldSystemError	/* Fall through to error if neither of the 
+				                       above rules fired */
+			},
+			pickAll,
+			{   /* Detect presence of ethernet cards and whether drivers need 
+				   updating */
+#if 0
+				rlEtherTalkNB,	/* Detect and add packages for EtherTalk NB */
+#endif
+				rlSEthernet30,	/* Detect and add packages for SEthernet/30 */
+				rlInstallENETDriver	/* Detect existing .ENET driver and install 
+				                       update if needed */
+			},
+			pickFirst,
+			{
+				rlCCRD1_2,	/* Call CCRD 1 with RefCon=2 if .ENET driver is 
+				               being installed */
+				rlCCRD1_0,	/* Call CCRD 1 with RefCon=0, trigger install of 
+				               EtherTalk, AppleTalk and .ENET driver and run
+				               .ENET driver update action if it returns true */
+				rlCCRD1_1,	/* Call CCRD 1 with RefCon=1, trigger install of
+				               EtherTalk, AppleTalk and .ENET driver if it
+				               returns true */
+				rlInstallingENETDriver,
+				rlEtherTalkPhase2_2_5_6,
+				rlHasEtherTalkPhase2
+			},
+			pickFirst,
+			{
+				rlNetworkControlRequested,
+				rlNetworkControl3_0_2,
+				rlHasNetworkControl
+			},
+			pickFirst,
+			{
+				rlInstallingEtherTalk,
+				rlUpdateNetworkControl
+			},
+			pickFirst,
+			{	/* Install/update AppleTalk if necessary. The logic of this
+			       seems a bit odd to me, but this is how Apple did it... */
+				rlCHKA6_58130000,	/* Check AppleTalk version on System 6,
+				                       trigger update if necessary */
+				rlCHKD0_3A130000,	/* Check AppleTalk version on System 7,
+				                       trigger update if necessary */
+				rlInstallAppleTalk,	/* AppleTalk install was already
+				                       triggered by another rule */
+				rlLaterAppleTalkError	/* Otherwise there is already a newer
+				                           AppleTalk installed */
+			},
+			pickAll,
+			{	/* Build install description */
+				rlBaseDescription,
+				rlAppleTalkDescription,
+#if 0
+				rlEtherTalkNBDescription,
+#endif
+				rlEtherTalkUpdateDescription,
+				rlNetworkControlPanelDescription,
+				rlSEthernet30Description
+			},
+			pickAll,
+			{	/* Install requested support packages */
+				rlInstallEtherTalk,
+				rlInstallAppleTalk6,
+				rlInstallAppleTalk7,
+				rlInstallNetworkControlPanel
 			}
 		}
 	}
