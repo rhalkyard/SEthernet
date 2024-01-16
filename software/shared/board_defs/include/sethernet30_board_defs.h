@@ -16,7 +16,7 @@ changes here will require new builds of both ROM and software.
 */
 
 /* Board identifier */
-#define SETHERNET30_BOARDID (9635) 
+#define SETHERNET30_BOARDID (9635)
 
 /* Driver software interface ID. All hardware that
 implements the same software interface should use this identifier. */

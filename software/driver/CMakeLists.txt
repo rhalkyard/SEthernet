@@ -40,6 +40,7 @@ target_link_libraries(${SE_RESOURCE} enc624j600 driver_control board_defs versio
 add_custom_command(
     OUTPUT SEthernet.bin
     COMMAND ${REZ} -I ${REZ_INCLUDE_PATH}
+                    -I "$<TARGET_PROPERTY:version,INTERFACE_INCLUDE_DIRECTORIES>"
                     ${CMAKE_CURRENT_SOURCE_DIR}/SEthernet.r
                     -o SEthernet.bin
                     -t rsrc
@@ -67,6 +68,8 @@ target_link_libraries(${SE30_RESOURCE} enc624j600 driver_control board_defs vers
 add_custom_command(
         OUTPUT SEthernet30.bin
         COMMAND ${REZ} -I ${REZ_INCLUDE_PATH}
+                        -I "$<TARGET_PROPERTY:version,INTERFACE_INCLUDE_DIRECTORIES>"
+                        -I "$<TARGET_PROPERTY:board_defs,INTERFACE_INCLUDE_DIRECTORIES>"
                         ${CMAKE_CURRENT_SOURCE_DIR}/SEthernet30.r
                         -o SEthernet30.bin
                         -t comd

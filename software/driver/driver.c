@@ -22,7 +22,6 @@
 #include "protocolhandler.h"
 #include "registertools.h"
 #include "util.h"
-#include "version.h"
 
 #if defined(TARGET_SE30)
 #include "sethernet30_board_defs.h"
