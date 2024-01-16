@@ -19,9 +19,69 @@ function hcopy_text() {
     hattrib -t 'TEXT' "$dest"
 }
 
-function usage() {
-    echo "Usage: $(basename $0) <build-directory> <output-image>" 1>&2
+function errecho() {
+    echo $@ 1>&2
 }
+
+function usage() {
+    errecho "Usage: $(basename $0) [-h] [<options>] <build-directory> <output-image>"
+}
+
+function help() {
+    usage
+    errecho "Options:" 1>&2
+    errecho "    -h                    Show this help text"
+    errecho "    -d                    Debug mode (disable UserStartup and AutoQuit)"
+    errecho "    -m <minivmac>         Mini vMac executable"
+    errecho "    -b <boot-image>       System boot image"
+    errecho "    -t <template-image>   Template image for install disk"
+}
+
+DEBUG=0
+
+# Path to Mini vMac Executable
+MINIVMAC=minivmac
+
+# Base image for build environment
+# Assumptions:
+#   - System 6.0.8 installed to ':System Folder'
+#   - MPW 3.1 installed to ':MPW 3.1'
+#   - InstallerTypes.r from Installer 3.4.3 SDK copied to ':MPW 3.1:Interfaces:RIncludes'
+#   - ScriptCheck tool from Installer 3.4.3 SDK copied to ':MPW 3.1:Tools'
+#   - MPW Shell set as startup application
+#   - AutoQuit application at ':AutoQuit'
+BOOT_IMAGE="images/buildenv.dsk.gz"
+
+# 'Template' image for install disk
+# Must contain:
+#   - Installer version 3.4 application
+#   - Network Software Installer 1.4.4 files under 'AppleTalk Files'
+TEMPLATE_IMAGE="images/template.dsk.gz"
+
+while getopts ":d:mh" opt; do
+    case $opt in
+        d)
+            DEBUG=1
+            ;;
+        h)
+            help
+            exit 0
+            ;;
+        m)
+            MINIVMAC="${OPTARG}"
+            ;;
+        s)
+            BOOT_IMAGE="${OPTARG}"
+            ;;
+        t)
+            TEMPLATE_IMAGE="${OPTARG}"
+            ;;
+        *)
+            usage
+            exit 1
+            ;;
+    esac
+done
 
 if [[ $# -ne 2 ]] ; then
     usage
@@ -36,24 +96,17 @@ if [ ! -d "$BUILDDIR" ] ; then
     exit 1
 fi
 
-# Base image for build environment
-# Assumptions:
-#   - System 6.0.8 installed to ':System Folder'
-#   - MPW 3.1 installed to ':MPW 3.1'
-#   - InstallerTypes.r from Installer 3.4.3 SDK copied to ':MPW 3.1:Interfaces:RIncludes'
-#   - ScriptCheck tool from Installer 3.4.3 SDK copied to ':MPW 3.1:Tools'
-#   - MPW Shell set as startup application
-#   - AutoQuit application at ':AutoQuit'
-SYSTEM_IMAGE="images/buildenv.dsk.gz"
+if [[ "${BOOT_IMAGE}" == *.gz ]]; then
+    gunzip -c "${BOOT_IMAGE}" > buildenv.dsk
+else
+    cp "${BOOT_IMAGE}" buildenv.dsk
+fi
 
-# 'Template' image for install disk
-# Must contain:
-#   - Installer version 3.4 application
-#   - Network Software Installer 1.4.4 files under 'AppleTalk Files'
-TEMPLATE_IMAGE="images/template.dsk.gz"
-
-gunzip -c "${SYSTEM_IMAGE}" > buildenv.dsk
-gunzip -c "${TEMPLATE_IMAGE}" > "${OUTPUTIMAGE}"
+if [[ "${TEMPLATE_IMAGE}" == *.gz ]]; then
+    gunzip -c "${TEMPLATE_IMAGE}" > "${OUTPUTIMAGE}"
+else
+    cp "${TEMPLATE_IMAGE}" "${OUTPUTIMAGE}"
+fi
 
 # Sources to copy into the build environment
 SOURCE_FILES=(
@@ -78,18 +131,20 @@ declare -A BINARY_FILES=(
 
 hmount buildenv.dsk >/dev/null
 
-# Replace the Finder with Mini vMac's AutoQuit tool, which will shut down and
-# quit Mini vMac when MPW exits
-hdel ':System Folder:Finder'
-hrename ':AutoQuit' ':System Folder:Finder'
+if [ ${DEBUG} -ne 1 ]; then
+    # Replace the Finder with Mini vMac's AutoQuit tool, which will shut down and
+    # quit Mini vMac when MPW exits
+    hdel ':System Folder:Finder'
+    hrename ':AutoQuit' ':System Folder:Finder'
 
-# Delete the MPW worksheet to clear all the introductory stuff out it; we use
-# the worksheet to grab our script output
-hdel ':MPW 3.1:Worksheet'
+    # Delete the MPW worksheet to clear all the introductory stuff out it; we use
+    # the worksheet to grab our script output
+    hdel ':MPW 3.1:Worksheet'
 
-# Delete the existing MPW UserStartup and replace it with our own
-hdel ':MPW 3.1:UserStartup'
-hcopy_text UserStartup.mpw ':MPW 3.1:UserStartup'
+    # Delete the existing MPW UserStartup and replace it with our own
+    hdel ':MPW 3.1:UserStartup'
+    hcopy_text UserStartup.mpw ':MPW 3.1:UserStartup'
+fi
 
 # Copy sources into the :Sources directory in the build environment
 hmkdir ':Sources'
@@ -110,11 +165,13 @@ humount "${OUTPUTIMAGE}"
 # Run the build!
 echo "Launching Mini vMac. Note that Mini vMac suspends itself if it is not the"
 echo "foreground window! Use Control-S-A to speed it up a bit."
-minivmac buildenv.dsk "${OUTPUTIMAGE}"
+"${MINIVMAC}" buildenv.dsk "${OUTPUTIMAGE}"
 
-echo "Script output:"
-hmount buildenv.dsk >/dev/null
-hcopy -t ':MPW 3.1:Worksheet' -
+if [ ${DEBUG} -ne 1 ]; then
+    echo "Script output:"
+    hmount buildenv.dsk >/dev/null
+    hcopy -t ':MPW 3.1:Worksheet' -
+fi
 humount buildenv.dsk
 
 hmount "${OUTPUTIMAGE}" >/dev/null
@@ -124,4 +181,6 @@ hvol
 hls -lR
 humount "${OUTPUTIMAGE}"
 
-rm buildenv.dsk
+if [ ${DEBUG} -ne 1 ]; then
+    rm buildenv.dsk
+fi
