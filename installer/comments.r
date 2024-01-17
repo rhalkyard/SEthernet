@@ -38,6 +38,15 @@ resource 'icmt' (cmSEthernet30) {
 	"alk version 58.1.3 as well."
 };
 
+resource 'icmt' (cmSEthernet) {
+	currentDate,
+	VERSION_MAJOR * 100 + ((VERSION_MINOR & 0xf0) >> 4) * 10 + (VERSION_MINOR & 0x0f),
+	9110,
+	"This installs EtherTalk Phase 2 (version 2.5.6) and the Ethernet driver for the "
+	"SEthernet Card.  If you are doing a custom install, be sure to install AppleTalk"
+	" version 58.1.3 as well."
+};
+
 
 resource 'ICON' (9000) {
 	$"0000 0000 07FF FFE0 0800 0010 0800 0010 08FF FF10 0900 0090 0955 5090 0900 0090"

@@ -181,7 +181,6 @@ resource 'infs' (fsTgtEtherTalk21Extension) {
 	"special-extn:EtherTalk2.1"
 };
 
-#if 0
 resource 'infs' (fsSEthernetResources) {
 	'rsrc',
 	'RSED',
@@ -190,7 +189,6 @@ resource 'infs' (fsSEthernetResources) {
 	TypeCrMustMatch,
 	"SEthernet Installer:SEthernet Files:SEthernet Resources"
 };
-#endif
 
 resource 'infs' (fsSEthernet30) {
 	'comd',

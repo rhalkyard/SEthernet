@@ -94,6 +94,7 @@
 #define raSystem_DRVR127_ENET 9112
 #define raSystem_enet8 9202
 #define raSystem_enet9635 13001
+#define raSystem_DRVR69_ENET0 13002
 
 /* Packages */
 #define pkAppleTalkSystem6 9002
@@ -110,12 +111,15 @@
 #define pkEtherTalkNBCustom 14000
 #define pkSEthernet30 13001
 #define pkSEthernet30Custom 13000
+#define pkSEthernet 13002
+#define pkSEthernetCustom 13003
 
 /* Package Comments */
 #define cmAppleTalkSystem6 14016
 #define cmAppleTalkSystem7 14017
 #define cmEtherTalkNB 14000
 #define cmSEthernet30 13000
+#define cmSEthernet 13001
 
 /* Rules */
 #define rlInstallENETDriver 9504

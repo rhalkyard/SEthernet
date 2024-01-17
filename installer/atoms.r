@@ -1231,3 +1231,26 @@ resource 'infa' (faDeleteOldSEthernet30) {
 		""
 	}
 };
+
+resource 'inra' (raSystem_DRVR69_ENET0) {
+	format0 {
+		deleteWhenRemoving,
+		deleteWhenInstalling,
+		copy,
+		tgtRequired,
+		updateExisting,
+		copyIfNewOrUpdate,
+		dontIgnoreProtection,
+		srcNeedExist,
+		byName,
+		nameMustMatch,
+		fsTgtSystem,
+		fsSEthernetResources,
+		'DRVR',
+		69,
+		0,
+		0,
+		"",
+		".ENET0"
+	}
+};

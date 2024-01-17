@@ -275,3 +275,35 @@ resource 'inpk' (pkSEthernet30) {
 		}
 	}
 };
+
+/* Package selectable for Easy Install - driver only */
+resource 'inpk' (pkSEthernet) {
+	format0 {
+		doesntShowOnCustom,
+		removable,
+		forceRestart,
+		0,
+		0,
+		"",
+		{
+			'inra', raSystem_DRVR69_ENET0
+		}
+	}
+};
+
+/* Package selectable for Custom Install - installs both EtherTalk bits and driver */
+resource 'inpk' (pkSEthernetCustom) {
+	format0 {
+		showsOnCustom,
+		removable,
+		forceRestart,
+		cmSEthernet,
+		0,
+		"EtherTalk for SEthernet Card",
+		{
+			'inpk', pkSEthernet,
+			'inpk', pkEtherTalkPhase2,
+			'inpk', pkNetworkControl
+		}
+	}
+};
