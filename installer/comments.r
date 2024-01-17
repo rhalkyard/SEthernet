@@ -1,10 +1,11 @@
 #include "InstallerTypes.r"
 #include "Types.r"
 #include "identifiers.r"
+#include "version.h"
 
 resource 'icmt' (cmAppleTalkSystem6) {
 	0xA9B68880,
-	0x16B5,
+	5183,
 	9000,
 	"This installation will update System 6 (version 6.0.4 and higher) to AppleTalk P"
 	"hase 2 version 58.1.3. "
@@ -12,7 +13,7 @@ resource 'icmt' (cmAppleTalkSystem6) {
 
 resource 'icmt' (cmAppleTalkSystem7) {
 	0xA9B68880,
-	0x16B5,
+	5813,
 	9000,
 	"This installation will update System 7 to AppleTalk Phase 2 version 58.1.3."
 };
@@ -20,7 +21,7 @@ resource 'icmt' (cmAppleTalkSystem7) {
 #if 0
 resource 'icmt' (cmEtherTalkNB) {
 	0xA9B68880,
-	0x25D,
+	605,
 	9110,
 	"This installs EtherTalk Phase 2 (version 2.5.6) and the Ethernet driver for the "
 	"EtherTalk NB Card.  If you are doing a custom install, be sure to install AppleT"
@@ -29,8 +30,8 @@ resource 'icmt' (cmEtherTalkNB) {
 #endif
 
 resource 'icmt' (cmSEthernet30) {
-	3787161286,
-	0x00012001,
+	currentDate,
+	VERSION_MAJOR * 100 + ((VERSION_MINOR & 0xf0) >> 4) * 10 + (VERSION_MINOR & 0x0f),
 	9110,
 	"This installs EtherTalk Phase 2 (version 2.5.6) and the Ethernet driver for the "
 	"SEthernet/30 Card.  If you are doing a custom install, be sure to install AppleT"

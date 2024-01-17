@@ -1,24 +1,25 @@
 #include "Types.r"
 #include "SysTypes.r"
+#include "version.h"
 
 resource 'vers' (1, purgeable) {
-	0x0,
-	0x01,
-	development,
-	0x01,
+	VERSION_MAJOR,
+	VERSION_MINOR,
+	VERSION_DEVSTAGE,
+	VERSION_INTERNAL_ID,
 	verUS,
-	"0.0.1d1",
-	"0.0.1d1, © Richard Halkyard, Apple Computer, Inc. 1984-2023"
+	VERSION_SHORT,
+	VERSION_LONG " © Richard Halkyard, Apple Computer, Inc. 1984-2024"
 };
 
 resource 'vers' (2, purgeable) {
-	0x0,
-	0x01,
-	development,
-	0x01,
+	VERSION_MAJOR,
+	VERSION_MINOR,
+	VERSION_DEVSTAGE,
+	VERSION_INTERNAL_ID,
 	verUS,
-	"0.0.1d1",
-	"SEthernet Installer 0.0.1d1"
+	VERSION_SHORT,
+	"SEthernet Installer " VERSION_LONG
 };
 
 

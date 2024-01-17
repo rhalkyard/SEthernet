@@ -58,7 +58,7 @@ BOOT_IMAGE="images/buildenv.dsk.gz"
 #   - Network Software Installer 1.4.4 files under 'AppleTalk Files'
 TEMPLATE_IMAGE="images/template.dsk.gz"
 
-while getopts ":d:mh" opt; do
+while getopts "dhm:s:t:" opt; do
     case $opt in
         d)
             DEBUG=1
@@ -82,6 +82,8 @@ while getopts ":d:mh" opt; do
             ;;
     esac
 done
+
+shift $((OPTIND-1))
 
 if [[ $# -ne 2 ]] ; then
     usage
@@ -118,7 +120,8 @@ SOURCE_FILES=(
     "misc.r" 
     "packages.r" 
     "rules.r" 
-    "Build.mpw")
+    "Build.mpw"
+    "$BUILDDIR/software/shared/version/include/version.h")
 
 # Retro68's build system won't let us create files with spaces in their names,
 # let alone special characters. Instead of just a list of files to copy, use an
