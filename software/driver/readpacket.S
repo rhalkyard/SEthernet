@@ -48,16 +48,21 @@ ReadRest:
     .err
     .endif
     TST.W       %d3                     /* check for zero-size read */
-    JEQ         1f                      /* nothing to do */
+    BEQ         1f                      /* nothing to do */
     JSR         ReadBuf                 /* read the data */
 /* 
-ReadBuf return cases:
+ReadBuf returns with:
+    D1 = number of bytes remaining in packet
+    D3 = difference between requested bytes and actual bytes read 
+            D3 = requested - MIN(available, requested)
+Possible outcomes:
     - We asked for more data than was left in the packet
         D1 = 0 (no data remaining in packet)
         D3 > 0 (number of bytes that we asked for but didn't get)
         => D3 = D3 - 0 = D3
     - We got exactly as much data as was available
-        D1 = D3 = 0
+        D1 = 0 (no data remaining)
+        D3 = 0 (we got as many bytes as we asked for)
         => D3 = 0 - 0 = 0
     - There was more data left in the packet than we asked for
         D1 > 0 (bytes remaining in packet)
@@ -65,27 +70,23 @@ ReadBuf return cases:
         => D3 = 0 - D1 = -D1
 */
 1:
-    SUB.W       %d1, %d3
+    SUB.W       %d1, %d3                /* D3 = D3 - D1 (see comment above) */
     MOVEQ       #0, %d0                 /* set Z flag, no failure no matter what */
     RTS
     MacsbugSymbol "ReadRest"
 
 RealReadPacket:
-    TST.W       %d3
-    JEQ         1f                      /* zero-length ReadPacket is silly */
-    CMP.W       %d3, %d1                /* compare requested byte count (D3) against remaining bytes (D1) */
-    JCS         1f                      /* bail out if requested > remaining */
     JSR         ReadBuf                 /* otherwise, read the data */
-    TST.W       %d3                     /* check for leftover bytes */
-    JEQ         2f
+    JNE         1f                      /* ReadBuf returns with Z flag set if OK, clear if error */
+    RTS
+    MacsbugSymbol "ReadPacket"
+
 1:
 #ifdef DEBUG
     .short      0xa9ff                  /* Debugger */
 #endif
     MOVEQ       #-92, %d0               /* eLenErr */
-2:
     RTS
-    MacsbugSymbol "ReadPacket"
 
 /*
 Read routine for ReadPacket/ReadRest. Calls enc624j600_read_rxbuf() to do the
@@ -114,9 +115,9 @@ On exit:
 */
 ReadBuf:
     MOVE.W      %d3, %d0                /* d0 = number of bytes to read */
-    CMP.W       %d1, %d0                /* compare against number of bytes in packet */
-    JLS         1f                      /* branch if d0 <= d1 */
-    MOVE.W      %d1, %d0                /* d0 = MIN(d1, d3) */
+    CMP.W       %d1, %d0                /* d0 = MIN(d1, d0) */
+    JLS         1f                      /*  ... nothing to do if d0 <= d1 */
+    MOVE.W      %d1, %d0                /*  ... otherwise, d0 = d1 */
 1:
 #ifdef DEBUG
     MOVEM.L     %a0/%d0-%d2, -(%sp)     /* Preserve registers changed by C */
@@ -130,11 +131,10 @@ ReadBuf:
 
     /* Note that we don't preserve A1 here - it's reserved for our use, but we 
     don't use it for anything, so no need to waste cycles saving and restoring
-    it. Similarly we don't save D0 because we can just use the return value from
-    enc624j600_read_rxbuf. */
-    MOVEM.L     %a0/%d1-%d2, -(%sp)     /* Preserve registers changed by C. */
-    JSR         enc624j600_read_rxbuf   /* D0.W = enc624j600_read_rxbuf(A0, A3, D0.W) */
-    MOVEM.L     (%sp)+, %a0/%d1-%d2     /* Restore registers */
+    it. */
+    MOVEM.L     %a0/%d0-%d2, -(%sp)     /* Preserve registers changed by C. */
+    JSR         enc624j600_read_rxbuf   /* enc624j600_read_rxbuf(A0, A3, D0.W) */
+    MOVEM.L     (%sp)+, %a0/%d0-%d2     /* Restore registers */
 
     ADD.W       %d0, %a3                /* Advance destination buffer pointer */
     SUB.W       %d0, %d1                /* Update remaining-byte count */

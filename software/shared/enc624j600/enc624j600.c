@@ -335,9 +335,9 @@ void enc624j600_memcpy(volatile unsigned char *dest,
 }
 
 /* Read data from receive FIFO, and advance buffer pointers */
-#pragma parameter __D0 enc624j600_read_rxbuf(__A0, __A3, __D0)
-unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest, 
-                                     const unsigned short len) {
+#pragma parameter enc624j600_read_rxbuf(__A0, __A3, __D0)
+void enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest, 
+                           const unsigned short len) {
   unsigned short chunk_len, remainder;
   const unsigned char * source = chip->rxptr;
 
@@ -390,8 +390,6 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest,
 
   /* Update buffer read pointer and receive FIFO tail */
   enc624j600_update_rxptr(chip, source);
-
-  return len;
 }
 
 /* Probe for an ENC624J600 as non-invasively as possible */
