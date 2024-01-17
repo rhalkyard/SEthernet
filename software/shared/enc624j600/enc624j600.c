@@ -11,6 +11,9 @@
 extern char strbuf[255];
 #endif
 
+#define likely(x)    __builtin_expect (!!(x), 1)
+#define unlikely(x)  __builtin_expect (!!(x), 0)
+
 /*
 Promiscuous-mode receive configuration:
     CRCEN:    discard frames with invalid CRC
@@ -238,7 +241,7 @@ inline void enc624j600_update_rxptr(enc624j600 *chip,
   pointer */
   const unsigned char *tail = rxptr - 2;
   chip->rxptr = rxptr;
-  if (tail < chip->rxbuf_start) {
+  if (unlikely(tail < chip->rxbuf_start)) {
     tail = chip->rxbuf_end - 2;
   }
   addr = enc624j600_ptr_to_addr(chip, tail);
@@ -354,7 +357,7 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest,
   }
 #endif
 
-  if (source + len <= chip->rxbuf_end) {
+  if (likely(source + len <= chip->rxbuf_end)) {
     /* Read will not wrap around */
     chunk_len = len;  /* Get everything in the first read */
     remainder = 0;    /* No need for a second read */
@@ -369,7 +372,7 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest,
   source += chunk_len;
 
   /* Wrap read pointer if we hit the end */
-  if (source >= chip->rxbuf_end) {
+  if (unlikely(source >= chip->rxbuf_end)) {
 #if defined(DEBUG)
     if (source > chip->rxbuf_end) {
       /* shouldn't ever happen */
@@ -380,7 +383,7 @@ unsigned short enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest,
   }
 
   /* Do a second read to handle the wraparound case */
-  if (remainder) {
+  if (unlikely(remainder)) {
     memcpy(dest, source, remainder);
     source += remainder;
   }

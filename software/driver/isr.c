@@ -25,6 +25,9 @@ void (*originalInterruptVector)();
 driverGlobalsPtr isrGlobals;
 #endif
 
+#define likely(x)    __builtin_expect (!!(x), 1)
+#define unlikely(x)  __builtin_expect (!!(x), 0)
+
 /* ReadPacket callback function that we pass to protocol handlers, defined in
 readpacket.S. We don't (and shouldn't) call it directly. */
 extern void ReadPacket();
@@ -134,21 +137,21 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
 
   /* Check for CRC errors. By default the ENC624J600 drops bad-CRC packets
   silently in hardware, but collect stats in case we disable that filter. */
-  if (RSV_BIT(theGlobals->rha.header.rsv, RSV_BIT_CRC_ERR)) {
+  if (unlikely(RSV_BIT(theGlobals->rha.header.rsv, RSV_BIT_CRC_ERR))) {
     theGlobals->info.fcsErrors++;
     goto drop;
   }
 
   /* Check for runt frames (typically dropped in hardware, but collect stats in
   case the filter gets disabled) */
-  if (pktLen < 60) {
+  if (unlikely(pktLen < 60)) {
     theGlobals->info.rxRunt++;
     goto drop;
   }
 
   /* Check for too-long frames (typically dropped in hardware, but collect stats
   in case the filter gets disabled) */
-  if (pktLen > 1514) {
+  if (unlikely(pktLen > 1514)) {
     theGlobals->info.rxTooLong++;
     goto drop;
   }
@@ -181,7 +184,7 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
 
 accept:
   /* Find a protocol handler for this packet */
-  if (theGlobals->rha.header.pktHeader.protocol < 0x0600) {
+  if (likely(theGlobals->rha.header.pktHeader.protocol < 0x0600)) {
     /* An ethertype field of < 0x600 indicates an 802.2 Type 1 frame (Ethernet
     Phase II in Apple parlance). We assign this the protocol number 0. The LAP
     manager always registers itself as the handler for this protocol. */
@@ -191,13 +194,13 @@ accept:
     protocolSlot = findPH(theGlobals, theGlobals->rha.header.pktHeader.protocol);
   }
 
-  if (protocolSlot == nil) {
+  if (unlikely(protocolSlot == nil)) {
     /* no handler for this protocol, drop it */
     theGlobals->info.rxUnknownProto++;
     goto drop;
   }
 
-  if (protocolSlot->handler == nil) {
+  if (unlikely(protocolSlot->handler == nil)) {
     /* Technically, it is legal to register a protocol handler without a
     callback, indicating that it will use the ERead call to read packets. As far
     as I'm aware, this is not done by any software except for some Inside
@@ -323,7 +326,7 @@ unsigned long driverISR(driverGlobalsPtr theGlobals) {
   enc624j600_disable_irq(&theGlobals->chip, IRQ_ENABLE);
   irq_status = enc624j600_read_irqstate(&theGlobals->chip);
 
-  if (irq_status & IRQ_LINK) {
+  if (unlikely(irq_status & IRQ_LINK)) {
     /* Link status has changed; update MAC duplex configuration to match
     autonegotiated PHY values */
     enc624j600_duplex_sync(&theGlobals->chip);
@@ -331,7 +334,7 @@ unsigned long driverISR(driverGlobalsPtr theGlobals) {
     irq_handled = 1;
   }
 
-  if (irq_status & (IRQ_RX_ABORT | IRQ_PCNT_FULL)) {
+  if (unlikely(irq_status & (IRQ_RX_ABORT | IRQ_PCNT_FULL))) {
     /* A received packet was dropped due to a full receive FIFO or
     packet-counter saturation. Unlike the DP8390 we don't need to do anything to
     recover from this state except process some pending packets. The IRQ_PKT
@@ -349,7 +352,7 @@ unsigned long driverISR(driverGlobalsPtr theGlobals) {
     irq_handled = 1;
   }
 
-  if (irq_status & (IRQ_TX | IRQ_TX_ABORT | IRQ_PKT)) {
+  if (likely(irq_status & (IRQ_TX | IRQ_TX_ABORT | IRQ_PKT))) {
     /* Transmit and receive handlers touch user memory. When running with
     Virtual Memory enabled, this could cause a double fault (if the ISR runs
     during a page fault and the user buffer is not paged in). DeferUserFn will

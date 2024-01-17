@@ -31,14 +31,14 @@ interrupt vector that we saved. */
     /*
     Check to see if the interrupt came from our card
     
-    This is kinda ugly. Bit 7 of ESTAT indicates interrupt status (the datasheet
-    says bit 15, but register bytes are swapped because ENC624J600 is little
-    endian). For memory operands, the BTST instruction only operates on bytes,
-    not whole words, so we actually want to test bit 7 of the byte at ESTAT+1. 
-    Trust me.
+    This is kinda ugly. Bit 7 of the 16-bit ESTAT register indicates interrupt
+    status (the datasheet says bit 15, but register bytes are swapped because
+    the ENC624J600 is little endian). For memory operands, the BTST instruction
+    only operates on bytes, not whole words, so we actually want to test bit 7
+    of the byte at ESTAT+1. Trust me.
     */
     BTST        #7, SETHERNET_BASEADDR + ESTAT + 1
-    BEQ         not_us
+    JEQ         not_us
 
     /* We got an interrupt! Save registers and call our handler. In this case we
     must return with ALL registers preserved, so we need to save all of C's
@@ -54,9 +54,8 @@ not_us:
     something else, presumably the VIA or SCSI controller.
     
     Call the original interrupt handler through the vector that we saved. The 
-    "push address and RTS" trick saves us having to use a register and is
-    apparently faster than loading a register and indirect-jumping through it.
-    The system interrupt handler will be none the wiser. */
+    "push address and RTS" trick saves us having to use (and subsequently
+    restore) a register. */
     MOVE.L      originalInterruptVector, -(%sp)
     RTS
 #endif

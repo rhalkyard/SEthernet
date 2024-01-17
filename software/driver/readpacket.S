@@ -48,7 +48,7 @@ ReadRest:
     .err
     .endif
     TST.W       %d3                     /* check for zero-size read */
-    BEQ         1f                      /* nothing to do */
+    JEQ         1f                      /* nothing to do */
     JSR         ReadBuf                 /* read the data */
 /* 
 ReadBuf return cases:
@@ -72,12 +72,12 @@ ReadBuf return cases:
 
 RealReadPacket:
     TST.W       %d3
-    BEQ         1f                      /* zero-length ReadPacket is silly */
+    JEQ         1f                      /* zero-length ReadPacket is silly */
     CMP.W       %d3, %d1                /* compare requested byte count (D3) against remaining bytes (D1) */
-    BLO         1f                      /* bail out if requested > remaining */
+    JCS         1f                      /* bail out if requested > remaining */
     JSR         ReadBuf                 /* otherwise, read the data */
     TST.W       %d3                     /* check for leftover bytes */
-    BEQ         2f
+    JEQ         2f
 1:
 #ifdef DEBUG
     .short      0xa9ff                  /* Debugger */
@@ -115,7 +115,7 @@ On exit:
 ReadBuf:
     MOVE.W      %d3, %d0                /* d0 = number of bytes to read */
     CMP.W       %d1, %d0                /* compare against number of bytes in packet */
-    BLS         1f                      /* branch if d0 <= d1 */
+    JLS         1f                      /* branch if d0 <= d1 */
     MOVE.W      %d1, %d0                /* d0 = MIN(d1, d3) */
 1:
 #ifdef DEBUG

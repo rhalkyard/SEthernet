@@ -111,18 +111,18 @@ doControl:
         MOVEM.L (%SP)+,%A0-%A1          /* Restore registers */
         /* Any Control call except KillIO may return asynchronously. */
         CMP.W   #killCode, csCode(%A0)
-        BNE     IOReturn                /* Not KillIO - handle async return */
+        JNE     IOReturn                /* Not KillIO - handle async return */
         RTS                             /* KillIO - just return */
         MacsbugSymbol doControl
 
 IOReturn:
         MOVE.W  ioTrap(%A0), %D1
         BTST    #noQueueBit, %D1    /* Was IO operation queued or immediate? */
-        BEQ     Queued
+        JEQ     Queued
 
         /* Immediate calls return directly through RTS */
         TST.W   %D0                 /* test asynchronous return result */
-        BLE     ImmedRTS            /* result must be <= 0 */
+        JLE     ImmedRTS            /* result must be <= 0 */
         CLR.W   %D0                 /* in-progress result (> 0) returned as 0 */
 ImmedRTS:
         MOVE.W  %D0,ioResult(%A0)   /* for immediate calls you must explicitly 
@@ -133,7 +133,7 @@ ImmedRTS:
 Queued:
         /* Queued calls must call IODone on completion */
         TST.W   %D0                 /* test asynchronous return result */
-        BLE     MyIODone            /* I/O is complete if result <= 0 */
+        JLE     MyIODone            /* I/O is complete if result <= 0 */
         CLR.W   %D0                 /* in-progress result (> 0) returned as 0 */
         RTS
         MacsbugSymbol QueuedIOReturn
