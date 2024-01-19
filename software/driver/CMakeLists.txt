@@ -28,7 +28,8 @@ target_include_directories(driver_control INTERFACE include/)
 # now we can just yeet it into the System file with ResEdit.
 set(SE_RESOURCE SE_driver.resource)
 add_executable(${SE_RESOURCE} ${DRIVER_SOURCES})
-target_compile_options(${SE_RESOURCE} PRIVATE -m68000)
+# Tune SE driver optimizations for 68000 specifically
+target_compile_options(${SE_RESOURCE} PRIVATE -m68000 -mtune=68000)
 # Workaround for https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105523 causing a
 # spurious warning (introduced in GCC 12, fixed in GCC 14)
 if(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 12 AND
@@ -56,7 +57,8 @@ add_custom_target(SEthernet ALL DEPENDS SEthernet.bin)
 # Software Installer 1.5 to update our .ENET driver) it'll get loaded.
 set(SE30_RESOURCE SE30_driver.resource)
 add_executable(${SE30_RESOURCE} ${DRIVER_SOURCES})
-target_compile_options(${SE30_RESOURCE} PRIVATE -m68030)
+# Tune SE/30 driver optimizations for 68030 specifically
+target_compile_options(${SE30_RESOURCE} PRIVATE -m68030 -mtune=68030)
 # Workaround for https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105523 causing a
 # spurious warning (introduced in GCC 12, fixed in GCC 14)
 if(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 12 AND
@@ -64,7 +66,8 @@ if(CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 12 AND
    target_compile_options(${SE30_RESOURCE} PRIVATE --param=min-pagesize=0)
 endif()
 target_compile_definitions(${SE30_RESOURCE} PRIVATE TARGET_SE30)
-target_link_libraries(${SE30_RESOURCE} enc624j600 driver_control board_defs version)
+# Link SE/30 driver against 68030-optimized version of enc624j600 library
+target_link_libraries(${SE30_RESOURCE} enc624j600_030 driver_control board_defs version)
 add_custom_command(
         OUTPUT SEthernet30.bin
         COMMAND ${REZ} -I ${REZ_INCLUDE_PATH}
