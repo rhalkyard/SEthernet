@@ -24,20 +24,36 @@ PIN 14          = !UDS ;        /* High byte data-strobe from CPU */
 
 /* IO USED AS OUTPUTS */
 PIN 12          = !IPL1 ;       /* CPU interrupt-level bit 1 */
-/* PIN 15       = unused ; */
 PIN 16          = B0SEL ;       /* Byte 0 select to ENC624J600 */
 PIN 17          = B1SEL ;       /* Byte 1 select to ENC624J600 */
 PIN 18          = !IPL0 ;       /* CPU interrupt-level bit 0 */
 PIN 19          = CS ;          /* Chip select to ENC624J600 */
+
+PINNODE 15      = CSdelay ;     /* Feedback version of CS to add delay to BxSEL */
 /* PIN 20       = vcc ; */
 
 /* Select on a 64k space starting at 0x80 0000 */
 select          = AS & [A23..16]:'h'80xxxx ;
 CS              = select;
 
-/* Generate byte-select lines for ENC624J600 */
-B0SEL           = UDS & select ;    /* ENC624J600 byte 0 (AD7..AD0) = 68k upper byte (D15..D8) */
-B1SEL           = LDS & select ;    /* ENC624J600 byte 1 (AD15..AD8) = 68k lower byte (D7..D0) */
+/* Feedback-delay version of CS - since the pin that is wired to CS (19) cannot
+be used for feedback, we have to use another one for this purpose :( */
+CSdelay         = select;
+
+/*
+Generate byte-select lines for ENC624J600
+
+The ENC624J600 timing specs require a 1ns delay between asserting CS and
+B0SEL/B1SEL (Tpsp1 for read, Tpsp5 for writes). On reads, the 68000 asserts
+UDS/LDS simultaneously with the address, so there is no delay. Even though the
+spec is only 1ns, the ENC624J600 really doesn't like this, and reads return
+garbage.
+
+We can get around it by feeding the CS output back in to gate UDS/LDS - the
+delay introduced by the GAL is enough to satisfy the delay requirement.
+*/
+B0SEL           = LDS & CSdelay ;
+B1SEL           = UDS & CSdelay ;
 
 /* Drive CPU interrupt line as open-collector */
 IPL0            = ENC_INT ;
