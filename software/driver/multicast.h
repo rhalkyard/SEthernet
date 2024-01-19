@@ -5,6 +5,6 @@
 #include "driver.h"
 
 multicastEntry* findMulticastEntry(const driverGlobalsPtr theGlobals,
-                                   const Byte address[6]);
+                                   const hwAddr *address);
 OSStatus doEAddMulti(driverGlobalsPtr theGlobals, const EParamBlkPtr pb);
 OSStatus doEDelMulti(driverGlobalsPtr theGlobals, const EParamBlkPtr pb);

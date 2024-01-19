@@ -49,17 +49,26 @@ struct protocolHandlerEntry {
 };
 typedef struct protocolHandlerEntry protocolHandlerEntry;
 
+union hwAddr {
+  Byte bytes[6];
+  struct {
+    unsigned long first4;
+    unsigned short last2;
+  };
+};
+typedef union hwAddr hwAddr;
+
 /* Entry in our list of multicast addresses */
 struct multicastEntry {
-  Byte address[6];        /* Ethernet address */
+  hwAddr address;        /* Ethernet address */
   unsigned char refCount; /* Reference count */
-};
+} __attribute__((aligned (2)));
 typedef struct multicastEntry multicastEntry;
 
 /* Ethernet packet header */
 struct ethernetHeader {
-  Byte dest[6];               /* Destination Ethernet address */
-  Byte source[6];             /* Source Ethernet address */
+  hwAddr dest;               /* Destination Ethernet address */
+  hwAddr source;             /* Source Ethernet address */
   unsigned short protocol;    /* Ethernet protocol/length field */
 };
 typedef struct ethernetHeader ethernetHeader;

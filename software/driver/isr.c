@@ -167,7 +167,7 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
   } else if (RSV_BIT(theGlobals->rha.header.rsv, RSV_BIT_MULTICAST) 
              && RSV_BIT(theGlobals->rha.header.rsv, RSV_BIT_HASH_MATCH)) {
     /* Destination hash matches a multicast we're listening to */
-    if (findMulticastEntry(theGlobals, theGlobals->rha.header.pktHeader.dest)) {
+    if (findMulticastEntry(theGlobals, &theGlobals->rha.header.pktHeader.dest)) {
       /* Actual destination address matches a multicast we're listening to */
       theGlobals->info.multicastRxFrameCount++;
       goto accept;

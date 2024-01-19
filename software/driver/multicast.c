@@ -51,7 +51,7 @@ static void updateMulticastHashTable(const driverGlobalsPtr theGlobals) {
 
   for (unsigned short i = 0; i < numberofMulticasts; i++) {
     if (theGlobals->multicasts[i].refCount > 0) {
-      hashValue = crc32(theGlobals->multicasts[i].address, 6);
+      hashValue = crc32(theGlobals->multicasts[i].address.bytes, 6);
 
       /* Use bits 28:23 of CRC32 as bitwise index into hash table */
       hashValue = (hashValue >> 23) & 0x3f;
@@ -64,10 +64,10 @@ static void updateMulticastHashTable(const driverGlobalsPtr theGlobals) {
 /* Look up an address in our table of multicast addresses. Returns a pointer to
 the multicast table entry if found, nil if no match */
 multicastEntry* findMulticastEntry(const driverGlobalsPtr theGlobals,
-                                   const Byte address[6]) {
+                                   const hwAddr *address) {
   for (unsigned short i = 0; i < numberofMulticasts; i++) {
     if (theGlobals->multicasts[i].refCount > 0) {
-      if (ethAddrsEqual(address, theGlobals->multicasts[i].address)) {
+      if (ethAddrsEqual(address, &theGlobals->multicasts[i].address)) {
         return &theGlobals->multicasts[i];
       }
     }
@@ -82,11 +82,11 @@ Add an address to our multicast list
 */
 OSStatus doEAddMulti(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
   multicastEntry* multicastSlot;
-  unsigned char* addressPtr;
+  hwAddr* addressPtr;
 
-  addressPtr = (unsigned char*)&pb->u.EParms2.eMultiAddr;
+  addressPtr = (hwAddr*)&pb->u.EParms2.eMultiAddr;
   /* Check that it is a valid multicast address (bit 0 of first byte is 1) */
-  if ((addressPtr[0] & 0x01) == 0) {
+  if ((addressPtr->bytes[0] & 0x01) == 0) {
     return eMultiErr;
   }
   /* See if the address is already in our multicast list */
@@ -103,7 +103,7 @@ OSStatus doEAddMulti(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
     }
     /* Mark entry as in use */
     multicastSlot->refCount = 1;
-    copyEthAddrs(multicastSlot->address, addressPtr);
+    copyEthAddrs(&multicastSlot->address, addressPtr);
     
     /* Update the hash table to include new entry */
     updateMulticastHashTable(theGlobals);
@@ -118,9 +118,9 @@ Remove an address from our multicast list
 */
 OSStatus doEDelMulti(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
   multicastEntry* multicastSlot;
-  unsigned char* addressPtr;
+  hwAddr* addressPtr;
 
-  addressPtr = (unsigned char*)&pb->u.EParms2.eMultiAddr;
+  addressPtr = (hwAddr*)&pb->u.EParms2.eMultiAddr;
   /* Find the entry in the list */
   multicastSlot = findMulticastEntry(theGlobals, addressPtr);
   if (multicastSlot == nil) {

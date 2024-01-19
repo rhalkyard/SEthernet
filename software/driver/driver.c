@@ -370,8 +370,8 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       globals. */
       eadrResourceHandle = GetResource(EAddrRType, dce->dCtlSlot);
       if (eadrResourceHandle) {
-        copyEthAddrs(theGlobals->info.ethernetAddress,
-                     (Byte *)*eadrResourceHandle);
+        copyEthAddrs((hwAddr *) theGlobals->info.ethernetAddress,
+                     (hwAddr *) *eadrResourceHandle);
         enc624j600_write_hwaddr(&theGlobals->chip, (Byte *)*eadrResourceHandle);
         ReleaseResource(eadrResourceHandle);
       } else {
