@@ -44,7 +44,7 @@ interrupt vector that we saved. */
     must return with ALL registers preserved, so we need to save all of C's
     unsaved registers */
     MOVEM.L     %a0-%a1/%d0-%d2, -(%sp)
-    LEA         isrGlobals, %a1 /* driverISR takes pointer to globals in A1 */
+    MOVE.L      isrGlobals, %a1 /* driverISR takes pointer to globals in A1 */
     JSR         driverISR
     MOVEM.L     (%sp)+, %a0-%a1/%d0-%d2
     RTE         /* We're returning from an interrupt, so we use RTE, not RTS */
