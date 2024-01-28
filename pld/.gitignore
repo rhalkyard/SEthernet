@@ -1,13 +1,23 @@
-*.jed
-*.chp
-*.fus
-*.pin
+# CUPL outputs
 *.abs
+*.chp
 *.doc
+*.fit
+*.fus
+*.im
+*.io
+*.jed
 *.lst
 *.mx
+*.pin
 *.pla
+*.pdf
 *.sim
 *.so
+*.tt2
+*.tt3
 *.wo
-*.im
+
+# ATMISP outputs
+*.svf
+jtag.log

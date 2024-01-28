@@ -1,4 +1,4 @@
-Name        Interface Logic ;
+Name        se30-u3 ;
 PartNo      00 ;
 Date        2023-10-23 ;
 Revision    01 ;
@@ -11,102 +11,217 @@ Device      f1502isptqfp44 ;
 /* Don't let us assign to JTAG pins */
 PROPERTY ATMEL { JTAG=on };
 
-/* Don't attempt to rearrange pins if the design does not fit */
+/* Consider pin assignments to be fixed; don't try to rearrange them if the
+design will not fit */
 PROPERTY ATMEL { Preassign=Keep };
 
 /* 
 Bus-control logic for SEthernet/30
+
+Signal names in ALL CAPS are inputs or outputs. Signal names in lowercase are
+internal.
 */
 
-/* INPUTS */
-PIN 2   = !ENC_INT ;    /* ENC624J600 interrupt input */
-PIN 11  = A0 ;          /* Bit 0 of CPU address bus */
+/* CONTROL INPUTS */
+PIN 11  = !ETH_INT ;    /* Interrupt input from ENC624J600 */
+PIN 23  = !AS ;         /* Address strobe from 68030 */
+PIN 25  = SIZ0 ;        /* Access-size flag from 68030 */
+PIN 27  = SIZ1 ;        /* Access-size flag from 68030 */
+PIN 28  = RW ;          /* Read/!Write from 68030 */
+PIN 33  = !DS ;         /* Data strobe from 68030 */
+PIN 35  = !SLOTID_0 ;   /* Slot ID jumper */
+PIN 37  = !SLOTID_1 ;   /* Slot ID jumper */
+PIN 38  = VPP ;         /* Spare, input-only, shared with +12V VPP */
+PIN 39  = !RESET ;      /* Reset input from system */
+PIN 40  = ETH_CLK ;     /* Software-configurable clock from ENC624J600 */
+
+/* ADDRESS INPUTS */
+PIN 3   = A0 ;
 PIN 12  = A16 ;
-PIN [22..18,15..13] = [A31..24] ;   /* CPU address bus */
-PIN 23  = !AS ;         /* CPU address strobe */
-PIN 25  = SIZ0 ;        /* Access-size lines from CPU */
-PIN 27  = SIZ1 ;
-PIN 28  = RW ;          /* R/W line from CPU */
-PIN 33  = !DS ;         /* Data strobe from CPU */
-PIN 34  = !SLOTID_1 ;   /* Slot-select jumpers */
-PIN 35  = !SLOTID_0 ;
-PIN 37  = WAITMODE ;    /* DSACK delay jumper */
-PIN 40  = CPUCLK ;      /* CPU clock */
+PIN [22..18,15..13] = [A31..24] ;
 
 /* OUTPUTS */
-PIN 3   = !ROM_OE ;     /* ROM read-enable */
-PIN 5   = B1SEL ;       /* ENC624J600 high byte select */
-PIN 6   = EN_CS ;       /* ENC624J600 chip select */
-PIN 8   = B0SEL ;       /* ENC624J600 low byte select */
-PIN 10  = !ROM_WE ;     /* ROM write-enable */
-PIN 30  = !DSACK0 ;     /* Data acknowledge lines to CPU */
-PIN 31  = !DSACK1 ;
-PIN 42  = !IRQ3 ;       /* CPU interrupt lines (active-low) */
-PIN 43  = !IRQ2 ;
-PIN 44  = !IRQ1 ;
+PIN 2   = !ROM_OE ;     /* Output enable to flash ROM */
+PIN 5   = !ROM_WE ;     /* Write enable to flash ROM */
+PIN 6   = B0SEL ;       /* Low-address byte select to ENC624J600 */
+PIN 8   = ETH_CS ;      /* Chip select to ENC624J600 */
+PIN 10  = B1SEL ;       /* High-address byte select to ENC624J600 */
+PIN 30  = !DSACK0 ;     /* Data acknowledge flag to 68030 */
+PIN 31  = !DSACK1 ;     /* Data acknowledge flag to 68030 */
+PIN 34  = TP6 ;         /* Spare, I/O, connected to test point */
+PIN 42  = !IRQ3 ;       /* Interrupt output to 68030 */
+PIN 43  = !IRQ2 ;       /* Interrupt output to 68030 */
+PIN 44  = !IRQ1 ;       /* Interrupt output to 68030 */
 
-NODE [count1..0] ;
+/* IRQ and DSACK outputs are wired-or; set output drivers to open-collector mode
+for these pins (note that this does NOT invert sense, they must still be
+declared above as inverted) */
+PROPERTY ATMEL { OPEN_COLLECTOR = IRQ1, IRQ2, IRQ3, DSACK0, DSACK1 } ;
 
-FIELD ADDR      = [A31..0] ;
-FIELD SLOTID   = [SLOTID_1..0] ;
-FIELD SIZE  = [SIZ1..0] ;
-FIELD counter = [count1..0] ;
+/*
+RESERVED
+PIN 1   = TDI ;
+PIN 7   = TMS ;
+PIN 26  = TCK ;
+PIN 32  = TDO ;
 
+PIN 9   = VCC ;
+PIN 17  = VCC ;
+PIN 29  = VCC ;
+PIN 41  = VCC ;
 
-EN_CS = select & !A16 ; /* A16 low: ENC624J600 */
-rom_cs = select & A16 ; /* A16 high: ROM */
+PIN 4   = GND ;
+PIN 16  = GND ;
+PIN 24  = GND ;
+PIN 36  = GND ;
+*/
 
-/* Generate ROM OE and WE signals */
+/* Counter to delay asserting DSACK on read operations */
+NODE [dsack_count1..0] ;
+FIELD dsack_counter = [dsack_count1..0] ;
+
+/* Counter to generate holdoff period between consecutive accessses */
+NODE [holdoff_count1..0] ;
+FIELD holdoff_counter = [holdoff_count1..0] ;
+
+NODE holdoff_state ; /* Latch indicating holdoff state */
+
+/* Counter to inhibit interrupts until ENC624J600 has been written to and presumably reset */
+NODE [write_count1..0] ;
+FIELD write_counter = [write_count1..0] ;
+
+FIELD ADDR_H  = [A31..24] ; /* High nybble of ADDR, used in simulator only */
+FIELD ADDR    = [A31..0] ;
+FIELD SLOTID  = [SLOTID_1..0] ;
+FIELD SIZE    = [SIZ1..0] ;
+
+/* Occupy different slot address based on jumper selection */
+addressed         = AS & SLOTID:'b'00 & ADDR:'h'F9xxxxxx ;
+APPEND addressed  = AS & SLOTID:'b'01 & ADDR:'h'FAxxxxxx ;
+APPEND addressed  = AS & SLOTID:'b'10 & ADDR:'h'FBxxxxxx ;
+APPEND addressed  = AS & SLOTID:'b'11 & ADDR:'h'FExxxxxx ;
+
+/* Only select devices after holdoff period has cleared */
+select = addressed & !holdoff_state ;
+
+/* Generate chip selects based on A16 address bit */
+ETH_CS = select & !A16 ;  /* A16 low: ENC624J600 */
+rom_cs = select & A16 ;   /* A16 high: ROM */
+
+/* Turn internal rom_cs signal into output-enable and write-enable */
 ROM_OE = rom_cs & RW ;
 ROM_WE = rom_cs & !RW ;
 
-/* ROM accesses are always 8-bit (DSACK='b'01). ENC accesses are always 16-bit
-(DSACK='b'10). Delay asserting DSACK until wait-state time has elapsed */
-DSACK0 = rom_cs & !wait ;
-DSACK1 = EN_CS & !wait ;
+/*
+Generate !DSACKx transaction-complete signals - these also indicate the size of
+the port
 
-/* DSACK lines are open-collector; outputs must be tristated when we're not
-selected */
-DSACK0.oe = select ;
-DSACK1.oe = select ;
+!DSACK1 !DSACK0
+L       L       32 bit bus cycle complete
+L       H       16 bit bus cycle complete
+H       L       8 bit bus cycle complete
+H       H       Bus cycle in progress, insert wait states
+*/
+DSACK0 = rom_cs & !wait ; /* ROM data bus is 8-bit (DSACK='b'01) */
+DSACK1 = ETH_CS & !wait ; /* ENC624J600 data bus is 16 bit (DSACK='b'10) */
 
-/* Generate byte-select outputs for ENC accesses. */
-B0SEL = DS & !A0 ; /* B0SEL on all even accesses */
-B1SEL = DS & (A0 # ! SIZE:'b'01) ; /* B1SEL on word and odd byte accesses */
+/*
+Generate byte strobes for ENC624J600 accesses, based on low address bit and data
+size requested.
 
-/* Drive PDS IRQ outputs as open-collector */
-[IRQ1..3] = ENC_INT ;
-IRQ1.oe = ENC_INT & (SLOTID:'b'00 # SLOTID:'b'01) ;
-IRQ2.oe = ENC_INT & SLOTID:'b'10 ;
-IRQ3.oe = ENC_INT & SLOTID:'b'11 ;
+The SIZE field (SIZ1, SIZ0) indicates the *remaining* size to be read/written:
 
-/* Occupy different slot address based on jumper selection */
-select        = AS & SLOTID:'b'00 & ADDR:'h'F9xxxxxx ;
-APPEND select = AS & SLOTID:'b'01 & ADDR:'h'FExxxxxx ;
-APPEND select = AS & SLOTID:'b'10 & ADDR:'h'FAxxxxxx ;
-APPEND select = AS & SLOTID:'b'11 & ADDR:'h'FBxxxxxx ;
+00  32 bits
+01  8 bits
+10  16 bits
+11  24 bits (32-bit accesses to odd addresses are broken up as 8+24)
 
-/* Counter to generate delay for DSACK */
-sequence counter {
-    present 'd'0
-        if select next 'd'1 ;
-    present 'd'1
-        if select next 'd'2 ;
-    present 'd'2
-        if select next 'd'3 ;
-    present 'd'3
-        if select next 'd'3 ;
+e.g. for a 32 bit write to an 8-bit port, there would be 4 bus cycles, with SIZE
+going 00-11-10-01.
+*/
+B0SEL = ETH_CS & DS & !A0 ;                  /* B0SEL on all even accesses */
+B1SEL = ETH_CS & DS & (A0 # ! (SIZE:'b'01)) ;  /* B1SEL on odd byte accesses, and
+                                                all >byte accesses */
+
+/* Suppress interrupts until write counter asserts interrupt-enable signal */
+interrupt = ETH_INT & interrupt_enable ;
+
+/* Each slot has a different interrupt line */
+IRQ1  = interrupt & (SLOTID:'b'00 # SLOTID:'b'11) ; /* IRQ1: slot 9 or E */
+IRQ2  = interrupt & SLOTID:'b'01 ;  /* IRQ2: Slot A */
+IRQ3  = interrupt & SLOTID:'b'10 ;  /* IRQ3: Slot B */
+
+/*
+Counters for enforcing timing requirements, clocked from the ENC624J600's clock
+output (4MHz by default, configured to 25MHz by the driver).
+
+holdoff_counter counts time elapsed since the end of the last bus transaction
+that addressed us.
+
+dtack_counter counts time elapsed since the start of a bus transaction
+addressing us.
+*/
+
+sequence holdoff_counter {
+  present 'd'0
+    next 'd'1 ;
+  present 'd'1
+    next 'd'2 ;
+  present 'd'2
+    next 'd'3 ;
+  present 'd'3
+    next 'd'3 ;
 }
-counter.ar = !select ;  /* Hold counter in reset when we're not selected */
-counter.ck = CPUCLK ;
+holdoff_counter.ck = ETH_CLK ;
+holdoff_counter.ar = select ;  /* Hold counter in reset while we are selected */
 
-wait0 = counter:['d'0] ;        /* 0 wait states */
-wait1 = counter:['d'0..'d'1] ;  /* 1 wait state */
-wait2 = counter:['d'0..'d'2] ;  /* 2 wait states */
+sequence dsack_counter {
+  present 'd'0
+    next 'd'1 ;
+  present 'd'1
+    next 'd'2 ;
+  present 'd'2
+    next 'd'3 ;
+  present 'd'3
+    next 'd'3 ;
+}
+dsack_counter.ck = ETH_CLK ;
+dsack_counter.ar = !select ;  /* Hold counter in reset when we're not selected */
 
-/* Configure wait-state options with WAITMODE jumper. */
-wait = !WAITMODE & wait2 ;
-APPEND wait = WAITMODE & wait1 ;
+/*
+Enter holdoff state at the end of a write access, remain in holdoff until
+counter expires. ENC624J600 requires 40ns.
 
-/* TODO: enforce 40ns hold-off time between consecutive reads? Not necessary
-unless dealing with clock speeds > 25MHz (i.e. IIfx) */
+Holdoff for 1 full clock period = 40-80ns @ 25MHz
+*/
+holdoff_state.d = 'b'1 ;
+holdoff_state.ck = !(addressed & !RW) ;
+holdoff_state.ar = RESET # holdoff_counter:['d'2..'d'3] ;
+
+/*
+Delay DSACK during read accesses. ENC624J600 requires 75ns
+
+2 full clock periods = 80-120ns @ 25MHz
+*/
+wait = RW & dsack_counter:['d'0..'d'2] ;
+
+/* The ENC624J600 does not have a hardware reset input - only power-on reset and
+a software-controlled reset operation, so if the system is reset without
+'cleanly' shutting down, it will continue generating interrupts, which can cause
+Sad Macs and crashes in the subsquent boot. To get around this deficiency, we
+gate the interrupt output until 3 writes have been made to the chip address
+space, which should serve as an adequate indication that software is in control
+of the chip and is ready to handle interrupts */
+sequence write_counter {
+  present 'd'0
+    next 'd'1 ;
+  present 'd'1
+    next 'd'2 ;
+  present 'd'2
+    next 'd'3 ;
+  present 'd'3
+    next 'd'3 ;
+}
+write_counter.ck = !(ETH_CS & !RW) ; /* Increment counter on each write access */
+write_counter.ar = RESET ;
+interrupt_enable = write_counter:'d'3 ;

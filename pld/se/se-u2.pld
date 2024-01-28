@@ -1,4 +1,4 @@
-Name        SEthernet Bus Interface and Address Decoder ;
+Name        se-u2 ;
 PartNo      00 ;
 Date        2023-10-23 ;
 Revision    01 ;
@@ -6,55 +6,181 @@ Designer    rhalkyard ;
 Company     none ;
 Assembly    SEthernet Macintosh SE PDS Ethernet Card ;
 Location    U2 ;
-Device      g16v8a ;
+Device      f1502isptqfp44 ;
 
-/*
-Address decoding and glue logic for SEthernet
+/* Enable JTAG interface with internal 10K pullups on TDI and TMS */
+PROPERTY ATMEL { JTAG = ON } ;
+PROPERTY ATMEL { TDI_PULLUP = ON } ;
+PROPERTY ATMEL { TMS_PULLUP = ON } ;
+
+/* Consider pin assignments to be immutable; don't try to rearrange the design
+if it does not fit with the given pin assignments */
+PROPERTY ATMEL { PREASSIGN = KEEP } ;
+
+/* CONTROL INPUTS */
+PIN 6   = !ETH_INT ;    /* Interrupt input from ENC624J600 */
+PIN 8   = ETH_CLK ;     /* Software-configurable clock from ENC624J600 */
+PIN 23  = !RESET ;      /* Reset input from system */
+PIN 25  = !AS ;         /* Address strobe from 68000 */
+PIN 27  = !UDS ;        /* Upper data strobe from 68000 (high-order byte, low address) */
+PIN 28  = !LDS ;        /* Lower data strobe from 68000 (low-order byte, high address) */
+PIN 31  = RW ;          /* Read/!Write from 68000 */
+
+/* ADDRESS INPUTS */
+PIN [13..15,18..22] = [A23..16] ;
+FIELD ADDR = [A23..16] ;
+
+/* OUTPUTS */
+PIN 2   = B0SEL ;       /* Low-address byte select to ENC624J600 */
+PIN 3   = B1SEL ;       /* High-address byte select to ENC624J600 */
+PIN 5   = ETH_CS ;      /* Chip select to ENC624J600 */
+PIN 10  = !IPL0 ;       /* Bit 0 of interrupt-priority lines to 68000 */
+PIN 11  = !IPL1 ;       /* Bit 1 of interrupt-priority lines to 68000 */
+PIN 12  = !EXT_DTK ;    /* Auto-DTACK suppression control to BBU */
+PIN 30  = !DTACK ;      /* Data acknowledge to 68000 */
+
+/* IPL*, EXT_DTK and DTACK are wired-or; set output drivers to open-collector
+mode for these pins (note that this does NOT invert sense, they must still be
+declared above as inverted) */
+PROPERTY ATMEL { OPEN_COLLECTOR = IPL0, IPL1, EXT_DTK, DTACK } ;
+
+/* 
+UNUSED
+PIN 33
+PIN 34
+PIN 35
+PIN 37 (Input only)
+PIN 38 (Input only, VPP)
+PIN 39 (Input only)
+PIN 40 (Input only)
+PIN 42
+PIN 43
+PIN 44
+
+RESERVED
+PIN 1   = TDI ;
+PIN 7   = TMS ;
+PIN 26  = TCK ;
+PIN 32  = TDO ;
+
+PIN 9   = VCC ;
+PIN 17  = VCC ;
+PIN 29  = VCC ;
+PIN 41  = VCC ;
+
+PIN 4   = GND ;
+PIN 16  = GND ;
+PIN 24  = GND ;
+PIN 36  = GND ;
 */
 
-/* INPUTS */
-PIN [1..8]      = [A23..16] ;   /* High byte of address */
-PIN 9           = !AS ;         /* Address strobe from CPU */
-/* PIN 10       = gnd ; */
-PIN 11          = !ENC_INT ;    /* Interrupt from ENC624J600 */
+/* Counter to delay asserting DTACK on read operations */
+NODE [dtack_count1..0] ;
+FIELD dtack_counter = [dtack_count1..0] ;
 
-/* IO USED AS INPUT */
-PIN 13          = !LDS ;        /* Low byte data-strobe from CPU */
-PIN 14          = !UDS ;        /* High byte data-strobe from CPU */
+/* Counter to generate holdoff period between consecutive selections */
+NODE [holdoff_count1..0] ;
+FIELD holdoff_counter = [holdoff_count1..0] ;
 
-/* IO USED AS OUTPUTS */
-PIN 12          = !IPL1 ;       /* CPU interrupt-level bit 1 */
-PIN 16          = B0SEL ;       /* Byte 0 select to ENC624J600 */
-PIN 17          = B1SEL ;       /* Byte 1 select to ENC624J600 */
-PIN 18          = !IPL0 ;       /* CPU interrupt-level bit 0 */
-PIN 19          = CS ;          /* Chip select to ENC624J600 */
+NODE holdoff_state ; /* Latch for selection-holdoff state */
 
-PINNODE 15      = CSdelay ;     /* Feedback version of CS to add delay to BxSEL */
-/* PIN 20       = vcc ; */
+/* Counter to inhibit interrupts until ENC624J600 has been written to and 
+presumably reset */
+NODE [write_count1..0] ;
+FIELD write_counter = [write_count1..0] ;
 
-/* Select on a 64k space starting at 0x80 0000 */
-select          = AS & [A23..16]:'h'80xxxx ;
-CS              = select;
+/* Ocuppy a 64k space at 0x800000 - 0x80ffff */
+addressed       = AS & ADDR:'h'80xxxx ;
 
-/* Feedback-delay version of CS - since the pin that is wired to CS (19) cannot
-be used for feedback, we have to use another one for this purpose :( */
-CSdelay         = select;
+/* Only select device after holdoff period has cleared */
+select          = addressed & !holdoff_state ;
+ETH_CS          = select ; /* ENC624J600 is the only device */
+
+/* We generate our own DTACK; when we are addressed, assert EXT_DTK to tristate
+the BBU's DTACK output */
+EXT_DTK         = addressed ;
+DTACK           = select & !wait ;
+
+/* Generate byte-select lines for ENC624J600 */
+B0SEL           = UDS & ETH_CS ;
+B1SEL           = LDS & ETH_CS ;  
+
+interrupt       = ETH_INT & interrupt_enable ;
+IPL0            = interrupt ;
+
+HOLDOFF_TP      = holdoff_state ;
 
 /*
-Generate byte-select lines for ENC624J600
+Counters for enforcing timing requirements, clocked from the ENC624J600's clock
+output (4MHz by default, configured to 25MHz by the driver).
 
-The ENC624J600 timing specs require a 1ns delay between asserting CS and
-B0SEL/B1SEL (Tpsp1 for read, Tpsp5 for writes). On reads, the 68000 asserts
-UDS/LDS simultaneously with the address, so there is no delay. Even though the
-spec is only 1ns, the ENC624J600 really doesn't like this, and reads return
-garbage.
+holdoff_counter counts time elapsed since the end of the last bus transaction
+that addressed us.
 
-We can get around it by feeding the CS output back in to gate UDS/LDS - the
-delay introduced by the GAL is enough to satisfy the delay requirement.
+dtack_counter counts time elapsed since the start of a bus transaction
+addressing us.
 */
-B0SEL           = LDS & CSdelay ;
-B1SEL           = UDS & CSdelay ;
 
-/* Drive CPU interrupt line as open-collector */
-IPL0            = ENC_INT ;
-IPL0.oe         = ENC_INT ;
+sequence holdoff_counter {
+  present 'd'0
+    next 'd'1 ;
+  present 'd'1
+    next 'd'2 ;
+  present 'd'2
+    next 'd'3 ;
+  present 'd'3
+    next 'd'3 ;
+}
+holdoff_counter.ck = ETH_CLK ;
+holdoff_counter.ar = select ;  /* Hold counter in reset while we are selected */
+
+sequence dtack_counter {
+  present 'd'0
+    next 'd'1 ;
+  present 'd'1
+    next 'd'2 ;
+  present 'd'2
+    next 'd'3 ;
+  present 'd'3
+    next 'd'3 ;
+}
+dtack_counter.ck = ETH_CLK ;
+dtack_counter.ar = !select ;  /* Hold counter in reset when we're not selected */
+
+/*
+Enter holdoff state at the end of a write access, remain in holdoff until
+counter expires. ENC624J600 requires 40ns.
+
+Holdoff for 1 full clock period = 40-80ns @ 25MHz
+*/
+holdoff_state.d = 'b'1 ;
+holdoff_state.ck = !(addressed & !RW) ;
+holdoff_state.ar = RESET # holdoff_counter:['d'2..'d'3] ;
+
+/*
+Delay DTACK during read accesses. ENC624J600 requires 75ns
+
+2 full clock periods = 80-120ns @ 25MHz
+*/
+wait = RW & dtack_counter:['d'0..'d'2] ;
+
+/* The ENC624J600 does not have a hardware reset input - only power-on reset and
+a software-controlled reset operation, so if the system is reset without
+'cleanly' shutting down, it will continue generating interrupts, which can cause
+Sad Macs and crashes in the subsquent boot. To get around this deficiency, we
+gate the interrupt output until 3 writes have been made to the chip address
+space, which should serve as an adequate indication that software is in control
+of the chip and is ready to handle interrupts */
+sequence write_counter {
+  present 'd'0
+    next 'd'1 ;
+  present 'd'1
+    next 'd'2 ;
+  present 'd'2
+    next 'd'3 ;
+  present 'd'3
+    next 'd'3 ;
+}
+write_counter.ck = !(ETH_CS & !RW) ; /* Increment counter on each write access */
+write_counter.ar = RESET ;
+interrupt_enable = write_counter:'d'3 ;
