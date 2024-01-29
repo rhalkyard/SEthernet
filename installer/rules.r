@@ -681,7 +681,7 @@ resource 'inrl' (rlSEthernet30) {
 	}
 };
 
-resource 'inrl' (13002) {
+resource 'inrl' (rlSEthernet30Description) {
 	format0 {
 		{
 			checkAllAssertions {
@@ -691,6 +691,120 @@ resource 'inrl' (13002) {
 			},
 			addUserDescription {
 				"\n• EtherTalk for SEthernet/30 Card"
+			}
+		}
+	}
+};
+
+/* Detection rule for SEthernet */
+resource 'inrl' (rlSEthernet) {
+	format0 {
+		{
+			checkAnyAssertion {
+				{
+					asSystem6_0_4,
+					asSystem7
+				}
+			},
+			/*
+			checkUserFunction {
+				'infn',
+				13000,
+				0x800000
+			},
+			*/
+			addAssertion {
+				{
+					asInstallAppleTalk,
+					asSEthernet,
+					asInstallENETDriver
+				}
+			},
+			addAssertion {
+				{
+					asInstallNetworkControl
+				}
+			},
+			addPackages {
+				{
+					pkSEthernet
+				}
+			}
+		}
+	}
+};
+
+resource 'inrl' (rlSEthernetDescription) {
+	format0 {
+		{
+			checkAllAssertions {
+				{
+					asSEthernet
+				}
+			},
+			addUserDescription {
+				"\n• EtherTalk for SEthernet Card"
+			}
+		}
+	}
+};
+
+/* Check for presence of Open Transport TCP/IP control panel */
+resource 'inrl' (rlOpenTransport) {
+	format0 {
+		{
+			checkFileRsrcForkExists {
+				fsTgtTCPIP
+			}
+		}
+	}
+};
+
+/* Check for already-existing MacTCP control panel */
+resource 'inrl' (rlAlreadyHasMacTCP) {
+	format0 {
+		{
+			checkFileRsrcForkExists {
+				fsTgtMacTCP
+			}
+		}
+	}
+};
+
+/* Install MacTCP */
+resource 'inrl' (rlMacTCP) {
+	format0 {
+		{
+			checkAnyAssertion {
+				{
+					asSystem6_0_4,
+					asSystem7
+				}
+			},
+			addAssertion {
+				{
+					asMacTCP
+				}
+			},
+			addPackages {
+				{
+					pkMacTCP
+				}
+			}
+		}
+	}
+};
+
+resource 'inrl' (rlMacTCPDescription) {
+	format0 {
+		{
+			checkAllAssertions {
+				{
+					asMacTCP
+				}
+			},
+			addUserDescription {
+				"\n• MacTCP"
 			}
 		}
 	}
@@ -723,8 +837,15 @@ resource 'infr' (0) {
 				rlEtherTalkNB,	/* Detect and add packages for EtherTalk NB */
 #endif
 				rlSEthernet30,	/* Detect and add packages for SEthernet/30 */
+				rlSEthernet,	/* Detect and add packages for SEthernet */
 				rlInstallENETDriver	/* Detect existing .ENET driver and install 
 				                       update if needed */
+			},
+			pickFirst,
+			{
+				rlOpenTransport,	/* Don't install MacTCP if OT TCP/IP control panel present */
+				rlAlreadyHasMacTCP,	/* Don't mess with MacTCP if it's already present */
+				rlMacTCP			/* Otherwise, install MacTCP */
 			},
 			pickFirst,
 			{
@@ -772,7 +893,9 @@ resource 'infr' (0) {
 #endif
 				rlEtherTalkUpdateDescription,
 				rlNetworkControlPanelDescription,
-				rlSEthernet30Description
+				rlMacTCPDescription,
+				rlSEthernet30Description,
+				rlSEthernetDescription
 			},
 			pickAll,
 			{	/* Install requested support packages */

@@ -6,6 +6,7 @@
 #define fsEtherTalkPhase2 9113
 #define fsSEthernetResources 13000
 #define fsSEthernet30 13002
+#define fsMacTCP 13010
 
 /* Target filespecs */
 #define fsTgtSystem 9001
@@ -26,6 +27,8 @@
 #define fsTgtEtherTalkPrepExtension 9201
 #define fsTgtSEthernet30 13003
 #define fsTgtSEthernet30Old 13004
+#define fsTgtMacTCP 13011
+#define fsTgtTCPIP 13012
 
 /* File Atoms */
 #define faAppleTalk 9002
@@ -44,6 +47,7 @@
 #define faDeleteEtherTalk21Extension 9120
 #define faSEthernet30 13002
 #define faDeleteOldSEthernet30 13004
+#define faMacTCP 13010
 
 /* Action Atoms */
 #define aaCheckSystem6 9001
@@ -109,6 +113,7 @@
 #define pkEtherTalkNB 9202
 #define pkENETDriverUpdate 9519
 #define pkEtherTalkNBCustom 14000
+#define pkMacTCP 13000
 #define pkSEthernet30 13001
 #define pkSEthernet30Custom 13000
 #define pkSEthernet 13002
@@ -120,6 +125,7 @@
 #define cmEtherTalkNB 14000
 #define cmSEthernet30 13000
 #define cmSEthernet 13001
+#define cmMacTCP 13010
 
 /* Rules */
 #define rlInstallENETDriver 9504
@@ -141,8 +147,6 @@
 #define rlInstallAppleTalk6 12003
 #define rlInstallAppleTalk7 12004
 #define rlInstallNetworkControlPanel 12008
-#define rlSEthernet30 13001
-#define rlSEthernet30Description 13002
 #define rlCCRD1_2 9521
 #define rlCCRD1_0 9522
 #define rlCCRD1_1 9523
@@ -156,6 +160,17 @@
 #define rlHasNetworkControl 9535
 #define rlUpdateNetworkControl 9537
 
+#define rlSEthernet30 13001
+#define rlSEthernet30Description 13002
+
+#define rlSEthernet 13003
+#define rlSEthernetDescription 13004
+
+#define rlAlreadyHasMacTCP 13010
+#define rlMacTCP 13011
+#define rlMacTCPDescription 13012
+#define rlOpenTransport 13013
+
 /* Assertions */
 #define asInstallAppleTalkSystem6 9511
 #define asInstallAppleTalkSystem7 9512
@@ -165,8 +180,11 @@
 #define asSystem6_0_4 9542
 #define asSystem7 9543
 #define asEtherTalkNB 9550
-#define asSEthernet30 13001
 #define asInstallAppleTalk 9503
 #define asInstallEtherTalk 9507
 #define asInstallingNetworkControl 9510
 #define asHasNetworkControl 9535
+
+#define asSEthernet30 13001
+#define asSEthernet 13003
+#define asMacTCP 13010

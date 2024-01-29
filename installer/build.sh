@@ -56,6 +56,7 @@ BOOT_IMAGE="images/buildenv.dsk.gz"
 # Must contain:
 #   - Installer version 3.4 application
 #   - Network Software Installer 1.4.4 files under 'AppleTalk Files'
+#   - MacTCP control panel under 'SEthernet Files'
 TEMPLATE_IMAGE="images/template.dsk.gz"
 
 while getopts "dhm:s:t:" opt; do
@@ -120,6 +121,7 @@ SOURCE_FILES=(
     "misc.r" 
     "packages.r" 
     "rules.r" 
+    "checkSE.c"
     "Build.mpw"
     "$BUILDDIR/software/shared/version/include/version.h")
 
@@ -130,7 +132,8 @@ SOURCE_FILES=(
 # renaming.
 declare -A BINARY_FILES=(
     ["$BUILDDIR/software/driver/SEthernet.bin"]=':SEthernet Files:SEthernet Resources'
-    ["$BUILDDIR/software/driver/SEthernet30.bin"]=':SEthernet Files:SEthernet/30')
+    ["$BUILDDIR/software/driver/SEthernet30.bin"]=':SEthernet Files:SEthernet/30'
+    ["$BUILDDIR/software/toosl/programROM/programROM.bin"]=':ProgramROM')
 
 hmount buildenv.dsk >/dev/null
 
@@ -159,7 +162,7 @@ humount buildenv.dsk
 
 # Copy our built artifacts into the installer disk
 hmount "${OUTPUTIMAGE}" >/dev/null
-hmkdir 'SEthernet Files'
+# hmkdir 'SEthernet Files'
 for f in ${!BINARY_FILES[@]}; do
     hcopy -m "$f" "${BINARY_FILES[$f]}"
 done

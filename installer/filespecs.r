@@ -216,3 +216,30 @@ resource 'infs' (fsTgtSEthernet30Old) {
 	TypeCrMustMatch,
 	"special-extn:SEthernet30"
 };
+
+resource 'infs' (fsMacTCP) {
+	'cdev',
+	'ztcp',
+	0,
+	noSearchForFile,
+	TypeCrMustMatch,
+	"SEthernet Installer:SEthernet Files:MacTCP"
+};
+
+resource 'infs' (fsTgtMacTCP) {
+	'cdev',
+	'ztcp',
+	0,
+	noSearchForFile,
+	TypeCrMustMatch,
+	"special-ctrl:MacTCP"
+};
+
+resource 'infs' (fsTgtTCPIP) {
+	'cdev',
+	'????',
+	0,
+	noSearchForFile,
+	TypeCrNeedNotMatch,
+	"special-ctrl:TCP/IP"
+};

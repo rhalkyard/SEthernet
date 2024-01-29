@@ -1254,3 +1254,20 @@ resource 'inra' (raSystem_DRVR69_ENET0) {
 		".ENET0"
 	}
 };
+
+resource 'infa' (faMacTCP) {
+	format0 {
+		deleteWhenRemoving,
+		deleteWhenInstalling,
+		copy,
+		leaveAloneIfNewer,
+		updateExisting,
+		copyIfNewOrUpdate,
+		rsrcFork,
+		dataFork,
+		fsTgtMacTCP,
+		fsMacTCP,
+		0,
+		""
+	}
+};

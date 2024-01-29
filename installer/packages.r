@@ -141,6 +141,21 @@ resource 'inpk' (pkEnabler201Patch) {
 	}
 };
 
+resource 'inpk' (pkMacTCP) {
+	format0 {
+		showsOnCustom,
+		removable,
+		forceRestart,
+		cmMacTCP,
+		0,
+		"MacTCP",
+		{
+			'infa', faMacTCP
+		}
+	}
+};
+
+
 resource 'inpk' (pkDivider) {
 	format0 {
 		showsOnCustom,
