@@ -12,12 +12,36 @@ extern void ReadPacket();
 extern void * header_start;
 #endif
 
-/* Find a protocol-handler table entry matching protocol number 'theProtocol'.
-Returns a pointer to the entry. */
+/*
+Find a protocol-handler table entry matching protocol number 'theProtocol'.
+Returns a pointer to the entry or nil if no match found.
+
+We (arbitrarily) support 16 protocol handler entries, but in practice, most
+systems will only ever have a maximum of 3 handlers active - the LAP manager,
+and the ARP and IP handlers for MacTCP. This is too few to justify the overhead
+of a proper hash table over linear search.
+
+As an optimization, we maintain the protocol handler table as contiguous - new
+handlers are installed to the first free entry, and the table is compacted when
+handlers are uninstalled.
+*/
 protocolHandlerEntry *findPH(const driverGlobalsPtr theGlobals,
                              const unsigned short theProtocol) {
   for (unsigned short i = 0; i < numberOfPhs; i++) {
     if (theGlobals->protocolHandlers[i].ethertype == theProtocol) {
+      return &theGlobals->protocolHandlers[i];
+    } else if (theGlobals->protocolHandlers[i].ethertype == phProtocolFree) {
+      return nil;
+    }
+  }
+  return nil;
+}
+
+/* Find a free entry in the protocol-handler table. Returns a pointer to the
+entry or nil if no free entries available. */
+static protocolHandlerEntry *findFreePH(const driverGlobalsPtr theGlobals) {
+  for (unsigned short i = 0; i < numberOfPhs; i++) {
+    if (theGlobals->protocolHandlers[i].ethertype == phProtocolFree) {
       return &theGlobals->protocolHandlers[i];
     }
   }
@@ -37,6 +61,11 @@ be little-used, and this driver does not implement ERead.
 OSStatus doEAttachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
   unsigned short theProtocol;
   protocolHandlerEntry *thePHSlot;
+  OSErr error = noErr;
+
+  /* Disable ethernet interrupts so that the ISR won't see the protocol handler
+  table in an inconsistent state */
+  unsigned short old_eie = enc624j600_disable_irq(&theGlobals->chip, IRQ_ENABLE);
 
   theProtocol = pb->u.EParms1.eProtType;
   if (theProtocol > 0 && theProtocol <= 1500) {
@@ -47,7 +76,8 @@ OSStatus doEAttachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
                         theProtocol);
     DebugStr((unsigned char *)strbuf);
 #endif
-    return lapProtErr;
+    error = lapProtErr;
+    goto done;
   }
   if (findPH(theGlobals, theProtocol) != nil) {
     /* Protocol handler already installed*/
@@ -56,7 +86,8 @@ OSStatus doEAttachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
                         theProtocol);
     DebugStr((unsigned char *)strbuf);
 #endif
-    return lapProtErr;
+    error = lapProtErr;
+    goto done;
   }
   if (pb->u.EParms1.ePointer == nil) {
     /* TODO: support ERead */
@@ -65,11 +96,12 @@ OSStatus doEAttachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
     strbuf[0] = sprintf(strbuf+1, "Failed to install ENetRead handler for protocol %04x. Not implemented.", theProtocol);
     DebugStr((unsigned char *)strbuf);
 #endif
-    return lapProtErr;
+    error = lapProtErr;
+    goto done;
   }
 
   /* Find an empty slot in the protocol handler table */
-  thePHSlot = findPH(theGlobals, phProtocolFree);
+  thePHSlot = findFreePH(theGlobals);
 
   if (thePHSlot == nil) {
 #if defined(DEBUG)
@@ -77,15 +109,18 @@ OSStatus doEAttachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
                         theProtocol);
     DebugStr((unsigned char *)strbuf);
 #endif
-    return lapProtErr;
+    error = lapProtErr;
+    goto done;
   } else {
   /* install the handler */
     thePHSlot->ethertype = theProtocol;
     thePHSlot->handler = (void *)pb->u.EParms1.ePointer;
     // thePHSlot->readPB = -1; /* not used */
-
-    return noErr;
   }
+done:
+
+  enc624j600_enable_irq(&theGlobals->chip, old_eie);
+  return error;
 }
 
 /*
@@ -98,6 +133,11 @@ calls, but we don't, so we don't.
 */
 OSStatus doEDetachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
   protocolHandlerEntry * thePHSlot;
+  OSErr error = noErr;
+
+  /* Disable ethernet interrupts so that the ISR won't see the protocol handler
+  table in an inconsistent state */
+  unsigned short old_eie = enc624j600_disable_irq(&theGlobals->chip, IRQ_ENABLE);
 
   thePHSlot = findPH(theGlobals, pb->u.EParms1.eProtType);
   if (thePHSlot != nil) {
@@ -107,9 +147,21 @@ OSStatus doEDetachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
     //     /* Cancel pending ERead calls */
     // }
 
-    return noErr;
-  } else
-    return lapProtErr;
+    /* Compact the protocol-handler table */
+    for (unsigned short i = 0; i < numberOfPhs - 1; i++) {
+      if (theGlobals->protocolHandlers[i].ethertype == phProtocolFree) {
+        if (theGlobals->protocolHandlers[i+1].ethertype != phProtocolFree) {
+          theGlobals->protocolHandlers[i] = theGlobals->protocolHandlers[i+1];
+          theGlobals->protocolHandlers[i+1].ethertype = phProtocolFree;
+        }
+      }
+    }
+  } else {
+    error = lapProtErr;
+  }
+  enc624j600_enable_irq(&theGlobals->chip, old_eie);
+
+  return error;
 }
 
 /*
