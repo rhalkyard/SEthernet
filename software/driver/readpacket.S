@@ -48,7 +48,7 @@ ReadRest:
     .err
     .endif
     TST.W       %d3                     /* check for zero-size read */
-    BEQ         1f                      /* nothing to do */
+    JEQ         1f                      /* nothing to do */
     JSR         ReadBuf                 /* read the data */
 /* 
 ReadBuf returns with:

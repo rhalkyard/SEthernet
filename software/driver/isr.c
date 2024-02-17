@@ -111,11 +111,11 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
 
   /* Record some FIFO stats */
   packetsPending = enc624j600_read_rx_pending_count(&theGlobals->chip);
-  if (packetsPending > theGlobals->info.rxPendingPacketsHWM) {
+  if (unlikely(packetsPending > theGlobals->info.rxPendingPacketsHWM)) {
     theGlobals->info.rxPendingPacketsHWM = packetsPending;
   }
   bytesPending = enc624j600_read_rx_fifo_level(&theGlobals->chip);
-  if (bytesPending > theGlobals->info.rxPendingBytesHWM) {
+  if (unlikely(bytesPending > theGlobals->info.rxPendingBytesHWM)) {
     theGlobals->info.rxPendingBytesHWM = bytesPending;
   }
 
@@ -166,16 +166,10 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
     goto accept;
   } else if (RSV_BIT(theGlobals->rha.header.rsv, RSV_BIT_MULTICAST) 
              && RSV_BIT(theGlobals->rha.header.rsv, RSV_BIT_HASH_MATCH)) {
-    /* Destination hash matches a multicast we're listening to */
-    if (findMulticastEntry(theGlobals, &theGlobals->rha.header.pktHeader.dest)) {
-      /* Actual destination address matches a multicast we're listening to */
+      /* Destination hash matches a multicast we're listening to. It is possible
+      for there to be a hash collision with another multicast address, but let's
+      just ignore that */
       theGlobals->info.multicastRxFrameCount++;
-      goto accept;
-    } else {
-      /* Multicast hash collision */
-      theGlobals->info.rxUnwanted++;
-      goto drop;
-    }
   } else {
     /* Hash collision with a non-multicast address */
     theGlobals->info.rxUnwanted++;
@@ -239,7 +233,7 @@ exit. */
 static void userISR(driverGlobalsPtr theGlobals) {
   short irq_status = enc624j600_read_irqstate(&theGlobals->chip);
 
-  if (irq_status & IRQ_TX) {
+  if (likely(irq_status & IRQ_TX)) {
     /* Transmit complete; signal successful completion */
 
     /* Record statistics */
@@ -353,12 +347,13 @@ unsigned long driverISR(driverGlobalsPtr theGlobals) {
   }
 
   if (likely(irq_status & (IRQ_TX | IRQ_TX_ABORT | IRQ_PKT))) {
+#if defined(TARGET_SE30)
     /* Transmit and receive handlers touch user memory. When running with
     Virtual Memory enabled, this could cause a double fault (if the ISR runs
     during a page fault and the user buffer is not paged in). DeferUserFn will
     delay calling the handler until a safe time. */
     if (theGlobals->vmEnabled) {
-      if (DeferUserFn(userISR, theGlobals) != noErr) {
+      if (unlikely(DeferUserFn(userISR, theGlobals) != noErr)) {
         /* If we can't defer for whatever reason (usually because other ISRs
         have filled the deferral queue), re-enable interrupts and return
         "interrupt not handled" status. When the ISR fires again (immediately,
@@ -377,6 +372,11 @@ unsigned long driverISR(driverGlobalsPtr theGlobals) {
       userISR(theGlobals);
       irq_handled = 1;
     }
+#elif defined(TARGET_SE)
+      /* SE doesn't support VM, just call the handler directly. */
+      userISR(theGlobals);
+      irq_handled = 1;
+#endif
   }
 
 #if defined(DEBUG)
