@@ -11,6 +11,8 @@ Assembly-language wrappers for calling ISRs.
 
 .global isrWrapper
 
+    RTS /* Extra RTS to ensure that MacsBug's label starts in the right place */
+
 isrWrapper:
 #if defined(TARGET_SE30)
 /* SE/30: isrWrapper is called by the Slot Manager to service card interrupts.

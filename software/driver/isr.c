@@ -316,7 +316,7 @@ static void userISR(driverGlobalsPtr theGlobals) {
   enc624j600_enable_irq(&theGlobals->chip, IRQ_ENABLE);
 }
 
-/* Interrupt handler, wrapped by driverISR below. */
+/* Interrupt handler */
 #pragma parameter __D0 driverISR(__A1)
 unsigned long driverISR(driverGlobalsPtr theGlobals) {
   unsigned short irq_status;

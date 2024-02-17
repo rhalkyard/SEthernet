@@ -41,9 +41,9 @@ header_start:
         .short dNeedLockMask + dCtlEnableMask /* drvrFlags - lock driver in 
                                                  memory, we respond to Control 
                                                  calls */
-        .short 0 /* drvrDelay - ticks between poll intervals. We don't poll. */
-        .short 0 /* drvrEMask - event mask for DAs */
-        .short 0 /* drvrMenu - menu resource ID for DAs */
+        .short 0 /* drvrDelay - ticks between poll intervals. 0 = Don't poll */
+        .short 0 /* drvrEMask - event mask for DAs. Not used. */
+        .short 0 /* drvrMenu - menu resource ID for DAs. Not used */
 
 /* offsets to entrypoints */
         .short doOpen-header_start      /* Open */
@@ -60,7 +60,7 @@ header_start:
         .align 2
 
 /* version number in 'vers' resource format */
-        .byte VERSION_MAJOR             /* major version in BCD format */
+        .byte VERSION_MAJOR             /* major version */
         .byte VERSION_MINOR             /* minor version in BCD format */
         .byte VERSION_DEVSTAGE          /* release stage */
         .byte VERSION_INTERNAL_ID       /* release number for non-final build */
