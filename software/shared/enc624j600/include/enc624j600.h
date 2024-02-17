@@ -89,10 +89,13 @@ static inline void enc624j600_enable_irq(const enc624j600 *chip,
   ENC624J600_SET_BITS(chip->base_address, EIE, irqmask);
 }
 
-/* Disable interrupts. Bits of irqmask are defined below */
-static inline void enc624j600_disable_irq(const enc624j600 *chip,
+/* Disable interrupts, returning old EIE register value for restoration with
+enc624j600_enable_irq. Bits of irqmask are defined below */
+static inline unsigned short enc624j600_disable_irq(const enc624j600 *chip,
                             const unsigned short irqmask) {
+  unsigned short oldeie = ENC624J600_READ_REG(chip->base_address, EIE);
   ENC624J600_CLEAR_BITS(chip->base_address, EIE, irqmask);
+  return oldeie;
 }
 
 /* Read interrupt state. Bits of return value are defined below */
