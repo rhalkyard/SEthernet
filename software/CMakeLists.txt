@@ -32,7 +32,7 @@ add_compile_options(# Add 'debug-safe' optimisations for debug builds - the
                     # function, rather than deferring it to time-of-use.
                     "$<$<CONFIG:Debug>:-fno-shrink-wrap>")
 
-
+add_link_options("-Wl,--no-warn-rwx-segments")
 
 add_subdirectory(driver)
 add_subdirectory(tools)
