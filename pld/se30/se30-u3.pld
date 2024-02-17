@@ -8,12 +8,14 @@ Assembly    SEthernet/30 Macintosh SE/30 Ethernet card ;
 Location    U3 ;
 Device      f1502isptqfp44 ;
 
-/* Don't let us assign to JTAG pins */
-PROPERTY ATMEL { JTAG=on };
+/* Enable JTAG interface with internal 10K pullups on TDI and TMS */
+PROPERTY ATMEL { JTAG = ON } ;
+PROPERTY ATMEL { TDI_PULLUP = ON } ;
+PROPERTY ATMEL { TMS_PULLUP = ON } ;
 
-/* Consider pin assignments to be fixed; don't try to rearrange them if the
-design will not fit */
-PROPERTY ATMEL { Preassign=Keep };
+/* Consider pin assignments to be immutable; don't try to rearrange the design
+if it does not fit with the given pin assignments */
+PROPERTY ATMEL { PREASSIGN = KEEP } ;
 
 /* 
 Bus-control logic for SEthernet/30
