@@ -161,10 +161,6 @@ void enc624j600_enable_phy_loopback(const enc624j600 *chip);
 /* Disable PHY loopback */
 void enc624j600_disable_phy_loopback(const enc624j600 *chip);
 
-/* Our own memcpy implementation that avoids longword writes */
-void enc624j600_memcpy(volatile unsigned char *dest,
-                       const unsigned char *source, const unsigned short len);
-
 /* Read len bytes from the receive FIFO into dest */
 #pragma parameter enc624j600_read_rxbuf(__A0, __A3, __D0)
 void enc624j600_read_rxbuf(enc624j600 *chip, unsigned char *dest,

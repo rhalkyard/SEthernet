@@ -15,6 +15,8 @@
 #include <Slots.h>
 #include <Traps.h>
 
+#include <string.h>
+
 #include "enc624j600.h"
 #include "enc624j600_registers.h"
 #include "isr.h"
@@ -92,14 +94,14 @@ static OSErr doEWrite(const driverGlobalsPtr theGlobals, const EParamBlkPtr pb) 
 
   /* Copy data from WDS into transmit buffer */
   do {
-    enc624j600_memcpy(dest, (Byte *)wds->entryPtr, wds->entryLength);
+    memcpy(dest, (Byte *)wds->entryPtr, wds->entryLength);
     dest += wds->entryLength;
     wds++;
   } while (wds->entryLength > 0);
 
   /* Go back and copy our address into the source field */
   dest = enc624j600_addr_to_ptr(&theGlobals->chip, ENC_TX_BUF_START + 6);
-  enc624j600_memcpy(dest, theGlobals->info.ethernetAddress, 6);
+  memcpy(dest, theGlobals->info.ethernetAddress, 6);
 
   if (unlikely(theGlobals->chip.link_state == LINK_DOWN)) {
     /* don't bother trying to send packets on a down link */
