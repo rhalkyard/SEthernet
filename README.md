@@ -120,6 +120,15 @@ Glue Logic: [SEthernet](pld/se) - [SEthernet/30](pld/se30)
 
 [Issue search for hardware bugs](https://github.com/rhalkyard/SEthernet/issues?q=is%3Aissue+is%3Aopen+label%3Abug+label%3Ahardware)
 
+## License
+
+The hardware components of this project ([board designs](boards/) and
+[programmable logic](pld/)) are licensed under the [Strongly-Reciprocal CERN
+Open Hardware License, version 2](CERN-OHL-S-2.0).
+
+The [software components](software/) of this project are licensed under the [GNU
+General Public License v3.0](COPYING).
+
 ## Useful reference material
 
 - [ENC624J600 datasheet](https://ww1.microchip.com/downloads/aemDocuments/documents/OTH/ProductDocuments/DataSheets/39935c.pdf)
