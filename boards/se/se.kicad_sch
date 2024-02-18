@@ -3148,8 +3148,8 @@
     (effects (font (size 1.27 1.27)) (justify left top))
     (uuid 354d8cdd-8fd0-46c0-9012-d6ad44b24aca)
   )
-  (text_box "The ENC624J600 requires a 1ns delay between asserting CS and asserting B0SEL/B1SEL. The propagation delay of a 74LVC2G17 buffer is perfect for this."
-    (at 31.75 144.78 0) (size 44.45 10.16)
+  (text_box "The ENC624J600 requires a 1ns delay between asserting CS and asserting B0SEL/B1SEL. U3 was placed to provide a small propagation delay for this, but it was insufficient, and a feedback path through the CPLD was found to be preferable."
+    (at 31.75 140.97 0) (size 44.45 13.97)
     (stroke (width -0.0001) (type default))
     (fill (type none))
     (effects (font (size 1.27 1.27)) (justify left top))
