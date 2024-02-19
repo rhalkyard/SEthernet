@@ -29,9 +29,9 @@ ethernet controller, and write a new driver for it. How hard can it be?
 Both the SEthernet and SEthernet/30 use the Microchip
 [ENC624J600](https://ww1.microchip.com/downloads/aemDocuments/documents/OTH/ProductDocuments/DataSheets/39935c.pdf)
 all-in-one embedded ethernet controller. It's cheap, readily available, has a
-straightforward software interface without any glaring misfeatures (I'm looking
-at you, RTL8019AS), and amongst its multitude of configurable host-bus modes, it
-has one that matches the 68k processor bus nicely.
+straightforward software interface without too many glaring misfeatures (I'm
+looking at you, RTL8019AS), and amongst its multitude of configurable host-bus
+modes, it has one that matches the 68k processor bus nicely.
 
 Since the Macintosh SE lacks any real infrastructure for expansion beyond
 "here's a connector with the CPU bus on it," the SEthernet board is a very dumb
@@ -49,31 +49,31 @@ declaration ROM is a flash chip, with logic to allow for in-system programming.
 
 ## Current project status
 
-Very early days yet! Pardon my dust as I get this repo organised, more thorough
-writeups are hopefully forthcoming. See the [Issue
-Tracker](https://github.com/rhalkyard/SEthernet/issues) for details.
-
 ### Hardware
 
-Hardware Revision 0 is heavily flawed (see issues
-[#1](https://github.com/rhalkyard/SEthernet/issues/1),
-[#2](https://github.com/rhalkyard/SEthernet/issues/2),
-[#3](https://github.com/rhalkyard/SEthernet/issues/3),
-[#4](https://github.com/rhalkyard/SEthernet/issues/4) and
-[#17](https://github.com/rhalkyard/SEthernet/issues/17)), and while these can
-all be worked around with varying degrees of hackiness, I strongly recommend
-against trying to build Revision 0 hardware for yourself. I'm working on a
-substantial redesign that will fix the Rev0 hardware bugs and incorporate a few
-other improvements and lessons learned.
+Hardware Revision 1 is largely 'done', and corrects the numerous issues of my
+initial "Revision 0" boards. A few mechanical tweaks remain to get mounting
+holes in exactly the right spot, and relocate connectors for easier access.
 
 ### Software
 
-The core driver is functional and stable enough for everyday use. Real-world is
-marginally better than a comparable vintage card, but there is likely room to
-improve.
+The core driver is functional and stable enough for everyday use. Real-world
+performance is marginally better than a comparable vintage card, but there is
+likely room to improve - especially in the rather convoluted receive routine.
 
 Support for promiscuous mode, and the `ERead` call are not yet implemented.
-Testing has been done on my SE/30 under Systems 6.0.8, 7.1, and 7.5.5.
+
+The installer has some rough edges (no hardware detection or driver version
+detection on the SE), but functions as a way to get drivers onto a system.
+
+The SE/30 board's Declaration ROM must be programmed before the card can be
+recognized. This can be done in-system using the
+[programROM](software/tools/programROM/) application provided on the installer
+disk, but right now this is a very ugly and user-unfriendly console application,
+and really should be turned into a proper GUI app.
+
+Testing has been done on my unmodified SE and SE/30 under Systems 6.0.8, 7.1,
+and 7.5.5.
 
 ## Project files
 
@@ -94,7 +94,7 @@ Glue Logic: [SEthernet](pld/se) - [SEthernet/30](pld/se30)
 
 ### Programmable Logic
 
-[WinCUPL](https://www.microchip.com/en-us/products/fpgas-and-plds/spld-cplds/pld-design-resources)
+[WinCUPL and ATMISP](https://www.microchip.com/en-us/products/fpgas-and-plds/spld-cplds/pld-design-resources)
 (see [`pld/README.md`](pld/README.md) for notes on WinCUPL)
 
 ### Declaration ROM, driver and software
@@ -115,10 +115,6 @@ Glue Logic: [SEthernet](pld/se) - [SEthernet/30](pld/se30)
 - [Python 3](https://www.python.org)
 
 - [Mini vMac](https://www.gryphel.com/c/minivmac/index.html)
-
-## Errata
-
-[Issue search for hardware bugs](https://github.com/rhalkyard/SEthernet/issues?q=is%3Aissue+is%3Aopen+label%3Abug+label%3Ahardware)
 
 ## License
 
