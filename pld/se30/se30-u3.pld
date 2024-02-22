@@ -48,17 +48,22 @@ PIN 5   = !ROM_WE ;     /* Write enable to flash ROM */
 PIN 6   = B0SEL ;       /* Low-address byte select to ENC624J600 */
 PIN 8   = ETH_CS ;      /* Chip select to ENC624J600 */
 PIN 10  = B1SEL ;       /* High-address byte select to ENC624J600 */
-PIN 30  = !DSACK0 ;     /* Data acknowledge flag to 68030 */
-PIN 31  = !DSACK1 ;     /* Data acknowledge flag to 68030 */
+PIN 30  = DSACK0 ;      /* Data acknowledge flag to 68030 */
+PIN 31  = DSACK1 ;      /* Data acknowledge flag to 68030 */
 PIN 34  = TP6 ;         /* Spare, I/O, connected to test point */
 PIN 42  = !IRQ3 ;       /* Interrupt output to 68030 */
 PIN 43  = !IRQ2 ;       /* Interrupt output to 68030 */
 PIN 44  = !IRQ1 ;       /* Interrupt output to 68030 */
 
-/* IRQ and DSACK outputs are wired-or; set output drivers to open-collector mode
-for these pins (note that this does NOT invert sense, they must still be
-declared above as inverted) */
-PROPERTY ATMEL { OPEN_COLLECTOR = IRQ1, IRQ2, IRQ3, DSACK0, DSACK1 } ;
+/* Note that DSACK0 and DSACK1 are active-low signals but we do NOT declare them
+inverted here, as the ATF1502 fitter seems to ignore output enables on pins that
+are declared inverted */
+
+/* IRQ outputs are wired-or; set output drivers to open-collector mode for these
+pins (note that this does NOT invert sense, they must still be declared above as
+inverted). Note that DSACK outputs are also open-collector, but we treat them
+specially in order to get around rise-time issues. */
+PROPERTY ATMEL { OPEN_COLLECTOR = IRQ1, IRQ2, IRQ3 } ;
 
 /*
 RESERVED
@@ -92,6 +97,9 @@ NODE holdoff_state ; /* Latch indicating holdoff state */
 NODE [write_count1..0] ;
 FIELD write_counter = [write_count1..0] ;
 
+/* Latch for DSACK fixup hack */
+NODE dsack_fixup ;
+
 FIELD ADDR_H  = [A31..24] ; /* High nybble of ADDR, used in simulator only */
 FIELD ADDR    = [A31..0] ;
 FIELD SLOTID  = [SLOTID_1..0] ;
@@ -102,6 +110,9 @@ addressed         = AS & SLOTID:'b'00 & ADDR:'h'F9xxxxxx ;
 APPEND addressed  = AS & SLOTID:'b'01 & ADDR:'h'FAxxxxxx ;
 APPEND addressed  = AS & SLOTID:'b'10 & ADDR:'h'FBxxxxxx ;
 APPEND addressed  = AS & SLOTID:'b'11 & ADDR:'h'FExxxxxx ;
+
+/* Address ranges that are eligible for DSACK fixup */
+fixup_select = addressed ;
 
 /* Only select devices after holdoff period has cleared */
 select = addressed & !holdoff_state ;
@@ -123,9 +134,23 @@ L       L       32 bit bus cycle complete
 L       H       16 bit bus cycle complete
 H       L       8 bit bus cycle complete
 H       H       Bus cycle in progress, insert wait states
+
+Note that we do some weird things here. DSACK is supposed to be open-collector,
+but to get around rise-time issues, we drive it push-pull and tri-state it using
+the .oe extension - see the 'dsack_fixup' equations further down for more
+details.
+
+The .oe extension does not seem to work properly with pins or l-values that are
+declared inverted, so instead we have to invert on the right-hand side of the
+assignment. Ugly.
 */
-DSACK0 = rom_cs & !wait ; /* ROM data bus is 8-bit (DSACK='b'01) */
-DSACK1 = ETH_CS & !wait ; /* ENC624J600 data bus is 16 bit (DSACK='b'10) */
+DSACK0 = !(rom_cs & !wait) ; /* ROM data bus is 8-bit (DSACK='b'01) */
+DSACK1 = !(ETH_CS & !wait) ; /* ENC624J600 data bus is 16 bit (DSACK='b'10) */
+
+/* Enable DSACK outputs while we are addressed and during the 'fixup' period
+following a bus cycle */
+DSACK0.oe = addressed # dsack_fixup ;
+DSACK1.oe = addressed # dsack_fixup ;
 
 /*
 Generate byte strobes for ENC624J600 accesses, based on low address bit and data
@@ -141,9 +166,9 @@ The SIZE field (SIZ1, SIZ0) indicates the *remaining* size to be read/written:
 e.g. for a 32 bit write to an 8-bit port, there would be 4 bus cycles, with SIZE
 going 00-11-10-01.
 */
-B0SEL = ETH_CS & DS & !A0 ;                  /* B0SEL on all even accesses */
-B1SEL = ETH_CS & DS & (A0 # ! (SIZE:'b'01)) ;  /* B1SEL on odd byte accesses, and
-                                                all >byte accesses */
+B0SEL = ETH_CS & DS & !A0 ;                   /* B0SEL on all even accesses */
+B1SEL = ETH_CS & DS & (A0 # ! (SIZE:'b'01)) ; /* B1SEL on odd byte accesses,
+                                                 and all >byte accesses */
 
 /* Suppress interrupts until write counter asserts interrupt-enable signal */
 interrupt = ETH_INT & interrupt_enable ;
@@ -227,3 +252,20 @@ sequence write_counter {
 write_counter.ck = !(ETH_CS & !RW) ; /* Increment counter on each write access */
 write_counter.ar = RESET ;
 interrupt_enable = write_counter:'d'3 ;
+
+/*
+AWFUL HACK ALERT
+
+On systems with multiple PDS boards, the rise time of DSACK can be slow enough
+to cause instability (especially on systems with accelerators). As a mitigation
+for this, we drive DSACK push-pull, and only tristate it at the start of the
+*next* bus cycle. This way, we can ensure that DSACK gets forcibly driven high,
+rather than gradually meandering up at the whims of parasitic capacitance.
+
+The 'fixup' state delays tri-stating DSACK until the assertion of /AS indicates
+the start of the next bus cycle.
+*/
+dsack_fixup.d = 'b'1 ;
+dsack_fixup.ck = !fixup_select ;  /* Enter fixup state when an eligble address
+                                     is deselected* */
+dsack_fixup.ar = AS # RESET ;     /* Exit fixup on start of next bus cycle */
