@@ -8,7 +8,6 @@ address */
 directory:
     OSLstEntry 1, board_sResource
     OSLstEntry 128, eth_functional_sResource
-    OSLstEntry 129, rom_functional_sResource
     EndLstEntry
 
 board_sResource:
@@ -63,27 +62,11 @@ eth_functional_sResource_rsrctype:
     RsrcType catNetwork, typeEtherNet, SETHERNET30_DRSW, SETHERNET30_DRHW
 
 eth_functional_sResource_rsrcname:
-    .ascii "Network SEthernet/30"
+    .ascii "Network_Ethernet_SEthernet_SE30"
     .byte 0
 
 eth_functional_sResource_baseoffset:
     .long 0x00000000
-
-rom_functional_sResource:
-    OSLstEntry sRsrcType, rom_functional_sResource_rsrctype
-    OSLstEntry sRsrcName, rom_functional_sResource_rsrcname
-    OSLstEntry minorBaseOS, rom_functional_sResource_baseoffset
-    EndLstEntry
-
-rom_functional_sResource_rsrctype:
-    RsrcType catTest, typeEtherNet, SETHERNET30_ROM_DRSW, SETHERNET30_ROM_DRHW
-
-rom_functional_sResource_rsrcname:
-    .ascii "SEthernet/30 ROM"
-    .byte 0
-
-rom_functional_sResource_baseoffset:
-    .long 0x000F0000
 
 /* Decalration ROM header */
     OSLstEntry 0 directory /* Offset to sResource directory */
