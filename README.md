@@ -125,6 +125,27 @@ Open Hardware License, version 2](CERN-OHL-S-2.0).
 The [software components](software/) of this project are licensed under the [GNU
 General Public License v3.0](COPYING).
 
+While my choice to make this project open-source is very much a deliberate one,
+I have a few further requests, on the basis of "I can't and won't enforce these,
+but I'd appreciate if you respected them." It's unfortunate that I have to
+mention this, but given how a few recent projects in the retro-hardware
+community have splintered, I feel that it's necessary to say:
+
+- Please don't sell cards commercially/for profit without checking with me
+  first. I have plans for a sales and manufacturing partnership that will sell
+  boards affordably, with full support. I don't mind if you order a batch of
+  boards for yourself and sell the extras on a break-even basis, but please make
+  it clear that these are not 'official' SEthernet products.
+
+- Please contribute back, rather than simply forking the project. I strongly
+  encourage people to modify the design, adapt it to other systems, integrate it
+  into other devices. But unless what you're working on is a radical departure
+  from the basic SEthernet design, I'd much rather see a unified, collaborative
+  effort that is supported by a single software stack, rather than having it be
+  fragmented.
+
+If you have any questions, feel free to reach out to me, I don't bite!
+
 ## Useful reference material
 
 - [ENC624J600 datasheet](https://ww1.microchip.com/downloads/aemDocuments/documents/OTH/ProductDocuments/DataSheets/39935c.pdf)
