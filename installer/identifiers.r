@@ -115,9 +115,9 @@
 #define pkEtherTalkNBCustom 14000
 #define pkMacTCP 13000
 #define pkSEthernet30 13001
-#define pkSEthernet30Custom 13000
-#define pkSEthernet 13002
-#define pkSEthernetCustom 13003
+#define pkSEthernet30Custom 13002
+#define pkSEthernet 13003
+#define pkSEthernetCustom 13004
 
 /* Package Comments */
 #define cmAppleTalkSystem6 14016

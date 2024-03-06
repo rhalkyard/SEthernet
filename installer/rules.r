@@ -706,13 +706,12 @@ resource 'inrl' (rlSEthernet) {
 					asSystem7
 				}
 			},
-			/*
-			checkUserFunction {
-				'infn',
-				13000,
-				0x800000
+			checkGestalt {
+				'mach', /* gestaltMachineType */
+				{ 
+					5	/* gestaltMacSE */
+				}
 			},
-			*/
 			addAssertion {
 				{
 					asInstallAppleTalk,

@@ -3,9 +3,6 @@ Set TYPECREATOR "-t bbkr -c bbkr"
 Set REZFLAGS "{TYPECREATOR} -I '{RIncludes}' -d currentDate=`Date -n`"
 Set LINKFLAGS "{TYPECREATOR}"
 
-#C {CFLAGS} -o checkSE.o checkSE.c
-#Link {LINKFLAGS} -rt infn=13000 -o 'Installer Script' checkSE.o
-
 # Compile our script resources. For some reason, Retro68's Rez does not like the
 # InstallerTypes.r include file, so we have to do this bit in MPW.
 Rez {REZFLAGS} -a -o 'Installer Script' filespecs.r 

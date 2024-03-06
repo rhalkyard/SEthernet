@@ -121,7 +121,6 @@ SOURCE_FILES=(
     "misc.r" 
     "packages.r" 
     "rules.r" 
-    "checkSE.c"
     "Build.mpw"
     "$BUILDDIR/software/shared/version/include/version.h")
 
@@ -133,7 +132,7 @@ SOURCE_FILES=(
 declare -A BINARY_FILES=(
     ["$BUILDDIR/software/driver/SEthernet.bin"]=':SEthernet Files:SEthernet Resources'
     ["$BUILDDIR/software/driver/SEthernet30.bin"]=':SEthernet Files:SEthernet/30'
-    ["$BUILDDIR/software/toosl/programROM/programROM.bin"]=':ProgramROM')
+    ["$BUILDDIR/software/tools/programROM/programROM.bin"]=':ProgramROM')
 
 hmount buildenv.dsk >/dev/null
 
