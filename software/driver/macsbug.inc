@@ -40,3 +40,11 @@ _macsbugSymbol\@:
     .align 2
     .word \ConstantLength
 .endm
+
+.macro _Debugger
+    .word 0xa9ff
+.endm
+
+.macro _DebugStr
+    .word 0xabff
+.endm

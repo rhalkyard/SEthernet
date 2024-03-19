@@ -101,7 +101,7 @@ RealReadPacket:
 
 1:
 #ifdef DEBUG
-    .short      0xa9ff                  /* Debugger */
+    _Debugger
 #endif
     MOVEQ       #-92, %d0               /* eLenErr */
     RTS
