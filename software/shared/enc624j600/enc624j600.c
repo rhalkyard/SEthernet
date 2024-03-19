@@ -351,64 +351,6 @@ void enc624j600_memcpy(volatile unsigned char *dest,
 }
 #endif
 
-/* Read data from receive FIFO, and advance buffer pointers */
-#pragma parameter enc624j600_read_rxbuf(__A0, __A3, __D0)
-void enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest, 
-                           const unsigned short len) {
-  unsigned short chunk_len, remainder;
-  const unsigned char * source = chip->rxptr;
-
-#if defined(DEBUG)
-  /* Don't try to read more data than is actually available. This shouldn't ever
-  happen, but check for it as an indicator of misbehaving software */
-  if (len > chip->rxbuf_end - chip->rxbuf_start) {
-    strbuf[0] =
-        sprintf(strbuf + 1, "Read length %d exceeds RX buffer size %ld!!", 
-                len, chip->rxbuf_end - chip->rxbuf_start);
-    DebugStr((unsigned char *)strbuf);
-  } else if (len > enc624j600_read_rx_fifo_level(chip)) {
-    strbuf[0] = sprintf(
-        strbuf + 1, "Read length %d exceeds current RX buffer occupancy %d!!",
-        len, enc624j600_read_rx_fifo_level(chip));
-    DebugStr((unsigned char *)strbuf);
-  }
-#endif
-
-  if (likely(source + len <= chip->rxbuf_end)) {
-    /* Read will not wrap around */
-    chunk_len = len;  /* Get everything in the first read */
-    remainder = 0;    /* No need for a second read */
-  } else {
-    /* Read will cause wraparound. */
-    chunk_len = chip->rxbuf_end - source; /* First read up to end of buffer */
-    remainder = len - chunk_len;          /* Second read gets the rest */
-  }
-
-  memcpy(dest, source, chunk_len);
-  dest += chunk_len;
-  source += chunk_len;
-
-  /* Wrap read pointer if we hit the end */
-  if (unlikely(source >= chip->rxbuf_end)) {
-#if defined(DEBUG)
-    if (source > chip->rxbuf_end) {
-      /* shouldn't ever happen */
-      DebugStr("\pRead overran end of receive buffer!");
-    }
-#endif
-    source = chip->rxbuf_start;
-  }
-
-  /* Do a second read to handle the wraparound case */
-  if (unlikely(remainder)) {
-    memcpy(dest, source, remainder);
-    source += remainder;
-  }
-
-  /* Update buffer read pointer and receive FIFO tail */
-  enc624j600_update_rxptr(chip, source);
-}
-
 /* Probe for an ENC624J600 as non-invasively as possible */
 short enc624j600_detect(const enc624j600 * chip) {
   const short detect_memlen = 64;

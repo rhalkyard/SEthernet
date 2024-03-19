@@ -26,6 +26,7 @@ this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "enc624j600_registers.h"
 #include "multicast.h"
 #include "protocolhandler.h"
+#include "readpacket.h"
 #include "util.h"
 
 #if defined(DEBUG)
@@ -45,10 +46,6 @@ driverGlobalsPtr isrGlobals;
 
 #define likely(x)    __builtin_expect (!!(x), 1)
 #define unlikely(x)  __builtin_expect (!!(x), 0)
-
-/* ReadPacket callback function that we pass to protocol handlers, defined in
-readpacket.S. We don't (and shouldn't) call it directly. */
-extern void ReadPacket();
 
 /* IODone may trash D3 and A2-A3, which are normally assumed to be preserved
 across calls. This is not documented anywhere obvious in Inside Macintosh, and
@@ -78,8 +75,8 @@ obvious that ethernet ISRs are intended to be all handcoded asm, but who's got
 the time for that?
 
 On protocol handler entry:
-  A0: driver-specific ReadPacket argument (pointer to driver globals)
-  A1: driver-specific ReadPacket argument (unused)
+  A0: driver-specific ReadPacket argument (unused)
+  A1: driver-specific ReadPacket argument (pointer to driver globals)
   A3: pointer into Receive Header Area, immediately after the header bytes
   A4: pointer to ReadPacket/ReadRest routine
   D1: number of bytes in packet (excluding header and FCS)
@@ -94,8 +91,8 @@ On protocol handler exit:
 static void callPH(enc624j600 *chip, void *phProc, Byte *payloadPtr,
                    unsigned short payloadLen) {
   asm volatile (
-    "   MOVE.L    %[chip], %%a0 \n\t"
-    "   MOVE.L    %[phProc], %%a1 \n\t"
+    "   MOVE.L    %[chip], %%a1 \n\t"
+    "   MOVE.L    %[phProc], %%a2 \n\t"
     "   MOVE.L    %[payloadPtr], %%a3 \n\t"
     "   MOVE.L    %[readPacketProc], %%a4 \n\t"
     "   MOVE.W    %[payloadLen], %%d1 \n\t"
@@ -107,13 +104,13 @@ static void callPH(enc624j600 *chip, void *phProc, Byte *payloadPtr,
     https://github.com/autc04/Retro68/issues/220
     */
     "   MOVE.L    %%a5, -(%%sp) \n\t"
-    "   JSR       (%%a1) \n\t"
+    "   JSR       (%%a2) \n\t"
     "   MOVE.L    (%%sp)+, %%a5 \n\t"
     : 
     : [chip] "g" (chip),
       [phProc] "g" (phProc),
       [payloadPtr] "g" (payloadPtr),
-      [readPacketProc] "g" (&ReadPacket),
+      [readPacketProc] "g" (&readPacket),
       [payloadLen] "g" (payloadLen)
     : "a0", "a1", "a2", "a3", "a4", "a5" /* ignored! */, "d0", "d1", "d2", "d3"
   );
@@ -139,9 +136,8 @@ static void handlePacket(driverGlobalsPtr theGlobals) {
 
   /* Copy the packet header (including ENC624J600 data) into the Receive Header
   Area (RHA) - packet handlers expect this */
-  enc624j600_read_rxbuf(&theGlobals->chip,
-                        (unsigned char *)&theGlobals->rha.header,
-                        sizeof(ringbufEntry));
+  readBuf(&theGlobals->chip, (unsigned char *)&theGlobals->rha.header,
+          sizeof(ringbufEntry));
 
   /* Next-packet pointer is stored little-endian and relative to chip address
   space */

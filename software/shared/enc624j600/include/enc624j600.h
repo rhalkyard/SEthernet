@@ -187,14 +187,7 @@ void enc624j600_disable_phy_loopback(const enc624j600 *chip);
 #if defined(REV0_SUPPORT)
 void enc624j600_memcpy(volatile unsigned char *dest,
                        const unsigned char *source, const unsigned short len);
-#else
-#define enc624j600_memcpy memcpy
 #endif
-
-/* Read len bytes from the receive FIFO into dest */
-#pragma parameter enc624j600_read_rxbuf(__A0, __A3, __D0)
-void enc624j600_read_rxbuf(enc624j600 *chip, unsigned char *dest,
-                           unsigned short len);
 
 /* Check to see if an ENC624J600 is present and functioning at baseaddress */
 short enc624j600_detect(const enc624j600 * chip);
