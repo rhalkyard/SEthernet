@@ -271,12 +271,20 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
           theGlobals->macSE = 1;
         }
       } else {
+#if defined(DEBUG)
+        strbuf[0] = sprintf(strbuf+1,
+            "SysEnvirons call failed with error %d", error);
+        DebugStr((unsigned char *) strbuf);
+#endif
         goto done;
       }
 
 #if defined(TARGET_SE30)
       /* SEThernet/30 driver requires the Slot Manager */
       if (!(theGlobals->hasSlotMgr)) {
+#if defined(DEBUG)
+        DebugStr("\pNo slot manager!!!");
+#endif
         error = openErr;
         goto done;
       }
@@ -312,6 +320,9 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
 #elif defined(TARGET_SE)
       /* Check to make sure we're actually running on a Macintosh SE */
       if (! (theGlobals->macSE)) {
+#if defined(DEBUG)
+        DebugStr("\pSE driver running on a non-SE!");
+#endif
         error = openErr;
         goto done;
       }
@@ -322,6 +333,11 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       /* Before we go any further, check to see if the ENC624J600 is actually
       there */
       if (enc624j600_detect(&theGlobals->chip) != 0) {
+#if defined(DEBUG)
+        strbuf[0] = sprintf(strbuf+1,
+            "Could not find ENC624J600 at %08x", (unsigned int) theGlobals->chip.base_address);
+        DebugStr((unsigned char *) strbuf);
+#endif
         error = openErr;
         goto done;
       }
@@ -343,6 +359,9 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
 
       /* Reset the chip */
       if (enc624j600_reset(&theGlobals->chip) != 0) {
+#if defined(DEBUG)
+        DebugStr("\pENC624J600 reset failed");
+#endif
         error = openErr;
         goto done;
       }
@@ -368,12 +387,18 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
 
       /* Test the chip's memory just to be *really* sure it's working */
       if (enc624j600_memtest(&theGlobals->chip) != 0) {
+#if defined(DEBUG)
+        DebugStr("\pENC624J600 memory test failed");
+#endif
         error = openErr;
         goto done;
       }
 
       /* Initialize the ethernet controller. */
       if (enc624j600_init(&theGlobals->chip, ENC_RX_BUF_START) != 0) {
+#if defined(DEBUG)
+        DebugStr("\pENC624J600 initialisation failed");
+#endif
         error = openErr;
         goto done;
       }
@@ -406,6 +431,11 @@ OSErr driverOpen(__attribute__((unused)) EParamBlkPtr pb, AuxDCEPtr dce) {
       theGlobals->theSInt.sqParm = (long)theGlobals;
       error = SIntInstall(&theGlobals->theSInt, dce->dCtlSlot);
       if (error != noErr) {
+#if defined(DEBUG)
+        strbuf[0] = sprintf(strbuf+1,
+            "SIntInstall call failed with error %d", error);
+        DebugStr((unsigned char *) strbuf);
+#endif
         goto done;
       }
 #elif defined(TARGET_SE)
