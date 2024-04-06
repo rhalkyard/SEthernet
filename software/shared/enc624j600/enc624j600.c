@@ -329,6 +329,28 @@ void enc624j600_disable_phy_loopback(const enc624j600 *chip) {
   enc624j600_write_phy_reg(chip, PHCON1, old_phcon1 & ~PHCON1_PLOOPBK);
 }
 
+#if defined(REV0_SUPPORT)
+/*
+Copy data byte-by-byte
+
+rev0 hardware has a bug that causes longword and unaligned-word writes to be
+unreliable (see issue #3). Vanilla memcpy() will try to use MOVE.W and MOVE.L
+whenever it can, which is normally the right thing to do, but not in our case.
+Any code that writes to chip memory should do so using this function rather than
+memcpy or direct access through pointers.
+
+dest has to be declared volatile because otherwise the optimizer gets too smart
+and turns this into an inline memcpy(), which is exactly what we're trying to
+avoid.
+*/
+void enc624j600_memcpy(volatile unsigned char *dest,
+                       const unsigned char *source, const unsigned short len) {
+  for (unsigned short i = 0; i < len; i++) {
+    *dest++ = *source++;
+  }
+}
+#endif
+
 /* Read data from receive FIFO, and advance buffer pointers */
 #pragma parameter enc624j600_read_rxbuf(__A0, __A3, __D0)
 void enc624j600_read_rxbuf(enc624j600 *chip, unsigned char * dest, 

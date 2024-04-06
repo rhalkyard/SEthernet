@@ -21,6 +21,10 @@ this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "enc624j600_registers.h"
 
+#if !defined(REV0_SUPPORT)
+#include <string.h>
+#endif
+
 /* Link state value is mirrored from the SPDDPX field of the PHSTAT3 register,
 with the addition of a 0 value indicating a down link. */
 enum enc624j600_link_state {
@@ -178,6 +182,14 @@ void enc624j600_enable_phy_loopback(const enc624j600 *chip);
 
 /* Disable PHY loopback */
 void enc624j600_disable_phy_loopback(const enc624j600 *chip);
+
+/* Our own memcpy implementation that avoids longword writes */
+#if defined(REV0_SUPPORT)
+void enc624j600_memcpy(volatile unsigned char *dest,
+                       const unsigned char *source, const unsigned short len);
+#else
+#define enc624j600_memcpy memcpy
+#endif
 
 /* Read len bytes from the receive FIFO into dest */
 #pragma parameter enc624j600_read_rxbuf(__A0, __A3, __D0)
