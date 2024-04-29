@@ -54,8 +54,9 @@ unsigned int probe_slots(void) {
   for (unsigned int slot = 9; slot < 0xf; slot++) {
     /* A valid slot will have the first byte of its declaration rom
     somewhere in the top of the slot address space */
-    for (int i = 0xffffff; i >= 0xfffff0; i--) {
-      if (buserror_probe(slotptr(slot, DECLROM_OFFSET)) >= 0) {
+    for (int offset = DECLROM_OFFSET+0xffff; offset >= DECLROM_OFFSET+0xfff0;
+         offset--) {
+      if (buserror_probe(slotptr(slot, offset)) >= 0) {
         result |= 1 << slot;
         break;
       }
