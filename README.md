@@ -75,6 +75,9 @@ and really should be turned into a proper GUI app.
 Testing has been done on my unmodified SE and SE/30 under Systems 6.0.8, 7.1,
 and 7.5.5.
 
+A driver for A/UX 2 and 3 can be found at
+https://github.com/rhalkyard/SEthernet-AUX. 
+
 ## Project files
 
 Schematics: [SEthernet](boards/se/se.pdf) -
