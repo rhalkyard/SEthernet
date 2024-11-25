@@ -17,18 +17,9 @@ this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include "protocolhandler.h"
-
 #include "driver.h"
-
 #include "enc624j600.h"
-
-#if defined(DEBUG)
-#include <Debugging.h>
-#include <stdio.h>
-extern char strbuf[255];
-extern void ReadPacket();
-extern void * header_start;
-#endif
+#include "util.h"
 
 /*
 Find a protocol-handler table entry matching protocol number 'theProtocol'.
@@ -89,31 +80,22 @@ OSStatus doEAttachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
   if (theProtocol > 0 && theProtocol <= 1500) {
     /* Not a valid ethertype (note that we reserve the invalid ethertype 0 for
     handling 802.2 Type 1 packets) */
-  #if defined(DEBUG)
-    strbuf[0] = sprintf(strbuf+1, "Failed to install handler for protocol %04x. Invalid.", 
-                        theProtocol);
-    DebugStr((unsigned char *)strbuf);
-#endif
+    DBGP("Failed to install handler for protocol %04x. Invalid.", theProtocol);
     error = lapProtErr;
     goto done;
   }
   if (findPH(theGlobals, theProtocol) != nil) {
     /* Protocol handler already installed*/
-#if defined(DEBUG)
-    strbuf[0] = sprintf(strbuf+1, "Failed to install handler for protocol %04x. Protocol in use.", 
-                        theProtocol);
-    DebugStr((unsigned char *)strbuf);
-#endif
+    DBGP("Failed to install handler for protocol %04x. Protocol in use.", 
+         theProtocol);
     error = lapProtErr;
     goto done;
   }
   if (pb->u.EParms1.ePointer == nil) {
     /* TODO: support ERead */
 
-#if defined(DEBUG)
-    strbuf[0] = sprintf(strbuf+1, "Failed to install ENetRead handler for protocol %04x. Not implemented.", theProtocol);
-    DebugStr((unsigned char *)strbuf);
-#endif
+    DBGP("Failed to install ENetRead handler for protocol %04x. Not implemented.",
+         theProtocol);
     error = lapProtErr;
     goto done;
   }
@@ -122,11 +104,8 @@ OSStatus doEAttachPH(driverGlobalsPtr theGlobals, const EParamBlkPtr pb) {
   thePHSlot = findFreePH(theGlobals);
 
   if (thePHSlot == nil) {
-#if defined(DEBUG)
-    strbuf[0] = sprintf(strbuf+1, "Failed to install handler for protocol %04x. No free slots.", 
-                        theProtocol);
-    DebugStr((unsigned char *)strbuf);
-#endif
+    DBGP("Failed to install handler for protocol %04x. No free slots.", 
+         theProtocol);
     error = lapProtErr;
     goto done;
   } else {

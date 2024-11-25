@@ -31,8 +31,6 @@ this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #if defined(DEBUG)
 #include <Debugging.h>
-#include <stdio.h>
-extern char strbuf[255];
 #endif
 
 #if defined(TARGET_SE)
@@ -214,11 +212,7 @@ accept:
     as I'm aware, this is not done by any software except for some Inside
     Macintosh code examples, and implementing ERead looks to be tricky, so for
     now it's not supported */
-#if defined(DEBUG)
-    strbuf[0] = sprintf(strbuf+1, "nil pointer for protocol %04x.", 
-                        protocolSlot->ethertype);
-    DebugStr((unsigned char *)strbuf);
-#endif
+    DBGP("nil pointer for protocol %04x.", protocolSlot->ethertype);
     theGlobals->info.rxUnknownProto++;
     goto drop;
   }
@@ -300,10 +294,7 @@ static void userISR(driverGlobalsPtr theGlobals) {
       theGlobals->info.internalTxErrors++;
     }
 
-#if defined(DEBUG)
-    strbuf[0] = sprintf(strbuf+1, "TX abort! ETXSTAT=%04x", txstat);
-    DebugStr((unsigned char *)strbuf);
-#endif
+    DBGP("TX abort! ETXSTAT=%04x", txstat);
 
     /* Acknowledge interrupt *before* calling IODone */
     enc624j600_clear_irq(&theGlobals->chip, IRQ_TX_ABORT);
@@ -351,10 +342,7 @@ unsigned long driverISR(driverGlobalsPtr theGlobals) {
     increment our receive-error counter. */
     theGlobals->info.internalRxErrors++;
 
-#if defined(DEBUG)
-    strbuf[0] = sprintf(strbuf+1, "RX abort! EIR=%04x", irq_status);
-    DebugStr((unsigned char *)strbuf);
-#endif
+    DBGP("RX abort! EIR=%04x", irq_status);
 
     enc624j600_clear_irq(&theGlobals->chip, IRQ_RX_ABORT | IRQ_PCNT_FULL);
     irq_handled = 1;
@@ -393,12 +381,9 @@ unsigned long driverISR(driverGlobalsPtr theGlobals) {
 #endif
   }
 
-#if defined(DEBUG)
   if (irq_handled == 0) {
-    strbuf[0] = sprintf(strbuf+1, "Spurious interrupt! EIR=%04x", irq_status);
-    DebugStr((unsigned char *)strbuf);
+    DBGP("Spurious interrupt! EIR=%04x", irq_status);
   }
-#endif
 
   enc624j600_enable_irq(&theGlobals->chip, IRQ_ENABLE);
   return irq_handled;

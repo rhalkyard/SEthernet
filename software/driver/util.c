@@ -26,7 +26,13 @@ this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "driver.h"
 
 #if defined(DEBUG)
-char strbuf[255];
+void DebugPrintf(const char * format, ...) {
+  static char strbuf[256];
+  va_list args;
+  va_start(args, format);
+  strbuf[0] = vsprintf(strbuf+1, format, args);
+  DebugStr((unsigned char *)strbuf);
+}
 #endif
 
 /* Check whether a given trap is available. Adapted from IM: Devices listing
