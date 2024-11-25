@@ -16,7 +16,6 @@ set(DRIVER_SOURCES
     multicast.c
     protocolhandler.c
     readpacket.S
-    registertools.c
     util.c
     )
 

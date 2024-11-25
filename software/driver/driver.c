@@ -36,7 +36,6 @@ this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "isr.h"
 #include "multicast.h"
 #include "protocolhandler.h"
-#include "registertools.h"
 #include "util.h"
 
 #if defined(TARGET_SE30)
@@ -609,22 +608,6 @@ OSErr driverControl(EParamBlkPtr pb, AuxDCEPtr dce) {
     case ENetEnablePromiscuous:
     case ENetDisablePromiscuous:
       reeturn controlErr;
-#endif
-
-#if 0
-    /* Custom csCodes for debugging this driver. */
-    case ENCReadReg: /* Read ENC624J600 register */
-      return doENCReadReg(theGlobals, (CntrlParamPtr)pb);
-    case ENCWriteReg: /* Write ENC624J600 register */
-      return doENCWriteReg(theGlobals, (CntrlParamPtr)pb);
-    case ENCReadPhy: /* Read ENC624J600 PHY register */
-      return doENCReadPhy(theGlobals, (CntrlParamPtr)pb);
-    case ENCWritePhy: /* Write ENC624J600 PHY register */
-      return doENCWritePhy(theGlobals, (CntrlParamPtr)pb);
-    case ENCEnableLoopback: /* Enable PHY internal loopback */
-      return doENCEnableLoopback(theGlobals);
-    case ENCDisableLoopback: /* Disable PHY internal loopback */
-      return doENCDisableLoopback(theGlobals);
 #endif
 
     default:
