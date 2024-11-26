@@ -9,11 +9,10 @@ target_link_libraries(declrom board_defs version)
 
 # Generate a 'library' containing the ROM data formatted as a C header, for use
 # by firmware update tools.
-add_library(declrom_header INTERFACE)
+add_library(declrom_header INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/include/se30-u2.h)
 # The header is generated, so we have to tell CMake to find it in our build
 # tree, not the source
 target_include_directories(declrom_header INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/include/)
-
 
 # Build the ROM image
 add_custom_command(
@@ -28,7 +27,7 @@ add_custom_command(
         --output se30-u2.rom
         --pad 65536
         se30-u2.rom
-    DEPENDS $<TARGET_OBJECTS:declrom>
+    DEPENDS declrom
 )
 
 # Build a header-ified version of the ROM image
