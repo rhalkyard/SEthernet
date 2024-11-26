@@ -6,37 +6,17 @@ Windows-based
 software. Unfortunately, using WinCUPL is a retrocomputing exercise in its own
 right - the GUI does not work on anything newer than Windows XP.
 
-However, it provides a (rather cryptic) command-line CUPL compiler that works
-fine on modern Windows. The `clean.bat` and `build.bat` scripts in each
-directory contain the right incantations to compile the equations to a JEDEC
-`.JED` file that most programming software understands.
+However, it is possible to run WinCUPL under Wine, and the CMake monstrosity in
+this directory uses Wine and WinCUPL to build CUPL sources without having to
+mess with Windows XP. It looks for WinCUPL in `~/.wine/drive_c/Wincupl`, which
+is the default installation path. If your Wine data is in a different place, or
+you installed WinCUPL elsewhere, the `WINCUPL_PATH` cache variable will need to
+be set to point to the correct location. If Wine and/or Wincupl are not
+available, then the PLD build target is skipped.
 
-The `.JED` file must then be opened in the ATMISP software (also found at the
-link above), and the programming chain set up as follows:
-
-1. File->New
-2. When prompted for the number of devices, enter '1'
-3. Select 'ATF1502AS' for Device Name, 'Program/Verify' for JTAG Instruction,
-   and the `.JED` file built by CUPL as JEDEC File
-
-If you have a Microchip/Atmel ATDH1150-series programming cable, ATMISP can be
-used directly to program the CPLDs. Otherwise, check the 'Write SVF File' box
-(and specify an output file) to generate programming data in `.SVF` format that
-can be replayed on a generic JTAG adapter, using, e.g. OpenOCD.
-
-Note that ATMISP appears to read the programming data in at step 3 and does not
-re-read it! If you have built a new `.JED` file, you must create a new
-programming chain and repeat the steps above for your changes to be reflected in
-the `.SVF` output!!!
-
-
-## Room for improvement
-
-This whole awkward workflow could be replaced by
-[Yosys](https://github.com/YosysHQ/yosys) and
-[prjbureau](https://github.com/whitequark/prjbureau), and the logic rewritten in
-a more modern language such as Verilog or Amaranth. The fitter (`fit1502.exe`)
-and associated files from ProChip Designer would still be required, however.
-
-Alternatively, the `util.fuseconv` tool from `prjbureau` could be used on its
-own to convert `.JED` to `.SVF` without having to deal with ATMISP.
+The typical WinCUPL workflow is to then use the ATMISP software to either drive
+an Atmel/Microchip programmer directly, or generate an SVF file that can be used
+by a generic JTAG programmer. This workflow, frankly, stinks, and we instead use
+the `fuseconv` utility from [prjbureau](https://github.com/whitequark/prjbureau)
+to generate an SVF. Setup of prjbureau is automatic, but Python 3 and the
+`virtualenv` module are required.
